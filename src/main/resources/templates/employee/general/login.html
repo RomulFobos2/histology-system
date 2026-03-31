@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Вход | АОС ПИ</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body class="auth-page">
+<div class="auth-container">
+    <div class="auth-card">
+        <form action="/employee/login" method="post" class="auth-form">
+
+            <div class="auth-brand">
+                <div class="auth-brand-icon">
+                    <i class="bi bi-gear-wide-connected"></i>
+                </div>
+                <h1 class="page-title">АОС ПИ</h1>
+                <p class="page-subtitle">Подготовка специалистов по пневмоиспытаниям ДУ РКН</p>
+            </div>
+
+            <div class="alert alert-danger" th:if="${param.error}">
+                Неправильный логин или пароль
+            </div>
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Имя пользователя</label>
+                <input type="text" id="username" name="username"
+                       placeholder="Введите логин"
+                       class="form-control" autofocus="true" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="inputPassword" class="form-label">Пароль</label>
+                <input type="password" id="inputPassword" name="password"
+                       placeholder="Введите пароль"
+                       class="form-control" required>
+            </div>
+
+            <div class="form-check text-start mb-4">
+                <input type="checkbox" class="form-check-input" id="togglePassword">
+                <label class="form-check-label" for="togglePassword">
+                    Показать пароль
+                </label>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-auth">
+                Войти
+            </button>
+
+            <div class="divider">
+                <span>АО «СП «Байтерек»</span>
+            </div>
+
+            <div class="link-section">
+                <a href="/">← На главную</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    var togglePassword = document.getElementById('togglePassword');
+    var passwordInput = document.getElementById('inputPassword');
+    togglePassword.addEventListener('change', function() {
+        passwordInput.type = togglePassword.checked ? 'text' : 'password';
+    });
+</script>
+</body>
+</html>

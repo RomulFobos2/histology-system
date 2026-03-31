@@ -1,0 +1,231 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Добавить пользователя | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Добавить пользователя</h1>
+                        <p class="page-subtitle">Заполните данные нового сотрудника</p>
+
+                        <div th:if="${userError}" class="alert alert-danger" th:text="${userError}"></div>
+
+                        <form action="/employee/admin/users/addUser" method="post" class="auth-form">
+
+                            <!-- Личные данные -->
+                            <h6 class="form-section-title">Личные данные</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Фамилия *</label>
+                                    <input type="text" name="inputLastName" class="form-control"
+                                           required maxlength="50" placeholder="Иванов">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Имя *</label>
+                                    <input type="text" name="inputFirstName" class="form-control"
+                                           required maxlength="50" placeholder="Иван">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Отчество</label>
+                                    <input type="text" name="inputMiddleName" class="form-control"
+                                           maxlength="50" placeholder="Иванович">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Дата рождения</label>
+                                    <input type="date" name="inputBirthDate" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Подразделение</label>
+                                    <select name="inputDepartmentId" class="form-select">
+                                        <option value="">— Не выбрано —</option>
+                                        <option th:each="dept : ${allDepartments}" th:value="${dept.id}" th:text="${dept.name}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Должность</label>
+                                    <input type="text" name="inputPosition" class="form-control"
+                                           maxlength="200" placeholder="Инженер">
+                                </div>
+                            </div>
+
+                            <!-- Данные входа -->
+                            <h6 class="form-section-title">Данные входа</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Логин *</label>
+                                    <input type="text" id="inputUsername" name="inputUsername" class="form-control"
+                                           required maxlength="50" placeholder="ivanov">
+                                    <div id="usernameFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Роль *</label>
+                                    <select name="inputRole" class="form-select" required>
+                                        <option value="" disabled selected>Выберите роль</option>
+                                        <option th:each="role : ${allRoles}"
+                                                th:value="${role.name}"
+                                                th:text="${role.description}"></option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Пароль -->
+                            <h6 class="form-section-title">Пароль</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Пароль *</label>
+                                    <input type="password" id="inputPassword" name="inputPassword" class="form-control"
+                                           required minlength="8" placeholder="Минимум 8 символов">
+                                    <div class="form-text text-muted">Не менее 8 символов, хотя бы одна цифра и одна заглавная буква</div>
+                                    <div id="passwordStrengthFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Подтверждение пароля *</label>
+                                    <input type="password" id="inputPasswordConfirm" class="form-control"
+                                           required placeholder="Повторите пароль">
+                                    <div id="passwordFeedback" class="form-text"></div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile" disabled>
+                                <i class="bi bi-check-lg"></i> Создать пользователя
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/admin/users/allUsers}">← К списку пользователей</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    var usernameInput = document.getElementById('inputUsername');
+    var passwordInput = document.getElementById('inputPassword');
+    var passwordConfirmInput = document.getElementById('inputPasswordConfirm');
+    var usernameFeedback = document.getElementById('usernameFeedback');
+    var passwordFeedback = document.getElementById('passwordFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+
+    var usernameValid = false;
+    var strengthOk = false;
+    var matchOk = false;
+    var passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    var strengthFeedback = document.getElementById('passwordStrengthFeedback');
+
+    function validateForm() {
+        submitBtn.disabled = !(usernameValid && strengthOk && matchOk);
+    }
+
+    // AJAX проверка username
+    var usernameTimer;
+    usernameInput.addEventListener('input', function () {
+        clearTimeout(usernameTimer);
+        var value = usernameInput.value.trim();
+        if (value.length === 0) {
+            usernameInput.classList.remove('is-valid', 'is-invalid');
+            usernameFeedback.textContent = '';
+            usernameValid = false;
+            validateForm();
+            return;
+        }
+        usernameTimer = setTimeout(function () {
+            fetch('/employee/admin/users/check-username?username=' + encodeURIComponent(value))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        usernameInput.classList.remove('is-valid');
+                        usernameInput.classList.add('is-invalid');
+                        usernameFeedback.textContent = 'Этот логин уже занят';
+                        usernameFeedback.style.color = 'var(--danger)';
+                        usernameValid = false;
+                    } else {
+                        usernameInput.classList.remove('is-invalid');
+                        usernameInput.classList.add('is-valid');
+                        usernameFeedback.textContent = 'Логин свободен';
+                        usernameFeedback.style.color = 'var(--success)';
+                        usernameValid = true;
+                    }
+                    validateForm();
+                });
+        }, 400);
+    });
+
+    // Проверка силы пароля
+    function checkStrength() {
+        var pass = passwordInput.value;
+        if (pass.length === 0) {
+            strengthFeedback.textContent = '';
+            passwordInput.classList.remove('is-valid', 'is-invalid');
+            strengthOk = false;
+        } else if (passwordRegex.test(pass)) {
+            strengthFeedback.textContent = 'Пароль соответствует требованиям';
+            strengthFeedback.style.color = 'var(--success)';
+            passwordInput.classList.remove('is-invalid');
+            passwordInput.classList.add('is-valid');
+            strengthOk = true;
+        } else {
+            var msg = [];
+            if (pass.length < 8) msg.push('минимум 8 символов');
+            if (!/[A-Z]/.test(pass)) msg.push('заглавная буква');
+            if (!/\d/.test(pass)) msg.push('цифра');
+            strengthFeedback.textContent = 'Не хватает: ' + msg.join(', ');
+            strengthFeedback.style.color = 'var(--danger)';
+            passwordInput.classList.remove('is-valid');
+            passwordInput.classList.add('is-invalid');
+            strengthOk = false;
+        }
+        checkMatch();
+    }
+
+    // Проверка совпадения паролей
+    function checkMatch() {
+        var pass = passwordInput.value;
+        var confirm = passwordConfirmInput.value;
+        if (confirm.length === 0) {
+            passwordConfirmInput.classList.remove('is-valid', 'is-invalid');
+            passwordFeedback.textContent = '';
+            matchOk = false;
+        } else if (pass === confirm) {
+            passwordConfirmInput.classList.remove('is-invalid');
+            passwordConfirmInput.classList.add('is-valid');
+            passwordFeedback.textContent = 'Пароли совпадают';
+            passwordFeedback.style.color = 'var(--success)';
+            matchOk = true;
+        } else {
+            passwordConfirmInput.classList.remove('is-valid');
+            passwordConfirmInput.classList.add('is-invalid');
+            passwordFeedback.textContent = 'Пароли не совпадают';
+            passwordFeedback.style.color = 'var(--danger)';
+            matchOk = false;
+        }
+        validateForm();
+    }
+
+    passwordInput.addEventListener('input', checkStrength);
+    passwordConfirmInput.addEventListener('input', checkMatch);
+</script>
+</body>
+</html>

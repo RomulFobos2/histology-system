@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Пользователи | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Пользователи</h1>
+                    <div class="profile-actions">
+                        <a th:href="@{/employee/admin/users/addUser}" class="btn btn-success btn-profile">
+                            <i class="bi bi-plus-lg"></i> Добавить пользователя
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="table-container">
+                <table id="usersTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">ФИО</th>
+                        <th data-sortable data-sort-type="text">Роль</th>
+                        <th data-sortable data-sort-type="text">Подразделение</th>
+                        <th data-sortable data-sort-type="text">Должность</th>
+                        <th data-sortable data-sort-type="text">Логин</th>
+                        <th>Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user, index : ${allUsers}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/admin/users/detailsUser/{id}(id=${user.id})}"
+                               th:text="${user.fullName}"></a>
+                        </td>
+                        <td th:text="${user.roleDescription}"></td>
+                        <td th:text="${user.departmentName}"></td>
+                        <td th:text="${user.position}"></td>
+                        <td th:text="${user.username}"></td>
+                        <td>
+                            <span th:if="${user.active}" class="badge-active">Активен</span>
+                            <span th:unless="${user.active}" class="badge-inactive">Деактивирован</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script>
+    initPagination('usersTable', { perPage: 20 });
+    initSortable('usersTable');
+</script>
+</body>
+</html>

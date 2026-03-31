@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>АОС ПИ — Обучающая система</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+
+<th:block sec:authorize="!isAuthenticated()">
+<main>
+    <section class="home-hero">
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h2>Автоматизированная обучающая система</h2>
+                    <p>Подготовка и аттестация специалистов группы обеспечения пневмоиспытаний двигательной установки РКН.</p>
+                    <a href="/employee/login" class="btn">Войти в систему</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-features">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-book"></i></div>
+                        <h5>Теория</h5>
+                        <p class="text-muted">Разделы и материалы по пневмосистеме ДУ РКН.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-pencil-square"></i></div>
+                        <h5>Тестирование</h5>
+                        <p class="text-muted">Проверка знаний с таймером и разными типами вопросов.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-clipboard-data"></i></div>
+                        <h5>Протоколы</h5>
+                        <p class="text-muted">Журналы, отчёты и протоколы по результатам аттестации.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-diagram-3"></i></div>
+                        <h5>Мнемосхема</h5>
+                        <p class="text-muted">Работа со схемой пневмосистемы и учебными сценариями.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="text-center py-3" style="color: var(--text-secondary); font-size: 0.85rem;">
+        &copy; 2026 АОС ПИ &mdash; АО «СП «Байтерек», Байконур | МАИ филиал «Восход»
+    </footer>
+</main>
+</th:block>
+
+<th:block sec:authorize="isAuthenticated()">
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card p-4 mb-4" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: #fff;">
+                <h2 class="mb-2">Автоматизированная обучающая система</h2>
+                <p class="mb-0" style="opacity: 0.9;">Рабочее место для изучения теории, проверки знаний и прохождения сценариев.</p>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon"><i class="bi bi-book"></i></div>
+                        <h5>Теория</h5>
+                        <p class="text-muted">Разделы и материалы по пневмосистеме ДУ РКН.</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon"><i class="bi bi-pencil-square"></i></div>
+                        <h5>Тестирование</h5>
+                        <p class="text-muted">Проверка знаний с таймером и разными типами вопросов.</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon"><i class="bi bi-clipboard-data"></i></div>
+                        <h5>Протоколы</h5>
+                        <p class="text-muted">Журналы, отчёты и протоколы по результатам аттестации.</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon"><i class="bi bi-diagram-3"></i></div>
+                        <h5>Мнемосхема</h5>
+                        <p class="text-muted">Работа со схемой пневмосистемы и учебными сценариями.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</th:block>
+
+</body>
+</html>

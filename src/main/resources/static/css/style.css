@@ -1,0 +1,804 @@
+/* ========================================
+   АОС ПИ — Автоматизированная обучающая система
+   CSS в стиле SB Admin 2 (sidebar layout)
+   Цветовая схема: navy / teal
+   ======================================== */
+
+:root {
+    --primary:        #1e3a5f;
+    --primary-light:  #2c5282;
+    --primary-dark:   #152a45;
+    --accent:         #0ea5e9;
+    --accent-light:   #38bdf8;
+    --accent-dark:    #0284c7;
+    --sidebar-bg:     #1e293b;
+    --sidebar-hover:  #334155;
+    --sidebar-active: #0ea5e9;
+    --topbar-bg:      #ffffff;
+    --body-bg:        #f1f5f9;
+    --card-bg:        #ffffff;
+    --success:        #10b981;
+    --danger:         #ef4444;
+    --warning:        #f59e0b;
+    --text-primary:   #1e293b;
+    --text-secondary: #64748b;
+    --text-on-dark:   #e2e8f0;
+    --border:         #e2e8f0;
+    --gradient:       linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%);
+}
+
+/* ========================================
+   ОБЩИЕ СТИЛИ
+   ======================================== */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--body-bg);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: var(--primary-light);
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--accent);
+}
+
+/* ========================================
+   LAYOUT: WRAPPER + SIDEBAR + CONTENT
+   ======================================== */
+
+#wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+
+#sidebar {
+    width: 250px;
+    background: var(--sidebar-bg);
+    color: var(--text-on-dark);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+    transition: width 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar.collapsed {
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar-brand {
+    padding: 1.25rem 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: nowrap;
+    color: var(--accent-light);
+}
+
+.sidebar-brand i {
+    font-size: 1.4rem;
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+}
+
+.sidebar-heading {
+    padding: 0.75rem 1rem 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    font-weight: 600;
+}
+
+.sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    margin: 0.5rem 1rem;
+}
+
+.sidebar-nav .nav-item a {
+    display: flex;
+    align-items: center;
+    padding: 0.65rem 1rem;
+    color: var(--text-on-dark);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav .nav-item a:hover {
+    background: var(--sidebar-hover);
+    border-left-color: var(--accent);
+}
+
+.sidebar-nav .nav-item a.active {
+    background: rgba(14, 165, 233, 0.15);
+    color: #fff;
+    border-left-color: var(--accent);
+    font-weight: 500;
+}
+
+.sidebar-nav .nav-item a i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.sidebar-nav .nav-item a:hover i {
+    opacity: 1;
+}
+
+/* ===== CONTENT WRAPPER ===== */
+
+#content-wrapper {
+    flex: 1;
+    margin-left: 250px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: var(--body-bg);
+    transition: margin-left 0.3s ease;
+}
+
+#content-wrapper.sidebar-collapsed {
+    margin-left: 0;
+}
+
+/* ===== TOPBAR ===== */
+
+#topbar {
+    background: var(--topbar-bg);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.topbar-toggler {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.topbar-toggler:hover {
+    background: var(--body-bg);
+    color: var(--text-primary);
+}
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.topbar-user-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* ===== MAIN CONTENT ===== */
+
+main.container-fluid {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+/* ===== FOOTER ===== */
+
+footer {
+    background: var(--topbar-bg);
+    padding: 1rem 1.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+}
+
+/* ========================================
+   КАРТОЧКИ
+   ======================================== */
+
+.profile-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border);
+}
+
+.profile-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* ========================================
+   ЗАГОЛОВКИ СТРАНИЦ
+   ======================================== */
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   ТАБЛИЦЫ
+   ======================================== */
+
+.table-container {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.table-modern {
+    margin-bottom: 0;
+}
+
+.table-modern thead {
+    background: var(--gradient);
+    color: white;
+}
+
+.table-modern thead th {
+    border: none;
+    padding: 0.85rem 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.table-modern tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.15s ease;
+}
+
+.table-modern tbody tr:last-child {
+    border-bottom: none;
+}
+
+.table-modern tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.table-modern tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.table-modern tbody td a {
+    color: var(--primary-light);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.table-modern tbody td a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* ========================================
+   ФОРМЫ
+   ======================================== */
+
+.auth-form .form-control,
+.auth-form .form-select {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.auth-form .form-control:focus,
+.auth-form .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.15);
+}
+
+.form-section-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+}
+
+/* ========================================
+   КНОПКИ
+   ======================================== */
+
+.btn-profile {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+}
+
+.btn-profile:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    min-width: 140px;
+}
+
+/* ========================================
+   INFO DISPLAY (disabled поля на details)
+   ======================================== */
+
+.info-display {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+}
+
+/* ========================================
+   BADGES
+   ======================================== */
+
+.badge-active {
+    background-color: var(--success);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge-inactive {
+    background-color: var(--danger);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* ========================================
+   АЛЕРТЫ
+   ======================================== */
+
+.alert {
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   СТРАНИЦЫ АУТЕНТИФИКАЦИИ (login)
+   Standalone — без sidebar
+   ======================================== */
+
+.auth-page {
+    background: var(--body-bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-container {
+    max-width: 440px;
+    width: 100%;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 2.5rem;
+    border: 1px solid var(--border);
+}
+
+.auth-brand {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth-brand-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.btn-auth {
+    background: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.btn-auth:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(30, 58, 95, 0.3);
+    color: white;
+}
+
+.btn-auth:disabled {
+    background: var(--text-secondary);
+    transform: none;
+}
+
+.auth-form .form-check-input:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+}
+
+.divider span {
+    background: white;
+    padding: 0 1rem;
+    position: relative;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.link-section {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.link-section a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-section a:hover {
+    color: var(--accent);
+}
+
+/* ========================================
+   ВАЛИДАЦИЯ
+   ======================================== */
+
+.is-valid {
+    border-color: var(--success) !important;
+}
+
+.is-invalid {
+    border-color: var(--danger) !important;
+}
+
+/* ========================================
+   СТРАНИЦА HOME (standalone)
+   ======================================== */
+
+.home-hero {
+    background: var(--gradient);
+    color: white;
+    padding: 5rem 0;
+    text-align: center;
+}
+
+.home-hero h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.home-hero p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+.home-hero .btn {
+    background: white;
+    color: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.home-hero .btn:hover {
+    background: var(--accent-light);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.home-features {
+    padding: 3rem 0;
+}
+
+.feature-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.section-nav-card {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.section-nav-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    color: inherit;
+    text-decoration: none;
+}
+
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(14, 165, 233, 0.1);
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* ========================================
+   СТРАНИЦЫ ОШИБОК (standalone)
+   ======================================== */
+
+.error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--body-bg);
+    text-align: center;
+    padding: 20px;
+}
+
+.error-code {
+    font-size: 6rem;
+    font-weight: 800;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.error-message {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+/* ========================================
+   УТИЛИТЫ
+   ======================================== */
+
+.text-gradient {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ========================================
+   МОДАЛЬНЫЕ ОКНА
+   ======================================== */
+
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    background: var(--body-bg);
+}
+
+.modal-title {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ
+   ======================================== */
+
+@media (max-width: 768px) {
+    #sidebar {
+        width: 0;
+        overflow: hidden;
+    }
+
+    #sidebar.mobile-open {
+        width: 250px;
+    }
+
+    #content-wrapper {
+        margin-left: 0 !important;
+    }
+
+    .page-title {
+        font-size: 1.25rem;
+    }
+
+    .auth-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .profile-actions {
+        flex-direction: column;
+    }
+}
+
+/* Overlay для mobile sidebar */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* ===== Drag and Drop ===== */
+.drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    width: 30px;
+    text-align: center;
+    user-select: none;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+tr.dragging {
+    opacity: 0.4;
+    background: var(--accent) !important;
+}
+tr.drag-over {
+    border-top: 2px solid var(--accent);
+}
+
+/* ---- Sortable table headers ---- */
+th[data-sortable] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+th[data-sortable]:hover {
+    background: rgba(0,0,0,.04);
+}
+th[data-sortable] .sort-icon {
+    font-size: .8em;
+}
+
+/* ---- Pagination wrapper ---- */
+.pagination-wrapper {
+    font-size: .875rem;
+}

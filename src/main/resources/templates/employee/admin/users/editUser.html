@@ -1,0 +1,161 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать пользователя | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактировать пользователя</h1>
+                        <p class="page-subtitle" th:text="${userDTO.fullName}"></p>
+
+                        <div th:if="${userError}" class="alert alert-danger" th:text="${userError}"></div>
+
+                        <form th:action="@{/employee/admin/users/editUser/{id}(id=${userDTO.id})}" method="post" class="auth-form">
+
+                            <!-- Личные данные -->
+                            <h6 class="form-section-title">Личные данные</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Фамилия *</label>
+                                    <input type="text" name="inputLastName" class="form-control"
+                                           required maxlength="50" th:value="${userDTO.lastName}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Имя *</label>
+                                    <input type="text" name="inputFirstName" class="form-control"
+                                           required maxlength="50" th:value="${userDTO.firstName}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Отчество</label>
+                                    <input type="text" name="inputMiddleName" class="form-control"
+                                           maxlength="50" th:value="${userDTO.middleName}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Дата рождения</label>
+                                    <input type="date" name="inputBirthDate" class="form-control"
+                                           th:value="${userDTO.birthDate}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Подразделение</label>
+                                    <select name="inputDepartmentId" class="form-select">
+                                        <option value="">— Не выбрано —</option>
+                                        <option th:each="dept : ${allDepartments}" th:value="${dept.id}" th:text="${dept.name}"
+                                                th:selected="${userDTO.departmentId != null and userDTO.departmentId == dept.id}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Должность</label>
+                                    <input type="text" name="inputPosition" class="form-control"
+                                           maxlength="200" th:value="${userDTO.position}">
+                                </div>
+                            </div>
+
+                            <!-- Данные входа -->
+                            <h6 class="form-section-title">Данные входа</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Логин *</label>
+                                    <input type="text" id="inputUsername" name="inputUsername" class="form-control"
+                                           required maxlength="50" th:value="${userDTO.username}">
+                                    <div id="usernameFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Роль *</label>
+                                    <select name="inputRole" class="form-select" required>
+                                        <option value="" disabled>Выберите роль</option>
+                                        <option th:each="role : ${allRoles}"
+                                                th:value="${role.name}"
+                                                th:text="${role.description}"
+                                                th:selected="${role.name == userDTO.roleName}"></option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/admin/users/detailsUser/{id}(id=${userDTO.id})}">← К карточке пользователя</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var userId = [[${userDTO.id}]];
+    var originalUsername = [[${userDTO.username}]];
+
+    var usernameInput = document.getElementById('inputUsername');
+    var usernameFeedback = document.getElementById('usernameFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+
+    var usernameValid = true;
+
+    var usernameTimer;
+    usernameInput.addEventListener('input', function () {
+        clearTimeout(usernameTimer);
+        var value = usernameInput.value.trim();
+        if (value.length === 0) {
+            usernameInput.classList.remove('is-valid', 'is-invalid');
+            usernameFeedback.textContent = '';
+            usernameValid = false;
+            submitBtn.disabled = true;
+            return;
+        }
+        if (value === originalUsername) {
+            usernameInput.classList.remove('is-valid', 'is-invalid');
+            usernameFeedback.textContent = '';
+            usernameValid = true;
+            submitBtn.disabled = false;
+            return;
+        }
+        usernameTimer = setTimeout(function () {
+            fetch('/employee/admin/users/check-username?username=' + encodeURIComponent(value) + '&id=' + userId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        usernameInput.classList.remove('is-valid');
+                        usernameInput.classList.add('is-invalid');
+                        usernameFeedback.textContent = 'Этот логин уже занят';
+                        usernameFeedback.style.color = 'var(--danger)';
+                        usernameValid = false;
+                        submitBtn.disabled = true;
+                    } else {
+                        usernameInput.classList.remove('is-invalid');
+                        usernameInput.classList.add('is-valid');
+                        usernameFeedback.textContent = 'Логин свободен';
+                        usernameFeedback.style.color = 'var(--success)';
+                        usernameValid = true;
+                        submitBtn.disabled = false;
+                    }
+                });
+        }, 400);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Профиль | АОС ПИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="profile-card p-4">
+
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+                            <div>
+                                <h1 class="page-title mb-1" th:text="${currentEmployee.fullName}"></h1>
+                                <p class="page-subtitle mb-0" th:text="${currentEmployee.roleDescription}"></p>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Личные данные</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="text-muted small">Фамилия</div>
+                                <div th:text="${currentEmployee.lastName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Имя</div>
+                                <div th:text="${currentEmployee.firstName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Отчество</div>
+                                <div th:text="${currentEmployee.middleName} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата рождения</div>
+                                <div th:text="${currentEmployee.birthDate} ? ${#temporals.format(currentEmployee.birthDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Подразделение</div>
+                                <div th:text="${currentEmployee.departmentName} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Должность</div>
+                                <div th:text="${currentEmployee.position} ?: '—'"></div>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Данные входа</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="text-muted small">Логин</div>
+                                <div th:text="${currentEmployee.username}"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Роль</div>
+                                <div th:text="${currentEmployee.roleDescription}"></div>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <a href="/" class="btn btn-secondary btn-profile">
+                                <i class="bi bi-arrow-left"></i> На главную
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

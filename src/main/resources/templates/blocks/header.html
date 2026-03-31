@@ -1,0 +1,115 @@
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!-- ===== SIDEBAR ===== -->
+<aside th:fragment="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <i class="bi bi-gear-wide-connected"></i>
+        <span>АОС ПИ</span>
+    </div>
+    <ul class="sidebar-nav">
+
+        <!-- ========== ADMIN ========== -->
+        <li sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
+            <div class="sidebar-heading">Администрирование</div>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
+            <a th:href="@{/employee/admin/users/allUsers}">
+                <i class="bi bi-people"></i> <span>Пользователи</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
+            <a th:href="@{/employee/admin/departments/allDepartments}">
+                <i class="bi bi-building"></i> <span>Подразделения</span>
+            </a>
+        </li>
+
+        <!-- ========== CHIEF ========== -->
+        <li sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <div class="sidebar-heading">Управление</div>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/materials/allSections}">
+                <i class="bi bi-journal-text"></i> <span>Материалы</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/tests/allTests}">
+                <i class="bi bi-list-check"></i> <span>Тесты</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/navigation/assignments}">
+                <i class="bi bi-clipboard-check"></i> <span>Назначения</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/navigation/mnemo}">
+                <i class="bi bi-diagram-3"></i> <span>Мнемосхемы и сценарии</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
+            <a th:href="@{/employee/chief/navigation/results}">
+                <i class="bi bi-clipboard-data"></i> <span>Результаты и аналитика</span>
+            </a>
+        </li>
+
+        <!-- ========== SPECIALIST / OPERATOR ========== -->
+        <li sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
+            <div class="sidebar-heading">Обучение</div>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
+            <a th:href="@{/employee/specialist/theory/allSections}">
+                <i class="bi bi-book"></i> <span>Теория</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
+            <a th:href="@{/employee/specialist/navigation/practice}">
+                <i class="bi bi-pencil-square"></i> <span>Практика</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
+            <a th:href="@{/employee/specialist/results/myResults}">
+                <i class="bi bi-trophy"></i> <span>Результаты</span>
+            </a>
+        </li>
+
+        <!-- ========== ОБЩЕЕ ========== -->
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a th:href="@{/employee/notifications}">
+                <i class="bi bi-bell"></i>
+                <span>Уведомления</span>
+                <span class="badge bg-danger rounded-pill ms-1"
+                      th:if="${unreadNotificationCount != null and unreadNotificationCount > 0}"
+                      th:text="${unreadNotificationCount}"></span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a th:href="@{/employee/profile}">
+                <i class="bi bi-person-circle"></i> <span>Профиль</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+
+<!-- ===== TOPBAR ===== -->
+<nav th:fragment="topbar" id="topbar">
+    <div>
+        <button id="sidebarToggle" class="topbar-toggler">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+    <div class="topbar-user">
+        <span class="topbar-user-name" sec:authorize="isAuthenticated()"
+              sec:authentication="principal.fullName"></span>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-box-arrow-right"></i> Выход
+            </button>
+        </form>
+    </div>
+</nav>
+
+<!-- ===== OVERLAY для mobile ===== -->
+<div th:fragment="overlay" id="sidebarOverlay" class="sidebar-overlay"></div>
+
+</html>
