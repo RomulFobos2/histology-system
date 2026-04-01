@@ -11,7 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import ru.mai.voshod.pneumotraining.service.employee.EmployeeService;
+import ru.mai.histology.service.employee.EmployeeService;
 
 @Configuration
 @EnableWebSecurity
@@ -41,9 +41,10 @@ public class SecurityConfigEmployee {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/static/**", "/css/**", "/js/**", "/", "/files/**").permitAll()
                         .requestMatchers("/employee/admin/**").hasRole("EMPLOYEE_ADMIN")
-                        .requestMatchers("/employee/chief/**").hasRole("EMPLOYEE_CHIEF")
-                        .requestMatchers("/employee/specialist/**").hasAnyRole("EMPLOYEE_SPECIALIST", "EMPLOYEE_OPERATOR")
-                        .requestMatchers("/employee/**").hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_CHIEF", "EMPLOYEE_SPECIALIST", "EMPLOYEE_OPERATOR")
+                        .requestMatchers("/employee/head/**").hasRole("EMPLOYEE_HEAD")
+                        .requestMatchers("/employee/histologist/**").hasRole("EMPLOYEE_HISTOLOGIST")
+                        .requestMatchers("/employee/laborant/**").hasRole("EMPLOYEE_LABORANT")
+                        .requestMatchers("/employee/**").hasAnyRole("EMPLOYEE_ADMIN", "EMPLOYEE_HEAD", "EMPLOYEE_HISTOLOGIST", "EMPLOYEE_LABORANT")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

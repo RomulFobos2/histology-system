@@ -3,8 +3,8 @@
 <!-- ===== SIDEBAR ===== -->
 <aside th:fragment="sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <i class="bi bi-gear-wide-connected"></i>
-        <span>АОС ПИ</span>
+        <i class="bi bi-droplet-half"></i>
+        <span>АИС ГИ</span>
     </div>
     <ul class="sidebar-nav">
 
@@ -17,72 +17,68 @@
                 <i class="bi bi-people"></i> <span>Пользователи</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
-            <a th:href="@{/employee/admin/departments/allDepartments}">
-                <i class="bi bi-building"></i> <span>Подразделения</span>
+
+        <!-- ========== HEAD ========== -->
+        <li sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
+            <div class="sidebar-heading">Руководство</div>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
+            <a th:href="@{/employee/head/oversight/allCases}">
+                <i class="bi bi-eye"></i> <span>Надзор</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
+            <a th:href="@{/employee/head/conclusions/allConclusions}">
+                <i class="bi bi-file-earmark-medical"></i> <span>Заключения СМЭ</span>
+            </a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
+            <a th:href="@{/employee/head/reports/dashboard}">
+                <i class="bi bi-bar-chart-line"></i> <span>Отчёты</span>
             </a>
         </li>
 
-        <!-- ========== CHIEF ========== -->
-        <li sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <div class="sidebar-heading">Управление</div>
+        <!-- ========== HISTOLOGIST ========== -->
+        <li sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
+            <div class="sidebar-heading">Гистология</div>
         </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/materials/allSections}">
-                <i class="bi bi-journal-text"></i> <span>Материалы</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
+            <a th:href="@{/employee/histologist/samples/allSamples}">
+                <i class="bi bi-droplet"></i> <span>Образцы</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/tests/allTests}">
-                <i class="bi bi-list-check"></i> <span>Тесты</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
+            <a th:href="@{/employee/histologist/conclusions/allConclusions}">
+                <i class="bi bi-journal-medical"></i> <span>Заключения</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/navigation/assignments}">
-                <i class="bi bi-clipboard-check"></i> <span>Назначения</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/navigation/mnemo}">
-                <i class="bi bi-diagram-3"></i> <span>Мнемосхемы и сценарии</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_CHIEF')">
-            <a th:href="@{/employee/chief/navigation/results}">
-                <i class="bi bi-clipboard-data"></i> <span>Результаты и аналитика</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
+            <a th:href="@{/employee/histologist/protocols/allProtocols}">
+                <i class="bi bi-clipboard2-pulse"></i> <span>Протоколы</span>
             </a>
         </li>
 
-        <!-- ========== SPECIALIST / OPERATOR ========== -->
-        <li sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <div class="sidebar-heading">Обучение</div>
+        <!-- ========== LABORANT ========== -->
+        <li sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
+            <div class="sidebar-heading">Лаборатория</div>
         </li>
-        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a th:href="@{/employee/specialist/theory/allSections}">
-                <i class="bi bi-book"></i> <span>Теория</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
+            <a th:href="@{/employee/laborant/cases/allCases}">
+                <i class="bi bi-folder2-open"></i> <span>Дела</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a th:href="@{/employee/specialist/navigation/practice}">
-                <i class="bi bi-pencil-square"></i> <span>Практика</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
+            <a th:href="@{/employee/laborant/samples/allSamples}">
+                <i class="bi bi-droplet"></i> <span>Образцы</span>
             </a>
         </li>
-        <li class="nav-item" sec:authorize="hasAnyRole('ROLE_EMPLOYEE_SPECIALIST','ROLE_EMPLOYEE_OPERATOR')">
-            <a th:href="@{/employee/specialist/results/myResults}">
-                <i class="bi bi-trophy"></i> <span>Результаты</span>
+        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
+            <a th:href="@{/employee/laborant/journal/view}">
+                <i class="bi bi-journal-text"></i> <span>Журнал</span>
             </a>
         </li>
 
         <!-- ========== ОБЩЕЕ ========== -->
-        <li class="nav-item" sec:authorize="isAuthenticated()">
-            <a th:href="@{/employee/notifications}">
-                <i class="bi bi-bell"></i>
-                <span>Уведомления</span>
-                <span class="badge bg-danger rounded-pill ms-1"
-                      th:if="${unreadNotificationCount != null and unreadNotificationCount > 0}"
-                      th:text="${unreadNotificationCount}"></span>
-            </a>
-        </li>
         <li class="nav-item" sec:authorize="isAuthenticated()">
             <a th:href="@{/employee/profile}">
                 <i class="bi bi-person-circle"></i> <span>Профиль</span>

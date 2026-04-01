@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Пользователь | АОС ПИ</title>
+    <title>Пользователь | АИС ГИ</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -53,10 +53,6 @@
                             <div class="col-md-4">
                                 <div class="text-muted small">Дата рождения</div>
                                 <div th:text="${userDTO.birthDate} ? ${#temporals.format(userDTO.birthDate, 'dd.MM.yyyy')} : '—'"></div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-muted small">Подразделение</div>
-                                <div th:text="${userDTO.departmentName} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Должность</div>

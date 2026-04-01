@@ -10,9 +10,9 @@
 
     <!-- Rolling file appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>log/aospi.log</file>
+        <file>log/aisgi.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>log/aospi.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>log/aisgi.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <maxFileSize>50MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>1500MB</totalSizeCap>
@@ -23,7 +23,7 @@
     </appender>
 
     <!-- Application package at DEBUG level -->
-    <logger name="ru.mai.voshod.pneumotraining" level="DEBUG" />
+    <logger name="ru.mai.histology" level="DEBUG" />
 
     <!-- Root logger -->
     <root level="INFO">

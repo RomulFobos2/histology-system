@@ -2,8 +2,8 @@ package ru.mai.histology.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
-import ru.mai.voshod.pneumotraining.dto.RoleDTO;
-import ru.mai.voshod.pneumotraining.models.Role;
+import ru.mai.histology.dto.RoleDTO;
+import ru.mai.histology.models.Role;
 
 import java.util.List;
 

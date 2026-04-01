@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
-import ru.mai.voshod.pneumotraining.models.Employee;
-import ru.mai.voshod.pneumotraining.service.employee.EmployeeService;
+import ru.mai.histology.dto.EmployeeDTO;
+import ru.mai.histology.models.Employee;
+import ru.mai.histology.service.employee.EmployeeService;
 
 @Controller
 public class MainEmployeeController {
