@@ -1,21 +1,22 @@
 /* ========================================
-   АОС ПИ — Автоматизированная обучающая система
-   CSS в стиле SB Admin 2 (sidebar layout)
-   Цветовая схема: navy / teal
+   АИС ГИ — Автоматизированная информационная система
+   гистологических исследований
+   CSS в стиле PowerAdmin (sidebar layout)
+   Цветовая схема: teal / emerald
    ======================================== */
 
 :root {
-    --primary:        #1e3a5f;
-    --primary-light:  #2c5282;
-    --primary-dark:   #152a45;
-    --accent:         #0ea5e9;
-    --accent-light:   #38bdf8;
-    --accent-dark:    #0284c7;
-    --sidebar-bg:     #1e293b;
-    --sidebar-hover:  #334155;
-    --sidebar-active: #0ea5e9;
+    --primary:        #0d9488;
+    --primary-light:  #14b8a6;
+    --primary-dark:   #0f766e;
+    --accent:         #10b981;
+    --accent-light:   #34d399;
+    --accent-dark:    #059669;
+    --sidebar-bg:     #1e1e2d;
+    --sidebar-hover:  #2a2a3d;
+    --sidebar-active: #14b8a6;
     --topbar-bg:      #ffffff;
-    --body-bg:        #f1f5f9;
+    --body-bg:        #f0fdf4;
     --card-bg:        #ffffff;
     --success:        #10b981;
     --danger:         #ef4444;
@@ -24,7 +25,7 @@
     --text-secondary: #64748b;
     --text-on-dark:   #e2e8f0;
     --border:         #e2e8f0;
-    --gradient:       linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%);
+    --gradient:       linear-gradient(160deg, #0d9488 0%, #10b981 100%);
 }
 
 /* ========================================
@@ -134,7 +135,7 @@ a:hover {
 }
 
 .sidebar-nav .nav-item a.active {
-    background: rgba(14, 165, 233, 0.15);
+    background: rgba(16, 185, 129, 0.15);
     color: #fff;
     border-left-color: var(--accent);
     font-weight: 500;
@@ -349,7 +350,7 @@ footer {
 .auth-form .form-control:focus,
 .auth-form .form-select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.15);
 }
 
 .form-section-title {
@@ -495,7 +496,7 @@ footer {
 .btn-auth:hover {
     background: var(--primary-dark);
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(30, 58, 95, 0.3);
+    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
     color: white;
 }
 
@@ -629,7 +630,7 @@ footer {
 .feature-icon {
     width: 60px;
     height: 60px;
-    background: rgba(14, 165, 233, 0.1);
+    background: rgba(16, 185, 129, 0.1);
     border-radius: 12px;
     display: inline-flex;
     align-items: center;

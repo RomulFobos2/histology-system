@@ -9,13 +9,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import ru.mai.voshod.pneumotraining.dto.EmployeeDTO;
-import ru.mai.voshod.pneumotraining.mapper.EmployeeMapper;
-import ru.mai.voshod.pneumotraining.models.Employee;
-import ru.mai.voshod.pneumotraining.models.Role;
-import ru.mai.voshod.pneumotraining.repo.DepartmentRepository;
-import ru.mai.voshod.pneumotraining.repo.EmployeeRepository;
-import ru.mai.voshod.pneumotraining.repo.RoleRepository;
+import ru.mai.histology.dto.EmployeeDTO;
+import ru.mai.histology.mapper.EmployeeMapper;
+import ru.mai.histology.models.Employee;
+import ru.mai.histology.models.Role;
+import ru.mai.histology.repo.EmployeeRepository;
+import ru.mai.histology.repo.RoleRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,16 +26,13 @@ public class EmployeeService implements UserDetailsService {
 
     private final EmployeeRepository employeeRepository;
     private final RoleRepository roleRepository;
-    private final DepartmentRepository departmentRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public EmployeeService(EmployeeRepository employeeRepository,
                            RoleRepository roleRepository,
-                           DepartmentRepository departmentRepository,
                            BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.employeeRepository = employeeRepository;
         this.roleRepository = roleRepository;
-        this.departmentRepository = departmentRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
@@ -59,7 +55,7 @@ public class EmployeeService implements UserDetailsService {
 
     @Transactional
     public Optional<Long> saveUser(String lastName, String firstName, String middleName,
-                                   LocalDate birthDate, Long departmentId, String position,
+                                   LocalDate birthDate, String position,
                                    String username, String password, String roleName) {
         log.info("Сохранение нового пользователя: username={}", username);
 
@@ -80,12 +76,10 @@ public class EmployeeService implements UserDetailsService {
         }
 
         try {
+            if (middleName == null || middleName.isBlank()) middleName = "";
             Employee employee = new Employee(lastName, firstName, middleName, username,
                     bCryptPasswordEncoder.encode(password));
             employee.setBirthDate(birthDate);
-            if (departmentId != null) {
-                departmentRepository.findById(departmentId).ifPresent(employee::setDepartment);
-            }
             employee.setPosition(position);
             employee.setRole(roleOptional.get());
             employee.setActive(true);
@@ -102,7 +96,7 @@ public class EmployeeService implements UserDetailsService {
 
     @Transactional
     public Optional<Long> editUser(Long id, String lastName, String firstName, String middleName,
-                                   LocalDate birthDate, Long departmentId, String position,
+                                   LocalDate birthDate, String position,
                                    String username, String roleName) {
         log.info("Редактирование пользователя: id={}", id);
 
@@ -127,13 +121,8 @@ public class EmployeeService implements UserDetailsService {
             Employee employee = employeeOptional.get();
             employee.setLastName(lastName);
             employee.setFirstName(firstName);
-            employee.setMiddleName(middleName);
+            employee.setMiddleName(middleName == null || middleName.isBlank() ? "" : middleName);
             employee.setBirthDate(birthDate);
-            if (departmentId != null) {
-                departmentRepository.findById(departmentId).ifPresent(employee::setDepartment);
-            } else {
-                employee.setDepartment(null);
-            }
             employee.setPosition(position);
             employee.setUsername(username);
             employee.setRole(roleOptional.get());

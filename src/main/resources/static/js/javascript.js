@@ -1,5 +1,5 @@
 /* ========================================
-   АОС ПИ — JavaScript
+   АИС ГИ — JavaScript
    ======================================== */
 
 document.addEventListener('DOMContentLoaded', function () {

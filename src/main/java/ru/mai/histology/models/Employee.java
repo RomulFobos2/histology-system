@@ -39,11 +39,6 @@ public class Employee implements UserDetails {
     @DateTimeFormat(pattern = "dd.MM.yyyy")
     private LocalDate birthDate;
 
-    @ManyToOne
-    @JoinColumn(name = "department_id")
-    @ToString.Exclude
-    private Department department;
-
     @Column(length = 200)
     private String position;
 
@@ -103,7 +98,7 @@ public class Employee implements UserDetails {
 
     @Transient
     public String getFullName() {
-        return lastName + " " + firstName + (middleName != null ? " " + middleName : "");
+        return lastName + " " + firstName + (middleName != null && !middleName.isEmpty() ? " " + middleName : "");
     }
 
     @Override

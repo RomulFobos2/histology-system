@@ -1,7 +1,7 @@
 package ru.mai.histology.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import ru.mai.voshod.pneumotraining.models.Role;
+import ru.mai.histology.models.Role;
 
 import java.util.List;
 import java.util.Optional;

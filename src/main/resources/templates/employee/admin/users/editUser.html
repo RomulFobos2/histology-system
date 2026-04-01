@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Редактировать пользователя | АОС ПИ</title>
+    <title>Редактировать пользователя | АИС ГИ</title>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet">
@@ -51,14 +51,6 @@
                                     <label class="form-label">Дата рождения</label>
                                     <input type="date" name="inputBirthDate" class="form-control"
                                            th:value="${userDTO.birthDate}">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Подразделение</label>
-                                    <select name="inputDepartmentId" class="form-select">
-                                        <option value="">— Не выбрано —</option>
-                                        <option th:each="dept : ${allDepartments}" th:value="${dept.id}" th:text="${dept.name}"
-                                                th:selected="${userDTO.departmentId != null and userDTO.departmentId == dept.id}"></option>
-                                    </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Должность</label>
