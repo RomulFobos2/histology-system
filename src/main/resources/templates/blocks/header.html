@@ -1,111 +1,108 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
-<!-- ===== SIDEBAR ===== -->
-<aside th:fragment="sidebar" id="sidebar">
-    <div class="sidebar-brand">
+<!-- ===== TOP NAVBAR (вставляется как sidebar-фрагмент для совместимости) ===== -->
+<nav th:fragment="sidebar" class="top-navbar">
+    <a class="navbar-brand" th:href="@{/}">
         <i class="bi bi-droplet-half"></i>
         <span>АИС ГИ</span>
-    </div>
-    <ul class="sidebar-nav">
+    </a>
 
-        <!-- ========== ADMIN ========== -->
-        <li sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
-            <div class="sidebar-heading">Администрирование</div>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
-            <a th:href="@{/employee/admin/users/allUsers}">
-                <i class="bi bi-people"></i> <span>Пользователи</span>
-            </a>
-        </li>
+    <button class="navbar-toggler" id="navbarToggler">
+        <i class="bi bi-list"></i>
+    </button>
 
-        <!-- ========== HEAD ========== -->
-        <li sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
-            <div class="sidebar-heading">Руководство</div>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
-            <a th:href="@{/employee/head/oversight/allCases}">
-                <i class="bi bi-eye"></i> <span>Надзор</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
-            <a th:href="@{/employee/head/conclusions/allConclusions}">
-                <i class="bi bi-file-earmark-medical"></i> <span>Заключения СМЭ</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
-            <a th:href="@{/employee/head/reports/dashboard}">
-                <i class="bi bi-bar-chart-line"></i> <span>Отчёты</span>
-            </a>
-        </li>
+    <div class="navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav-list">
 
-        <!-- ========== HISTOLOGIST ========== -->
-        <li sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
-            <div class="sidebar-heading">Гистология</div>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
-            <a th:href="@{/employee/histologist/samples/allSamples}">
-                <i class="bi bi-droplet"></i> <span>Образцы</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
-            <a th:href="@{/employee/histologist/conclusions/allConclusions}">
-                <i class="bi bi-journal-medical"></i> <span>Заключения</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
-            <a th:href="@{/employee/histologist/protocols/allProtocols}">
-                <i class="bi bi-clipboard2-pulse"></i> <span>Протоколы</span>
-            </a>
-        </li>
+            <!-- ========== ADMIN ========== -->
+            <li class="nav-dropdown" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')">
+                <a href="#" class="nav-caret">
+                    <i class="bi bi-shield-lock"></i> Администрирование
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a th:href="@{/employee/admin/users/allUsers}">
+                        <i class="bi bi-people"></i> Пользователи
+                    </a>
+                </div>
+            </li>
 
-        <!-- ========== LABORANT ========== -->
-        <li sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
-            <div class="sidebar-heading">Лаборатория</div>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
-            <a th:href="@{/employee/laborant/cases/allCases}">
-                <i class="bi bi-folder2-open"></i> <span>Дела</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
-            <a th:href="@{/employee/laborant/samples/allSamples}">
-                <i class="bi bi-droplet"></i> <span>Образцы</span>
-            </a>
-        </li>
-        <li class="nav-item" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
-            <a th:href="@{/employee/laborant/journal/view}">
-                <i class="bi bi-journal-text"></i> <span>Журнал</span>
-            </a>
-        </li>
+            <div class="nav-separator" sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')"></div>
 
-        <!-- ========== ОБЩЕЕ ========== -->
-        <li class="nav-item" sec:authorize="isAuthenticated()">
-            <a th:href="@{/employee/profile}">
-                <i class="bi bi-person-circle"></i> <span>Профиль</span>
-            </a>
-        </li>
-    </ul>
-</aside>
+            <!-- ========== HEAD ========== -->
+            <li class="nav-dropdown" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')">
+                <a href="#" class="nav-caret">
+                    <i class="bi bi-briefcase"></i> Руководство
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a th:href="@{/employee/head/oversight/allCases}">
+                        <i class="bi bi-eye"></i> Надзор
+                    </a>
+                    <a th:href="@{/employee/head/conclusions/allConclusions}">
+                        <i class="bi bi-file-earmark-medical"></i> Заключения СМЭ
+                    </a>
+                    <a th:href="@{/employee/head/reports/dashboard}">
+                        <i class="bi bi-bar-chart-line"></i> Отчёты
+                    </a>
+                </div>
+            </li>
 
-<!-- ===== TOPBAR ===== -->
-<nav th:fragment="topbar" id="topbar">
-    <div>
-        <button id="sidebarToggle" class="topbar-toggler">
-            <i class="bi bi-list"></i>
-        </button>
-    </div>
-    <div class="topbar-user">
-        <span class="topbar-user-name" sec:authorize="isAuthenticated()"
-              sec:authentication="principal.fullName"></span>
-        <form th:action="@{/logout}" method="post" class="d-inline">
-            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-box-arrow-right"></i> Выход
-            </button>
-        </form>
+            <div class="nav-separator" sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')"></div>
+
+            <!-- ========== HISTOLOGIST ========== -->
+            <li class="nav-dropdown" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')">
+                <a href="#" class="nav-caret">
+                    <i class="bi bi-microscope"></i> Гистология
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a th:href="@{/employee/histologist/samples/allSamples}">
+                        <i class="bi bi-droplet"></i> Образцы
+                    </a>
+                    <a th:href="@{/employee/histologist/conclusions/allConclusions}">
+                        <i class="bi bi-journal-medical"></i> Заключения
+                    </a>
+                    <a th:href="@{/employee/histologist/protocols/allProtocols}">
+                        <i class="bi bi-clipboard2-pulse"></i> Протоколы
+                    </a>
+                </div>
+            </li>
+
+            <div class="nav-separator" sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')"></div>
+
+            <!-- ========== LABORANT ========== -->
+            <li class="nav-dropdown" sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')">
+                <a href="#" class="nav-caret">
+                    <i class="bi bi-minecart-loaded"></i> Лаборатория
+                </a>
+                <div class="nav-dropdown-menu">
+                    <a th:href="@{/employee/laborant/cases/allCases}">
+                        <i class="bi bi-folder2-open"></i> Дела
+                    </a>
+                    <a th:href="@{/employee/laborant/samples/allSamples}">
+                        <i class="bi bi-droplet"></i> Образцы
+                    </a>
+                    <a th:href="@{/employee/laborant/journal/view}">
+                        <i class="bi bi-journal-text"></i> Журнал
+                    </a>
+                </div>
+            </li>
+        </ul>
+
+        <div class="navbar-user" sec:authorize="isAuthenticated()">
+            <span class="navbar-user-name" sec:authentication="principal.fullName"></span>
+            <a th:href="@{/employee/profile}" class="btn-outline-light" style="text-decoration:none;">
+                <i class="bi bi-person-circle"></i>
+            </a>
+            <form th:action="@{/logout}" method="post" class="d-inline" style="margin:0;">
+                <button type="submit" class="btn-outline-light">
+                    <i class="bi bi-box-arrow-right"></i> Выход
+                </button>
+            </form>
+        </div>
     </div>
 </nav>
 
-<!-- ===== OVERLAY для mobile ===== -->
-<div th:fragment="overlay" id="sidebarOverlay" class="sidebar-overlay"></div>
+<!-- Пустые фрагменты для совместимости со старыми шаблонами -->
+<div th:fragment="topbar" id="topbar"></div>
+<div th:fragment="overlay" id="sidebarOverlay"></div>
 
 </html>

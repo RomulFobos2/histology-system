@@ -1,47 +1,56 @@
 /* ========================================
    АИС ГИ — JavaScript
+   Top-navbar layout
    ======================================== */
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ===== Sidebar toggle =====
-    var toggler = document.getElementById('sidebarToggle');
-    var sidebar = document.getElementById('sidebar');
-    var contentWrapper = document.getElementById('content-wrapper');
-    var overlay = document.getElementById('sidebarOverlay');
+    // ===== Mobile navbar toggle =====
+    var toggler = document.getElementById('navbarToggler');
+    var collapse = document.getElementById('navbarCollapse');
 
-    if (toggler && sidebar) {
+    if (toggler && collapse) {
         toggler.addEventListener('click', function () {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.toggle('mobile-open');
-                if (overlay) overlay.classList.toggle('active');
-            } else {
-                sidebar.classList.toggle('collapsed');
-                if (contentWrapper) contentWrapper.classList.toggle('sidebar-collapsed');
+            collapse.classList.toggle('show');
+        });
+
+        // Close on click outside
+        document.addEventListener('click', function (e) {
+            if (!collapse.contains(e.target) && !toggler.contains(e.target)) {
+                collapse.classList.remove('show');
             }
         });
     }
 
-    // Close sidebar on mobile when clicking overlay
-    if (overlay) {
-        overlay.addEventListener('click', function () {
-            sidebar.classList.remove('mobile-open');
-            overlay.classList.remove('active');
+    // ===== Dropdown toggle on mobile (tap) =====
+    var dropdowns = document.querySelectorAll('.nav-dropdown > a');
+    dropdowns.forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            if (window.innerWidth <= 992) {
+                e.preventDefault();
+                var parent = link.parentElement;
+                // Close other dropdowns
+                document.querySelectorAll('.nav-dropdown.open').forEach(function (d) {
+                    if (d !== parent) d.classList.remove('open');
+                });
+                parent.classList.toggle('open');
+            }
         });
-    }
+    });
 
-    // Close sidebar on mobile when resizing to desktop
+    // Reset mobile state on resize to desktop
     window.addEventListener('resize', function () {
-        if (window.innerWidth > 768 && sidebar) {
-            sidebar.classList.remove('mobile-open');
-            if (overlay) overlay.classList.remove('active');
+        if (window.innerWidth > 992) {
+            if (collapse) collapse.classList.remove('show');
+            document.querySelectorAll('.nav-dropdown.open').forEach(function (d) {
+                d.classList.remove('open');
+            });
         }
     });
 });
 
 /**
  * Подтверждение деактивации пользователя
- * @param {string} url — URL для деактивации
  */
 function confirmDeactivate(url) {
     if (confirm('Вы уверены, что хотите деактивировать этого пользователя?')) {
@@ -51,7 +60,6 @@ function confirmDeactivate(url) {
 
 /**
  * Подтверждение удаления (универсальная)
- * @param {string} url — URL для удаления
  */
 function confirmDelete(url) {
     if (confirm('Вы уверены, что хотите выполнить это действие?')) {
