@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Судебные дела | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Судебные дела</h1>
+                    <div class="profile-actions">
+                        <a th:href="@{/employee/laborant/cases/addCase}" class="btn btn-success btn-profile">
+                            <i class="bi bi-plus-lg"></i> Добавить дело
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="table-container">
+                <table id="casesTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">Номер дела</th>
+                        <th data-sortable data-sort-type="date">Дата поступления</th>
+                        <th data-sortable data-sort-type="text">Эксперт</th>
+                        <th data-sortable data-sort-type="number">Образцов</th>
+                        <th>Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c, index : ${allCases}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/laborant/cases/detailsCase/{id}(id=${c.id})}"
+                               th:text="${c.caseNumber}"></a>
+                        </td>
+                        <td th:text="${c.receiptDate} ? ${#temporals.format(c.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td th:text="${c.expertFullName} ?: '—'"></td>
+                        <td th:text="${c.sampleCount}"></td>
+                        <td>
+                            <span class="badge-active" th:text="${c.statusDisplayName}"></span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script>
+    initPagination('casesTable', { perPage: 20 });
+    initSortable('casesTable');
+</script>
+</body>
+</html>

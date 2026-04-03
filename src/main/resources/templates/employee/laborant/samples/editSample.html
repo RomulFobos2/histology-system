@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать образец | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактировать образец</h1>
+                        <p class="page-subtitle" th:text="'Образец № ' + ${sampleDTO.sampleNumber} + ' (Дело ' + ${sampleDTO.caseNumber} + ')'"></p>
+
+                        <div th:if="${sampleError}" class="alert alert-danger" th:text="${sampleError}"></div>
+
+                        <form th:action="@{/employee/laborant/samples/editSample/{id}(id=${sampleDTO.id})}" method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Данные образца</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Номер образца *</label>
+                                    <input type="text" id="inputSampleNumber" name="inputSampleNumber" class="form-control"
+                                           required maxlength="50" th:value="${sampleDTO.sampleNumber}">
+                                    <div id="sampleNumberFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Тип ткани *</label>
+                                    <select name="inputTissueType" class="form-select" required>
+                                        <option th:each="tt : ${tissueTypes}"
+                                                th:value="${tt.name()}"
+                                                th:selected="${tt == sampleDTO.tissueType}"
+                                                th:text="${tt.displayName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Метод окрашивания *</label>
+                                    <select name="inputStainingMethod" class="form-select" required>
+                                        <option th:each="sm : ${stainingMethods}"
+                                                th:value="${sm.name()}"
+                                                th:selected="${sm == sampleDTO.stainingMethod}"
+                                                th:text="${sm.displayName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Назначенный гистолог</label>
+                                    <select name="inputHistologistId" class="form-select">
+                                        <option value="">— Не назначен —</option>
+                                        <option th:each="h : ${allHistologists}"
+                                                th:value="${h.id}"
+                                                th:selected="${h.id == sampleDTO.assignedHistologistId}"
+                                                th:text="${h.fullName}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Примечания</label>
+                                    <textarea name="inputNotes" class="form-control" rows="3"
+                                              th:text="${sampleDTO.notes}"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-primary btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/laborant/samples/detailsSample/{id}(id=${sampleDTO.id})}">← К карточке образца</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var caseId = [[${sampleDTO.caseId}]];
+    var sampleId = [[${sampleDTO.id}]];
+    var sampleNumberInput = document.getElementById('inputSampleNumber');
+    var sampleNumberFeedback = document.getElementById('sampleNumberFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+    var sampleNumberValid = true;
+
+    function validateForm() {
+        submitBtn.disabled = !sampleNumberValid;
+    }
+
+    var sampleNumberTimer;
+    sampleNumberInput.addEventListener('input', function () {
+        clearTimeout(sampleNumberTimer);
+        var value = sampleNumberInput.value.trim();
+        if (value.length === 0) {
+            sampleNumberInput.classList.remove('is-valid', 'is-invalid');
+            sampleNumberFeedback.textContent = '';
+            sampleNumberValid = false;
+            validateForm();
+            return;
+        }
+        sampleNumberTimer = setTimeout(function () {
+            fetch('/employee/laborant/samples/check-sampleNumber?caseId=' + caseId + '&sampleNumber=' + encodeURIComponent(value) + '&id=' + sampleId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        sampleNumberInput.classList.remove('is-valid');
+                        sampleNumberInput.classList.add('is-invalid');
+                        sampleNumberFeedback.textContent = 'Этот номер образца уже занят в данном деле';
+                        sampleNumberFeedback.style.color = 'var(--danger)';
+                        sampleNumberValid = false;
+                    } else {
+                        sampleNumberInput.classList.remove('is-invalid');
+                        sampleNumberInput.classList.add('is-valid');
+                        sampleNumberFeedback.textContent = '';
+                        sampleNumberValid = true;
+                    }
+                    validateForm();
+                });
+        }, 400);
+    });
+</script>
+</body>
+</html>
