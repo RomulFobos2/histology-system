@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Образцы | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Все образцы</h1>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <!-- Фильтры -->
+            <div class="profile-card mb-4 p-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small">Тип ткани</label>
+                        <select id="filterTissueType" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="tt : ${tissueTypes}" th:value="${tt.displayName}" th:text="${tt.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Метод окрашивания</label>
+                        <select id="filterStainingMethod" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="sm : ${stainingMethods}" th:value="${sm.displayName}" th:text="${sm.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="samplesTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">Номер</th>
+                        <th data-sortable data-sort-type="text">Дело</th>
+                        <th data-sortable data-sort-type="text">Тип ткани</th>
+                        <th data-sortable data-sort-type="text">Метод</th>
+                        <th data-sortable data-sort-type="text">Стадия</th>
+                        <th>Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s, index : ${allSamples}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/laborant/samples/detailsSample/{id}(id=${s.id})}"
+                               th:text="${s.sampleNumber}"></a>
+                        </td>
+                        <td>
+                            <a th:href="@{/employee/laborant/cases/detailsCase/{id}(id=${s.caseId})}"
+                               th:text="${s.caseNumber}"></a>
+                        </td>
+                        <td class="filter-tissue" th:text="${s.tissueTypeDisplayName}"></td>
+                        <td class="filter-staining" th:text="${s.stainingMethodDisplayName}"></td>
+                        <td th:text="${s.researchStageDisplayName}"></td>
+                        <td>
+                            <span class="badge-active" th:text="${s.statusDisplayName}"></span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script>
+    initPagination('samplesTable', { perPage: 20 });
+    initSortable('samplesTable');
+
+    var filterTissue = document.getElementById('filterTissueType');
+    var filterStaining = document.getElementById('filterStainingMethod');
+
+    function applyFilters() {
+        var tissueVal = filterTissue.value;
+        var stainingVal = filterStaining.value;
+        var rows = document.querySelectorAll('#samplesTable tbody tr');
+        rows.forEach(function (row) {
+            var tissue = row.querySelector('.filter-tissue');
+            var staining = row.querySelector('.filter-staining');
+            var showTissue = !tissueVal || (tissue && tissue.textContent === tissueVal);
+            var showStaining = !stainingVal || (staining && staining.textContent === stainingVal);
+            row.style.display = (showTissue && showStaining) ? '' : 'none';
+        });
+    }
+
+    function clearFilters() {
+        filterTissue.value = '';
+        filterStaining.value = '';
+        applyFilters();
+    }
+
+    filterTissue.addEventListener('change', applyFilters);
+    filterStaining.addEventListener('change', applyFilters);
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать дело | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактировать дело</h1>
+                        <p class="page-subtitle" th:text="'Номер дела: ' + ${caseDTO.caseNumber}"></p>
+
+                        <div th:if="${caseError}" class="alert alert-danger" th:text="${caseError}"></div>
+
+                        <form th:action="@{/employee/laborant/cases/editCase/{id}(id=${caseDTO.id})}" method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Данные дела</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Номер дела *</label>
+                                    <input type="text" id="inputCaseNumber" name="inputCaseNumber" class="form-control"
+                                           required maxlength="50" th:value="${caseDTO.caseNumber}">
+                                    <div id="caseNumberFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата поступления</label>
+                                    <input type="date" name="inputReceiptDate" class="form-control"
+                                           th:value="${caseDTO.receiptDate}">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Описание</label>
+                                    <textarea name="inputDescription" class="form-control" rows="3"
+                                              th:text="${caseDTO.description}"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Ответственный эксперт</label>
+                                    <select name="inputExpertId" class="form-select">
+                                        <option value="">— Не назначен —</option>
+                                        <option th:each="expert : ${allExperts}"
+                                                th:value="${expert.id}"
+                                                th:selected="${expert.id == caseDTO.expertId}"
+                                                th:text="${expert.fullName}"></option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-primary btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/laborant/cases/detailsCase/{id}(id=${caseDTO.id})}">← К карточке дела</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    var caseId = [[${caseDTO.id}]];
+    var caseNumberInput = document.getElementById('inputCaseNumber');
+    var caseNumberFeedback = document.getElementById('caseNumberFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+    var caseNumberValid = true;
+
+    function validateForm() {
+        submitBtn.disabled = !caseNumberValid;
+    }
+
+    var caseNumberTimer;
+    caseNumberInput.addEventListener('input', function () {
+        clearTimeout(caseNumberTimer);
+        var value = caseNumberInput.value.trim();
+        if (value.length === 0) {
+            caseNumberInput.classList.remove('is-valid', 'is-invalid');
+            caseNumberFeedback.textContent = '';
+            caseNumberValid = false;
+            validateForm();
+            return;
+        }
+        caseNumberTimer = setTimeout(function () {
+            fetch('/employee/laborant/cases/check-caseNumber?caseNumber=' + encodeURIComponent(value) + '&id=' + caseId)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        caseNumberInput.classList.remove('is-valid');
+                        caseNumberInput.classList.add('is-invalid');
+                        caseNumberFeedback.textContent = 'Этот номер дела уже занят';
+                        caseNumberFeedback.style.color = 'var(--danger)';
+                        caseNumberValid = false;
+                    } else {
+                        caseNumberInput.classList.remove('is-invalid');
+                        caseNumberInput.classList.add('is-valid');
+                        caseNumberFeedback.textContent = '';
+                        caseNumberValid = true;
+                    }
+                    validateForm();
+                });
+        }, 400);
+    });
+</script>
+</body>
+</html>
