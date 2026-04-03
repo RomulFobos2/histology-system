@@ -13,6 +13,7 @@ import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.mapper.SampleMapper;
 import ru.mai.histology.models.Employee;
 import ru.mai.histology.models.ForensicCase;
+import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.models.Sample;
 import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.repo.ForensicCaseRepository;
@@ -29,13 +30,23 @@ public class SampleService {
     private final SampleRepository sampleRepository;
     private final ForensicCaseRepository forensicCaseRepository;
     private final EmployeeRepository employeeRepository;
+    private final MicroscopeImageRepository microscopeImageRepository;
+    private ImageUploadService imageUploadService;
 
     public SampleService(SampleRepository sampleRepository,
                          ForensicCaseRepository forensicCaseRepository,
-                         EmployeeRepository employeeRepository) {
+                         EmployeeRepository employeeRepository,
+                         MicroscopeImageRepository microscopeImageRepository) {
         this.sampleRepository = sampleRepository;
         this.forensicCaseRepository = forensicCaseRepository;
         this.employeeRepository = employeeRepository;
+        this.microscopeImageRepository = microscopeImageRepository;
+    }
+
+    /** Lazy-инъекция для избежания циклической зависимости */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setImageUploadService(ImageUploadService imageUploadService) {
+        this.imageUploadService = imageUploadService;
     }
 
     // ========== CRUD ==========
@@ -156,6 +167,11 @@ public class SampleService {
         }
 
         try {
+            // Каскадное удаление изображений (файлы + БД)
+            if (imageUploadService != null) {
+                imageUploadService.deleteAllImagesBySample(id);
+            }
+
             sampleRepository.deleteById(id);
             log.info("Образец удалён: id={}", id);
             return true;
