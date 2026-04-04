@@ -1,9 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import io
 import json
 import random
-import threading
+import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,7 @@ except ImportError:  # pragma: no cover
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
 WEIGHTS_DIR = ROOT_DIR / "weights"
+TRAIN_SCRIPT_PATH = ROOT_DIR / "train.py"
 WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -215,12 +217,12 @@ if torch_available():
 
 class AutoencoderService:
     """
-    Сервис улучшения изображения.
+    РЎРµСЂРІРёСЃ СѓР»СѓС‡С€РµРЅРёСЏ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ.
 
-    Режимы работы:
-    - baseline: улучшение на Pillow без нейросети
-    - neural: улучшение через обученный denoising U-Net
-    - auto: использовать neural, если веса доступны, иначе baseline
+    Р РµР¶РёРјС‹ СЂР°Р±РѕС‚С‹:
+    - baseline: СѓР»СѓС‡С€РµРЅРёРµ РЅР° Pillow Р±РµР· РЅРµР№СЂРѕСЃРµС‚Рё
+    - neural: СѓР»СѓС‡С€РµРЅРёРµ С‡РµСЂРµР· РѕР±СѓС‡РµРЅРЅС‹Р№ denoising U-Net
+    - auto: РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ neural, РµСЃР»Рё РІРµСЃР° РґРѕСЃС‚СѓРїРЅС‹, РёРЅР°С‡Рµ baseline
     """
 
     default_model_name = DEFAULT_MODEL_NAME
@@ -231,15 +233,16 @@ class AutoencoderService:
         self.metadata = self._load_metadata()
         self.training_history = self._load_history()
         self.training_status = self._load_status()
-        self.training_lock = threading.Lock()
-        self.training_thread: threading.Thread | None = None
+        self.training_process: subprocess.Popen | None = None
 
     def list_models(self) -> list[dict[str, object]]:
+        self.model = self._load_model_if_available()
+        self.metadata = self._load_metadata()
         models = [
             self._to_dict(
                 ModelInfo(
                     model_name=BASELINE_MODEL_NAME,
-                    description="Базовый пайплайн улучшения изображения на Pillow",
+                    description="Р‘Р°Р·РѕРІС‹Р№ РїР°Р№РїР»Р°Р№РЅ СѓР»СѓС‡С€РµРЅРёСЏ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ РЅР° Pillow",
                     trained_date="2026-04-04",
                     epochs=0,
                     loss=0.0,
@@ -256,9 +259,9 @@ class AutoencoderService:
                         model_name=self.metadata.get("modelName", DEFAULT_MODEL_NAME),
                         description=self.metadata.get(
                             "description",
-                            "Denoising U-Net для восстановления искусственно ухудшенных гистологических изображений",
+                            "Denoising U-Net РґР»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РёСЃРєСѓСЃСЃС‚РІРµРЅРЅРѕ СѓС…СѓРґС€РµРЅРЅС‹С… РіРёСЃС‚РѕР»РѕРіРёС‡РµСЃРєРёС… РёР·РѕР±СЂР°Р¶РµРЅРёР№",
                         ),
-                        trained_date=self.metadata.get("trainedDate", "—"),
+                        trained_date=self.metadata.get("trainedDate", "вЂ”"),
                         epochs=int(self.metadata.get("epochs", 0)),
                         loss=float(self.metadata.get("loss", 0.0)),
                         validation_loss=float(self.metadata.get("validationLoss", 0.0)),
@@ -271,8 +274,8 @@ class AutoencoderService:
                 self._to_dict(
                     ModelInfo(
                         model_name=DEFAULT_MODEL_NAME,
-                        description="Denoising U-Net. Будет активирован после обучения и сохранения весов.",
-                        trained_date="—",
+                        description="Denoising U-Net. Р‘СѓРґРµС‚ Р°РєС‚РёРІРёСЂРѕРІР°РЅ РїРѕСЃР»Рµ РѕР±СѓС‡РµРЅРёСЏ Рё СЃРѕС…СЂР°РЅРµРЅРёСЏ РІРµСЃРѕРІ.",
+                        trained_date="вЂ”",
                         epochs=0,
                         loss=0.0,
                         validation_loss=0.0,
@@ -293,13 +296,13 @@ class AutoencoderService:
         started_at = datetime.now()
         self._set_training_status(
             {
-                "status": "running",
-                "message": "Идёт обучение модели",
-                "startedAt": self._format_datetime(started_at),
-                "epochs": epochs,
-                "batchSize": batch_size,
-                "learningRate": learning_rate,
-                "imageSize": image_size,
+            "status": "running",
+                "message": "РРґС‘С‚ РѕР±СѓС‡РµРЅРёРµ РјРѕРґРµР»Рё",
+            "startedAt": self._format_datetime(started_at),
+            "epochs": epochs,
+            "batchSize": batch_size,
+            "learningRate": learning_rate,
+            "imageSize": image_size,
                 "datasetSize": len(self._discover_training_images()),
             }
         )
@@ -307,7 +310,7 @@ class AutoencoderService:
         if not torch_available():
             result = {
                 "status": "error",
-                "message": "Torch не установлен. Обучение нейросетевой модели недоступно.",
+                "message": "Torch РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ. РћР±СѓС‡РµРЅРёРµ РЅРµР№СЂРѕСЃРµС‚РµРІРѕР№ РјРѕРґРµР»Рё РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
             }
             self._finish_training(result, started_at)
             return result
@@ -317,8 +320,8 @@ class AutoencoderService:
             result = {
                 "status": "error",
                 "message": (
-                    "Для denoising-обучения нужно больше изображений в autoencoder/data. "
-                    "Сейчас найдено недостаточно файлов."
+                    "Р”Р»СЏ denoising-РѕР±СѓС‡РµРЅРёСЏ РЅСѓР¶РЅРѕ Р±РѕР»СЊС€Рµ РёР·РѕР±СЂР°Р¶РµРЅРёР№ РІ autoencoder/data. "
+                    "РЎРµР№С‡Р°СЃ РЅР°Р№РґРµРЅРѕ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ С„Р°Р№Р»РѕРІ."
                 ),
                 "datasetSize": len(image_paths),
             }
@@ -331,7 +334,7 @@ class AutoencoderService:
         if train_size <= 0:
             result = {
                 "status": "error",
-                "message": "Недостаточно данных для разделения на train/validation.",
+                "message": "РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°РЅРЅС‹С… РґР»СЏ СЂР°Р·РґРµР»РµРЅРёСЏ РЅР° train/validation.",
                 "datasetSize": len(dataset),
             }
             self._finish_training(result, started_at)
@@ -400,7 +403,7 @@ class AutoencoderService:
         duration_seconds = round((finished_at - started_at).total_seconds(), 2)
         metadata = {
             "modelName": DEFAULT_MODEL_NAME,
-            "description": "Denoising U-Net для восстановления искусственно ухудшенных гистологических изображений",
+            "description": "Denoising U-Net РґР»СЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ РёСЃРєСѓСЃСЃС‚РІРµРЅРЅРѕ СѓС…СѓРґС€РµРЅРЅС‹С… РіРёСЃС‚РѕР»РѕРіРёС‡РµСЃРєРёС… РёР·РѕР±СЂР°Р¶РµРЅРёР№",
             "trainedDate": self._format_datetime(finished_at),
             "epochs": epochs,
             "loss": round(final_train_loss, 6),
@@ -423,7 +426,7 @@ class AutoencoderService:
 
         result = {
             "status": "ok",
-            "message": "Обучение denoising-модели завершено, веса сохранены.",
+            "message": "РћР±СѓС‡РµРЅРёРµ denoising-РјРѕРґРµР»Рё Р·Р°РІРµСЂС€РµРЅРѕ, РІРµСЃР° СЃРѕС…СЂР°РЅРµРЅС‹.",
             **metadata,
         }
         self._finish_training(result, started_at, finished_at)
@@ -436,53 +439,88 @@ class AutoencoderService:
         learning_rate: float,
         image_size: int = DEFAULT_IMAGE_SIZE,
     ) -> dict[str, object]:
-        with self.training_lock:
-            if self.training_status.get("status") == "running":
-                return {
-                    "status": "busy",
-                    "message": "Обучение уже запущено. Дождитесь завершения текущего процесса.",
-                    **self.training_status,
-                }
-
-            started_at = datetime.now()
-            dataset_size = len(self._discover_training_images())
-            accepted_status = {
-                "status": "running",
-                "message": "Обучение запущено в фоновом режиме",
-                "startedAt": self._format_datetime(started_at),
-                "epochs": epochs,
-                "batchSize": batch_size,
-                "learningRate": learning_rate,
-                "imageSize": image_size,
-                "datasetSize": dataset_size,
+        current_status = self._load_status()
+        if current_status.get("status") == "running":
+            return {
+                "status": "busy",
+                "message": "Обучение уже запущено. Дождитесь завершения текущего процесса.",
+                **current_status,
             }
-            self._set_training_status(accepted_status)
 
-            self.training_thread = threading.Thread(
-                target=self._run_training_job,
-                args=(epochs, batch_size, learning_rate, image_size),
-                daemon=True,
-                name="autoencoder-training",
+        started_at = datetime.now()
+        dataset_size = len(self._discover_training_images())
+        accepted_status = {
+            "status": "running",
+            "message": "Обучение запущено в фоновом режиме",
+            "startedAt": self._format_datetime(started_at),
+            "epochs": epochs,
+            "batchSize": batch_size,
+            "learningRate": learning_rate,
+            "imageSize": image_size,
+            "datasetSize": dataset_size,
+        }
+        self._set_training_status(accepted_status)
+
+        command = [
+            sys.executable,
+            str(TRAIN_SCRIPT_PATH),
+            "--epochs",
+            str(epochs),
+            "--batch-size",
+            str(batch_size),
+            "--learning-rate",
+            str(learning_rate),
+            "--image-size",
+            str(image_size),
+        ]
+
+        try:
+            self.training_process = subprocess.Popen(
+                command,
+                cwd=str(ROOT_DIR),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
-            self.training_thread.start()
+        except OSError as exc:
+            self._finish_training(
+                {
+                    "status": "error",
+                    "message": f"Не удалось запустить фоновое обучение: {exc}",
+                    "epochs": epochs,
+                    "batchSize": batch_size,
+                    "learningRate": learning_rate,
+                    "imageSize": image_size,
+                    "datasetSize": dataset_size,
+                },
+                started_at,
+                datetime.now(),
+            )
+            return {
+                "status": "error",
+                "message": f"Не удалось запустить фоновое обучение: {exc}",
+            }
 
         return {
+            **accepted_status,
             "status": "accepted",
             "message": "Обучение поставлено в очередь и выполняется в фоне.",
-            **accepted_status,
         }
 
     def get_training_status(self) -> dict[str, object]:
+        self.training_status = self._load_status()
         return self.training_status
 
     def get_training_history(self) -> list[dict[str, object]]:
+        self.training_history = self._load_history()
         return self.training_history
 
     def get_metrics(self) -> dict[str, object]:
+        self.model = self._load_model_if_available()
+        self.metadata = self._load_metadata()
         if self.metadata is None:
             return {
                 "status": "empty",
-                "message": "Модель ещё не обучалась",
+                "message": "РњРѕРґРµР»СЊ РµС‰С‘ РЅРµ РѕР±СѓС‡Р°Р»Р°СЃСЊ",
                 "activeModel": BASELINE_MODEL_NAME,
             }
 
@@ -501,37 +539,6 @@ class AutoencoderService:
             "device": self.metadata.get("device"),
             "mode": "neural" if self.model is not None else "baseline",
         }
-
-    def _run_training_job(
-        self,
-        epochs: int,
-        batch_size: int,
-        learning_rate: float,
-        image_size: int,
-    ) -> None:
-        try:
-            self.train_model(
-                epochs=epochs,
-                batch_size=batch_size,
-                learning_rate=learning_rate,
-                image_size=image_size,
-            )
-        except Exception as exc:
-            finished_at = datetime.now()
-            started_at = self._parse_datetime(self.training_status.get("startedAt")) or finished_at
-            self._finish_training(
-                {
-                    "status": "error",
-                    "message": f"Ошибка фонового обучения: {exc}",
-                    "epochs": epochs,
-                    "batchSize": batch_size,
-                    "learningRate": learning_rate,
-                    "imageSize": image_size,
-                },
-                started_at,
-                finished_at,
-            )
-
     def enhance_image(
         self,
         filename: str,
@@ -539,15 +546,16 @@ class AutoencoderService:
         content_type: str | None,
         mode: str = "auto",
     ) -> tuple[bytes, str, str]:
+        self.model = self._load_model_if_available()
         try:
             source = Image.open(io.BytesIO(payload))
         except UnidentifiedImageError as exc:
-            raise ValueError(f"Не удалось распознать изображение: {filename}") from exc
+            raise ValueError(f"РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ: {filename}") from exc
 
         normalized = ImageOps.exif_transpose(source).convert("RGB")
         selected_mode = mode.lower().strip()
         if selected_mode not in {"auto", "baseline", "neural"}:
-            raise ValueError("Недопустимый режим улучшения. Используйте auto, baseline или neural.")
+            raise ValueError("РќРµРґРѕРїСѓСЃС‚РёРјС‹Р№ СЂРµР¶РёРј СѓР»СѓС‡С€РµРЅРёСЏ. РСЃРїРѕР»СЊР·СѓР№С‚Рµ auto, baseline РёР»Рё neural.")
 
         output_format = self._resolve_format(content_type=content_type, filename=filename)
 
@@ -557,7 +565,7 @@ class AutoencoderService:
 
         if selected_mode == "neural":
             if self.model is None:
-                raise ValueError("Нейросетевая модель недоступна: веса не обучены или torch не установлен.")
+                raise ValueError("РќРµР№СЂРѕСЃРµС‚РµРІР°СЏ РјРѕРґРµР»СЊ РЅРµРґРѕСЃС‚СѓРїРЅР°: РІРµСЃР° РЅРµ РѕР±СѓС‡РµРЅС‹ РёР»Рё torch РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ.")
             enhanced = self._enhance_with_neural_model(normalized)
             return self._encode_image(enhanced, output_format), self._content_type_for(output_format), DEFAULT_MODEL_NAME
 
@@ -681,7 +689,7 @@ class AutoencoderService:
     def _load_status(self) -> dict[str, object]:
         default_status = {
             "status": "idle",
-            "message": "Обучение не запущено",
+            "message": "РћР±СѓС‡РµРЅРёРµ РЅРµ Р·Р°РїСѓС‰РµРЅРѕ",
         }
         if not STATUS_PATH.exists():
             return default_status
@@ -771,3 +779,4 @@ class AutoencoderService:
             "validationLoss": model.validation_loss,
             "active": model.active,
         }
+
