@@ -1,0 +1,103 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Создать заключение СМЭ | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Создать судебно-медицинское заключение</h1>
+                        <p class="page-subtitle">
+                            Образец № <span th:text="${sampleDTO.sampleNumber}"></span>
+                            (Дело № <span th:text="${sampleDTO.caseNumber}"></span>)
+                            — <span th:text="${sampleDTO.tissueTypeDisplayName}"></span>,
+                            <span th:text="${sampleDTO.stainingMethodDisplayName}"></span>
+                        </p>
+
+                        <div th:if="${conclusionError}" class="alert alert-danger" th:text="${conclusionError}"></div>
+
+                        <!-- Заключение гистолога (для справки) -->
+                        <div th:if="${histDiagnosis}" class="mb-4">
+                            <h6 class="form-section-title">Заключение гистолога (для справки)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <div class="text-muted small">Микроскопическое описание</div>
+                                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap;"
+                                         th:text="${histMicroscopicDescription}"></div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="text-muted small">Диагноз</div>
+                                    <div class="p-3 bg-light rounded fw-semibold" th:text="${histDiagnosis}"></div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="text-muted small">Текст заключения гистолога</div>
+                                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap;"
+                                         th:text="${histConclusionText}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:if="${histDiagnosis == null}" class="alert alert-warning mb-4">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Заключение гистолога для этого образца ещё не создано.
+                        </div>
+
+                        <form th:action="@{/employee/head/conclusions/addConclusion/{id}(id=${sampleDTO.id})}"
+                              method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Текст судебно-медицинского заключения *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputConclusionText" class="form-control" rows="10"
+                                              required placeholder="Введите текст судебно-медицинского заключения..."></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="inputIsFinal" class="form-check-input" id="inputIsFinal">
+                                        <label class="form-check-label" for="inputIsFinal">
+                                            <strong>Финальное заключение</strong>
+                                            <div class="text-muted small">При установке этого флага статус образца изменится на «Заключение выдано»</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить заключение
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/head/oversight/detailsSample/{id}(id=${sampleDTO.id})}">← К карточке образца</a>
+                            <span class="mx-2">|</span>
+                            <a th:href="@{/employee/head/conclusions/allConclusions}">Все заключения</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
