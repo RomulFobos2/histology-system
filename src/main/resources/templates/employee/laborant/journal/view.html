@@ -1,0 +1,114 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Электронный журнал | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+    <script src="/js/tableFilter.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Электронный журнал</h1>
+                    <form method="post" th:action="@{/employee/laborant/journal/export}" style="margin:0">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Экспорт в Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="journalTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">Номер дела</th>
+                        <th data-sortable data-sort-type="text">Номер образца</th>
+                        <th data-sortable data-sort-type="date">Дата поступления</th>
+                        <th data-sortable data-sort-type="text">Тип ткани</th>
+                        <th data-sortable data-sort-type="text">Метод окрашивания</th>
+                        <th data-sortable data-sort-type="text">Стадия</th>
+                        <th data-sortable data-sort-type="text">Эксперт</th>
+                        <th data-sortable data-sort-type="text">Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="entry, iter : ${journalEntries}">
+                        <td class="row-number" th:text="${iter.count}">1</td>
+                        <td th:text="${entry.caseNumber}">—</td>
+                        <td th:text="${entry.sampleNumber}">—</td>
+                        <td th:text="${entry.receiptDate != null ? #temporals.format(entry.receiptDate, 'dd.MM.yyyy') : '—'}">—</td>
+                        <td th:text="${entry.tissueTypeDisplayName}">—</td>
+                        <td th:text="${entry.stainingMethodDisplayName}">—</td>
+                        <td th:text="${entry.researchStageDisplayName}">—</td>
+                        <td th:text="${entry.expertFullName != null ? entry.expertFullName : '—'}">—</td>
+                        <td th:text="${entry.statusDisplayName}">—</td>
+                    </tr>
+                    <tr th:if="${journalEntries.isEmpty()}">
+                        <td colspan="9" class="text-center text-muted py-4">Записи не найдены</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        // Данные для фильтров из enum-ов
+        var tissueTypes = [];
+        /*[# th:each="tt : ${tissueTypes}"]*/
+        tissueTypes.push({ value: /*[[${tt.displayName}]]*/ '', text: /*[[${tt.displayName}]]*/ '' });
+        /*[/]*/
+
+        var stainingMethods = [];
+        /*[# th:each="sm : ${stainingMethods}"]*/
+        stainingMethods.push({ value: /*[[${sm.displayName}]]*/ '', text: /*[[${sm.displayName}]]*/ '' });
+        /*[/]*/
+
+        var researchStages = [];
+        /*[# th:each="rs : ${researchStages}"]*/
+        researchStages.push({ value: /*[[${rs.displayName}]]*/ '', text: /*[[${rs.displayName}]]*/ '' });
+        /*[/]*/
+
+        var sampleStatuses = [];
+        /*[# th:each="ss : ${sampleStatuses}"]*/
+        sampleStatuses.push({ value: /*[[${ss.displayName}]]*/ '', text: /*[[${ss.displayName}]]*/ '' });
+        /*[/]*/
+
+        initTableFilter('journalTable', {
+            searchPlaceholder: 'Поиск по журналу...',
+            perPage: 20,
+            filters: [
+                { column: 4, label: 'Тип ткани', options: tissueTypes },
+                { column: 5, label: 'Метод окрашивания', options: stainingMethods },
+                { column: 6, label: 'Стадия', options: researchStages },
+                { column: 8, label: 'Статус', options: sampleStatuses }
+            ]
+        });
+
+        if (typeof initSortable === 'function') {
+            initSortable('journalTable');
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Отчёт: Методы окрашивания | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Отчёт: Методы окрашивания</h1>
+                    <a th:href="@{/employee/head/reports/dashboard}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> К дашборду
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted mb-3">Частота использования каждого метода окрашивания за период.</p>
+                    <form method="post" th:action="@{/employee/head/reports/stainingMethods}" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label" for="dateFrom">Дата начала</label>
+                            <input type="date" class="form-control" id="dateFrom" name="dateFrom" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="dateTo">Дата окончания</label>
+                            <input type="date" class="form-control" id="dateTo" name="dateTo" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> Скачать Excel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

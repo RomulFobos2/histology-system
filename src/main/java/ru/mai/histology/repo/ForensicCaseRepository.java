@@ -1,6 +1,7 @@
 package ru.mai.histology.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import ru.mai.histology.enumeration.CaseStatus;
 import ru.mai.histology.models.ForensicCase;
 
 import java.util.List;
@@ -12,4 +13,6 @@ public interface ForensicCaseRepository extends JpaRepository<ForensicCase, Long
     boolean existsByCaseNumber(String caseNumber);
 
     boolean existsByCaseNumberAndIdNot(String caseNumber, Long id);
+
+    long countByStatus(CaseStatus status);
 }

@@ -15,4 +15,6 @@ public interface ForensicConclusionRepository extends JpaRepository<ForensicConc
     boolean existsBySampleId(Long sampleId);
 
     long countBySampleId(Long sampleId);
+
+    List<ForensicConclusion> findAllByConclusionDateBetweenOrderByConclusionDateDesc(java.time.LocalDate from, java.time.LocalDate to);
 }

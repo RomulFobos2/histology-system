@@ -17,4 +17,6 @@ public interface HistologistConclusionRepository extends JpaRepository<Histologi
     boolean existsBySampleId(Long sampleId);
 
     long countBySampleId(Long sampleId);
+
+    List<HistologistConclusion> findAllByConclusionDateBetweenOrderByConclusionDateDesc(java.time.LocalDate from, java.time.LocalDate to);
 }
