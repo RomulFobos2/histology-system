@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Карточка образца | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+                            <div>
+                                <h1 class="page-title mb-1" th:text="'Образец № ' + ${sampleDTO.sampleNumber}"></h1>
+                                <p class="page-subtitle mb-0" th:text="'Дело № ' + ${sampleDTO.caseNumber}"></p>
+                            </div>
+                            <div>
+                                <span class="badge-active" th:text="${sampleDTO.statusDisplayName}"></span>
+                            </div>
+                        </div>
+
+                        <!-- Стадия исследования -->
+                        <h6 class="form-section-title">Стадия исследования</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <span class="badge-active" style="font-size: 1rem;" th:text="${sampleDTO.researchStageDisplayName}"></span>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Информация об образце</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="text-muted small">Номер образца</div>
+                                <div th:text="${sampleDTO.sampleNumber}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата поступления</div>
+                                <div th:text="${sampleDTO.receiptDate} ? ${#temporals.format(sampleDTO.receiptDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Статус</div>
+                                <div th:text="${sampleDTO.statusDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Тип ткани</div>
+                                <div th:text="${sampleDTO.tissueTypeDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Метод окрашивания</div>
+                                <div th:text="${sampleDTO.stainingMethodDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Назначенный гистолог</div>
+                                <div th:text="${sampleDTO.assignedHistologistFullName} ?: '— Не назначен —'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Зарегистрировал</div>
+                                <div th:text="${sampleDTO.registeredByFullName} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-12" th:if="${sampleDTO.notes != null and !sampleDTO.notes.isEmpty()}">
+                                <div class="text-muted small">Примечания</div>
+                                <div th:text="${sampleDTO.notes}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Действия -->
+                        <div class="profile-actions">
+                            <a th:href="@{/employee/histologist/images/allImages/{id}(id=${sampleDTO.id})}"
+                               class="btn btn-success btn-profile">
+                                <i class="bi bi-images"></i> Изображения
+                            </a>
+
+                            <!-- Заключение -->
+                            <a th:if="${!hasConclusionForSample}"
+                               th:href="@{/employee/histologist/conclusions/addConclusion/{id}(id=${sampleDTO.id})}"
+                               class="btn btn-primary btn-profile">
+                                <i class="bi bi-journal-medical"></i> Создать заключение
+                            </a>
+                            <a th:if="${hasConclusionForSample}"
+                               th:href="@{/employee/histologist/conclusions/detailsConclusion/{id}(id=${conclusionId})}"
+                               class="btn btn-outline-primary btn-profile">
+                                <i class="bi bi-journal-medical"></i> Заключение
+                            </a>
+
+                            <!-- Протокол -->
+                            <a th:if="${!hasProtocolForSample}"
+                               th:href="@{/employee/histologist/protocols/generateProtocol/{id}(id=${sampleDTO.id})}"
+                               class="btn btn-primary btn-profile">
+                                <i class="bi bi-clipboard2-pulse"></i> Создать протокол
+                            </a>
+                            <a th:if="${hasProtocolForSample}"
+                               th:href="@{/employee/histologist/protocols/detailsProtocol/{id}(id=${protocolId})}"
+                               class="btn btn-outline-primary btn-profile">
+                                <i class="bi bi-clipboard2-pulse"></i> Протокол
+                            </a>
+                        </div>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/histologist/samples/allSamples}">← Все образцы</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

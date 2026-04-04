@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Создать протокол | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Создать протокол исследования</h1>
+                        <p class="page-subtitle">
+                            Образец № <span th:text="${sampleDTO.sampleNumber}"></span>
+                            (Дело № <span th:text="${sampleDTO.caseNumber}"></span>)
+                            — <span th:text="${sampleDTO.tissueTypeDisplayName}"></span>,
+                            <span th:text="${sampleDTO.stainingMethodDisplayName}"></span>
+                        </p>
+
+                        <div th:if="${protocolError}" class="alert alert-danger" th:text="${protocolError}"></div>
+
+                        <form th:action="@{/employee/histologist/protocols/generateProtocol/{id}(id=${sampleDTO.id})}"
+                              method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Номер протокола *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <input type="text" id="inputProtocolNumber" name="inputProtocolNumber"
+                                           class="form-control" required maxlength="50"
+                                           placeholder="Например: ПГИ-2026-001">
+                                    <div id="protocolNumberFeedback" class="form-text"></div>
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Текст протокола *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputProtocolText" class="form-control" rows="20"
+                                              required th:text="${generatedText}"></textarea>
+                                    <div class="form-text">Текст сгенерирован автоматически на основе данных образца. Отредактируйте при необходимости.</div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile" disabled>
+                                <i class="bi bi-check-lg"></i> Создать протокол
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${sampleDTO.id})}">← К карточке образца</a>
+                            <span class="mx-2">|</span>
+                            <a th:href="@{/employee/histologist/protocols/allProtocols}">Все протоколы</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    var protocolNumberInput = document.getElementById('inputProtocolNumber');
+    var protocolNumberFeedback = document.getElementById('protocolNumberFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+    var protocolNumberValid = false;
+
+    function validateForm() {
+        submitBtn.disabled = !protocolNumberValid;
+    }
+
+    var protocolNumberTimer;
+    protocolNumberInput.addEventListener('input', function () {
+        clearTimeout(protocolNumberTimer);
+        var value = protocolNumberInput.value.trim();
+        if (value.length === 0) {
+            protocolNumberInput.classList.remove('is-valid', 'is-invalid');
+            protocolNumberFeedback.textContent = '';
+            protocolNumberValid = false;
+            validateForm();
+            return;
+        }
+        protocolNumberTimer = setTimeout(function () {
+            fetch('/employee/histologist/protocols/check-protocolNumber?protocolNumber=' + encodeURIComponent(value))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.exists) {
+                        protocolNumberInput.classList.remove('is-valid');
+                        protocolNumberInput.classList.add('is-invalid');
+                        protocolNumberFeedback.textContent = 'Этот номер протокола уже занят';
+                        protocolNumberFeedback.style.color = 'var(--danger)';
+                        protocolNumberValid = false;
+                    } else {
+                        protocolNumberInput.classList.remove('is-invalid');
+                        protocolNumberInput.classList.add('is-valid');
+                        protocolNumberFeedback.textContent = 'Номер свободен';
+                        protocolNumberFeedback.style.color = 'var(--success)';
+                        protocolNumberValid = true;
+                    }
+                    validateForm();
+                });
+        }, 400);
+    });
+</script>
+</body>
+</html>
