@@ -32,4 +32,10 @@ public class ImageViewService {
         return imageRepository.findById(id)
                 .map(MicroscopeImageMapper.INSTANCE::toDTO);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<MicroscopeImageDTO> getLatestEnhancedVersion(Long originalImageId) {
+        return imageRepository.findFirstByOriginalImageIdOrderByUploadDateDesc(originalImageId)
+                .map(MicroscopeImageMapper.INSTANCE::toDTO);
+    }
 }

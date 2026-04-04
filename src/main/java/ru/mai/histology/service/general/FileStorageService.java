@@ -9,7 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,10 +46,7 @@ public class FileStorageService {
     public String saveFile(MultipartFile file, String caseNumber, String sampleNumber) {
         try {
             String originalFilename = file.getOriginalFilename();
-            String ext = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
+            String ext = resolveExtension(originalFilename, file.getContentType());
             String storedFilename = UUID.randomUUID() + ext;
 
             Path dir = basePath.resolve(caseNumber).resolve(sampleNumber);
@@ -66,6 +62,34 @@ public class FileStorageService {
             return relativePath;
         } catch (IOException e) {
             log.error("Ошибка при сохранении файла: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Сохраняет массив байтов как изображение.
+     * @return относительный путь от uploadDir
+     */
+    public String saveBytesAsImage(byte[] data, String originalFilename,
+                                   String caseNumber, String sampleNumber,
+                                   String contentType) {
+        try {
+            String ext = resolveExtension(originalFilename, contentType);
+            String storedFilename = UUID.randomUUID() + ext;
+
+            Path dir = Paths.get(uploadDir, caseNumber, sampleNumber);
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+
+            Path filePath = dir.resolve(storedFilename);
+            Files.write(filePath, data);
+
+            String relativePath = caseNumber + "/" + sampleNumber + "/" + storedFilename;
+            log.info("Файл из байтов сохранён: {}", relativePath);
+            return relativePath;
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении массива байтов: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -179,5 +203,21 @@ public class FileStorageService {
         if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return "image/tiff";
         if (lower.endsWith(".png")) return "image/png";
         return "application/octet-stream";
+    }
+
+    private String resolveExtension(String originalFilename, String contentType) {
+        if ("image/png".equalsIgnoreCase(contentType)) {
+            return ".png";
+        }
+        if ("image/tiff".equalsIgnoreCase(contentType) || "image/tif".equalsIgnoreCase(contentType)) {
+            return ".tif";
+        }
+        if ("image/jpeg".equalsIgnoreCase(contentType) || "image/jpg".equalsIgnoreCase(contentType)) {
+            return ".jpg";
+        }
+        if (originalFilename != null && originalFilename.contains(".")) {
+            return originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        return ".jpg";
     }
 }
