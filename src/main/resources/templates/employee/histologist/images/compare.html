@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Сравнение изображений | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card p-4">
+                <h1 class="page-title mb-1">Сравнение изображений</h1>
+                <p class="page-subtitle mb-4">Слева оригинал, справа улучшенная копия из Python-сервиса</p>
+
+                <div class="row g-4">
+                    <div class="col-12 col-xl-6">
+                        <div class="profile-card p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="form-section-title mb-0">Оригинал</h6>
+                                <span class="text-muted small" th:text="${originalImageDTO.fileSizeFormatted}"></span>
+                            </div>
+                            <div class="text-center mb-3">
+                                <img th:src="@{/files/images/serve/{id}(id=${originalImageDTO.id})}"
+                                     th:alt="${originalImageDTO.originalFilename}"
+                                     style="max-width:100%; max-height:420px; border-radius:8px; border:1px solid var(--border);">
+                            </div>
+                            <div class="small text-muted" th:text="${originalImageDTO.originalFilename}"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-6">
+                        <div class="profile-card p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="form-section-title mb-0">Улучшенная копия</h6>
+                                <span class="badge-active">Улучшено</span>
+                            </div>
+                            <div class="text-center mb-3">
+                                <img th:src="@{/files/images/serve/{id}(id=${enhancedImageDTO.id})}"
+                                     th:alt="${enhancedImageDTO.originalFilename}"
+                                     style="max-width:100%; max-height:420px; border-radius:8px; border:1px solid var(--border);">
+                            </div>
+                            <div class="small text-muted" th:text="${enhancedImageDTO.originalFilename}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actions mt-4">
+                    <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${originalImageDTO.id})}"
+                       class="btn btn-secondary btn-profile">
+                        <i class="bi bi-arrow-left"></i> К оригиналу
+                    </a>
+                    <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${enhancedImageDTO.id})}"
+                       class="btn btn-primary btn-profile">
+                        <i class="bi bi-stars"></i> К улучшенной копии
+                    </a>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

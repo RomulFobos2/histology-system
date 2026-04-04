@@ -86,6 +86,11 @@
                                     <i class="bi bi-stars"></i> Улучшить (автоэнкодер)
                                 </button>
                             </form>
+                            <a th:if="${compareOriginalId != null and compareEnhancedId != null}"
+                               th:href="@{/employee/histologist/images/compare/{originalId}/{enhancedId}(originalId=${compareOriginalId}, enhancedId=${compareEnhancedId})}"
+                               class="btn btn-outline-secondary btn-profile">
+                                <i class="bi bi-columns-gap"></i> Сравнить
+                            </a>
                         </div>
 
                         <div class="link-section mt-3">
