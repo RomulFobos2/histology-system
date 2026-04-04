@@ -36,3 +36,5 @@ autoencoder/venv/
 __pycache__/
 *.pyc
 uploads/
+autoencoder/data/
+log/
