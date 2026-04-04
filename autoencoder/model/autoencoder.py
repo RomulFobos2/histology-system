@@ -3,6 +3,7 @@
 import io
 import json
 import random
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -297,7 +298,7 @@ class AutoencoderService:
         self._set_training_status(
             {
             "status": "running",
-                "message": "РРґС‘С‚ РѕР±СѓС‡РµРЅРёРµ РјРѕРґРµР»Рё",
+                "message": "Идёт обучение модели",
             "startedAt": self._format_datetime(started_at),
             "epochs": epochs,
             "batchSize": batch_size,
@@ -417,7 +418,7 @@ class AutoencoderService:
             "weightsPath": str(WEIGHTS_PATH.name),
         }
         METADATA_PATH.write_text(
-            json.dumps(metadata, ensure_ascii=False, indent=2),
+            json.dumps(metadata, ensure_ascii=True , indent=2),
             encoding="utf-8",
         )
 
@@ -514,6 +515,15 @@ class AutoencoderService:
     def get_training_status(self) -> dict[str, object]:
         self.training_status = self._normalize_training_status(self._load_status())
         return self.training_status
+
+    def reset_training_status(self) -> dict[str, object]:
+        """Принудительно сбрасывает зависший статус обучения в idle."""
+        if self.training_process is not None and self.training_process.poll() is not None:
+            self.training_process = None
+        idle: dict[str, object] = {"status": "idle", "message": "Status reset manually."}
+        self._set_training_status(idle)
+        self.training_status = idle
+        return idle
 
     def get_training_history(self) -> list[dict[str, object]]:
         self.training_history = self._load_history()
@@ -706,7 +716,22 @@ class AutoencoderService:
 
     def _set_training_status(self, status: dict[str, object]) -> None:
         self.training_status = status
-        STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
+        STATUS_PATH.write_text(json.dumps(status, ensure_ascii=True , indent=2), encoding="utf-8")
+
+    def _is_process_alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+
+    def _normalize_training_status(self, status: dict[str, object]) -> dict[str, object]:
+        if status.get("status") != "running":
+            return status
+        pid = status.get("pid")
+        if pid is not None and self._is_process_alive(int(pid)):
+            return status
+        return {"status": "idle", "message": "Обучение не выполняется (процесс завершён)."}
 
     def _finish_training(
         self,
@@ -727,7 +752,7 @@ class AutoencoderService:
         self.training_history.insert(0, finished)
         self.training_history = self.training_history[:20]
         HISTORY_PATH.write_text(
-            json.dumps(self.training_history, ensure_ascii=False, indent=2),
+            json.dumps(self.training_history, ensure_ascii=True , indent=2),
             encoding="utf-8",
         )
         self._set_training_status(finished)
