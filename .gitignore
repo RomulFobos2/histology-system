@@ -40,3 +40,6 @@ autoencoder/data/
 autoencoder/weights/
 .claude
 log/
+# Python service runtime logs
+autoencoder/*.log
+autoencoder/*.log.err
