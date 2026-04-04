@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.service.employee.histologist.AutoencoderTrainingService;
+import ru.mai.histology.service.general.PythonServiceManager;
 
 import java.util.Map;
 
@@ -16,20 +17,49 @@ import java.util.Map;
 public class AutoencoderTrainingController {
 
     private final AutoencoderTrainingService autoencoderTrainingService;
+    private final PythonServiceManager pythonServiceManager;
 
-    public AutoencoderTrainingController(AutoencoderTrainingService autoencoderTrainingService) {
+    public AutoencoderTrainingController(AutoencoderTrainingService autoencoderTrainingService,
+                                         PythonServiceManager pythonServiceManager) {
         this.autoencoderTrainingService = autoencoderTrainingService;
+        this.pythonServiceManager = pythonServiceManager;
     }
 
     @GetMapping("/employee/histologist/autoencoder/dashboard")
     public String dashboard(Model model) {
         model.addAttribute("serviceAvailable", autoencoderTrainingService.isServiceAvailable());
+        model.addAttribute("processManaged", pythonServiceManager.isRunning());
         model.addAttribute("metrics", autoencoderTrainingService.getMetrics());
         model.addAttribute("trainingStatus", autoencoderTrainingService.getTrainingStatus());
         model.addAttribute("models", autoencoderTrainingService.getModels());
         model.addAttribute("pythonTrainingHistory", autoencoderTrainingService.getPythonTrainingHistory());
         model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessions());
         return "employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/startService")
+    public String startService(RedirectAttributes redirectAttributes) {
+        boolean started = pythonServiceManager.start();
+        if (started) {
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Python-сервис запускается. Подождите несколько секунд и обновите страницу.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Не удалось запустить Python-сервис. Возможно, он уже работает или не найден исполняемый файл Python.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/stopService")
+    public String stopService(RedirectAttributes redirectAttributes) {
+        boolean stopped = pythonServiceManager.stop();
+        if (stopped) {
+            redirectAttributes.addFlashAttribute("successMessage", "Python-сервис остановлен.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Не удалось остановить Python-сервис. Возможно, он не был запущен через систему.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
     }
 
     @PostMapping("/employee/histologist/autoencoder/activateModel")
