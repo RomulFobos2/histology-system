@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Создать заключение | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Создать заключение гистолога</h1>
+                        <p class="page-subtitle">
+                            Образец № <span th:text="${sampleDTO.sampleNumber}"></span>
+                            (Дело № <span th:text="${sampleDTO.caseNumber}"></span>)
+                            — <span th:text="${sampleDTO.tissueTypeDisplayName}"></span>,
+                            <span th:text="${sampleDTO.stainingMethodDisplayName}"></span>
+                        </p>
+
+                        <div th:if="${conclusionError}" class="alert alert-danger" th:text="${conclusionError}"></div>
+
+                        <form th:action="@{/employee/histologist/conclusions/addConclusion/{id}(id=${sampleDTO.id})}"
+                              method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Микроскопическое описание *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputMicroscopicDescription" class="form-control" rows="6"
+                                              required placeholder="Опишите микроскопическую картину ткани..."></textarea>
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Диагноз *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <input type="text" name="inputDiagnosis" class="form-control"
+                                           required maxlength="500" placeholder="Сформулируйте диагноз">
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Текст заключения *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputConclusionText" class="form-control" rows="6"
+                                              required placeholder="Развёрнутый текст заключения..."></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить заключение
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${sampleDTO.id})}">← К карточке образца</a>
+                            <span class="mx-2">|</span>
+                            <a th:href="@{/employee/histologist/conclusions/allConclusions}">Все заключения</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Заключения гистолога | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Заключения гистолога</h1>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="table-container">
+                <table id="conclusionsTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">Образец</th>
+                        <th data-sortable data-sort-type="text">Дело</th>
+                        <th data-sortable data-sort-type="text">Тип ткани</th>
+                        <th data-sortable data-sort-type="text">Диагноз</th>
+                        <th data-sortable data-sort-type="text">Дата</th>
+                        <th>Гистолог</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c, index : ${allConclusions}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/histologist/conclusions/detailsConclusion/{id}(id=${c.id})}"
+                               th:text="${c.sampleNumber}"></a>
+                        </td>
+                        <td th:text="${c.caseNumber}"></td>
+                        <td th:text="${c.tissueTypeDisplayName}"></td>
+                        <td>
+                            <span th:text="${#strings.abbreviate(c.diagnosis, 60)}"></span>
+                        </td>
+                        <td th:text="${c.conclusionDate} ? ${#temporals.format(c.conclusionDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td th:text="${c.histologistFullName}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div th:if="${#lists.isEmpty(allConclusions)}" class="text-center text-muted py-5">
+                <i class="bi bi-journal-medical" style="font-size: 3rem;"></i>
+                <p class="mt-2">Заключения пока не созданы</p>
+                <a th:href="@{/employee/histologist/samples/allSamples}" class="btn btn-primary">
+                    <i class="bi bi-droplet"></i> Перейти к образцам
+                </a>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script>
+    initPagination('conclusionsTable', { perPage: 20 });
+    initSortable('conclusionsTable');
+</script>
+</body>
+</html>

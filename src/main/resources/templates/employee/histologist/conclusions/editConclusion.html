@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Редактировать заключение | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Редактировать заключение</h1>
+                        <p class="page-subtitle">
+                            Образец № <span th:text="${conclusionDTO.sampleNumber}"></span>
+                            (Дело № <span th:text="${conclusionDTO.caseNumber}"></span>)
+                        </p>
+
+                        <div th:if="${conclusionError}" class="alert alert-danger" th:text="${conclusionError}"></div>
+
+                        <form th:action="@{/employee/histologist/conclusions/editConclusion/{id}(id=${conclusionDTO.id})}"
+                              method="post" class="auth-form">
+
+                            <h6 class="form-section-title">Микроскопическое описание *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputMicroscopicDescription" class="form-control" rows="6"
+                                              required th:text="${conclusionDTO.microscopicDescription}"></textarea>
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Диагноз *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <input type="text" name="inputDiagnosis" class="form-control"
+                                           required maxlength="500" th:value="${conclusionDTO.diagnosis}">
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Текст заключения *</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <textarea name="inputConclusionText" class="form-control" rows="6"
+                                              required th:text="${conclusionDTO.conclusionText}"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-profile">
+                                <i class="bi bi-check-lg"></i> Сохранить изменения
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/histologist/conclusions/detailsConclusion/{id}(id=${conclusionDTO.id})}">← К заключению</a>
+                            <span class="mx-2">|</span>
+                            <a th:href="@{/employee/histologist/conclusions/allConclusions}">Все заключения</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

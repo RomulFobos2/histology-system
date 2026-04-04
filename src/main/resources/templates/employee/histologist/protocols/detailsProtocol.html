@@ -1,0 +1,103 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Протокол исследования | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+                        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+                            <div>
+                                <h1 class="page-title mb-1" th:text="'Протокол № ' + ${protocolDTO.protocolNumber}"></h1>
+                                <p class="page-subtitle mb-0">
+                                    Образец № <span th:text="${protocolDTO.sampleNumber}"></span>
+                                    (Дело № <span th:text="${protocolDTO.caseNumber}"></span>)
+                                </p>
+                            </div>
+                            <div>
+                                <span class="badge-active" th:text="${protocolDTO.tissueTypeDisplayName}"></span>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Информация о протоколе</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="text-muted small">Номер протокола</div>
+                                <div th:text="${protocolDTO.protocolNumber}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата создания</div>
+                                <div th:text="${protocolDTO.createdDate} ? ${#temporals.format(protocolDTO.createdDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Автор</div>
+                                <div th:text="${protocolDTO.createdByFullName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Тип ткани</div>
+                                <div th:text="${protocolDTO.tissueTypeDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Метод окрашивания</div>
+                                <div th:text="${protocolDTO.stainingMethodDisplayName}"></div>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Текст протокола</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <div class="p-3 bg-light rounded" style="white-space: pre-wrap;"
+                                     th:text="${protocolDTO.protocolText}"></div>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <a th:href="@{/employee/histologist/protocols/editProtocol/{id}(id=${protocolDTO.id})}"
+                               class="btn btn-primary btn-profile">
+                                <i class="bi bi-pencil"></i> Редактировать
+                            </a>
+                            <form th:action="@{/employee/histologist/protocols/exportProtocol/{id}(id=${protocolDTO.id})}"
+                                  method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-profile">
+                                    <i class="bi bi-file-earmark-arrow-down"></i> Экспорт
+                                </button>
+                            </form>
+                            <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${protocolDTO.sampleId})}"
+                               class="btn btn-outline-secondary btn-profile">
+                                <i class="bi bi-droplet"></i> К образцу
+                            </a>
+                        </div>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/histologist/protocols/allProtocols}">← Все протоколы</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
