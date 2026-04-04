@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Карточка образца | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+                            <div>
+                                <h1 class="page-title mb-1" th:text="'Образец № ' + ${sampleDTO.sampleNumber}"></h1>
+                                <p class="page-subtitle mb-0" th:text="'Дело № ' + ${sampleDTO.caseNumber}"></p>
+                            </div>
+                            <div>
+                                <span class="badge-active" th:text="${sampleDTO.statusDisplayName}"></span>
+                            </div>
+                        </div>
+
+                        <!-- Стадия исследования -->
+                        <h6 class="form-section-title">Стадия исследования</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <span class="badge-active" style="font-size: 1rem;" th:text="${sampleDTO.researchStageDisplayName}"></span>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Информация об образце</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="text-muted small">Номер образца</div>
+                                <div th:text="${sampleDTO.sampleNumber}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата поступления</div>
+                                <div th:text="${sampleDTO.receiptDate} ? ${#temporals.format(sampleDTO.receiptDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Статус</div>
+                                <div th:text="${sampleDTO.statusDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Тип ткани</div>
+                                <div th:text="${sampleDTO.tissueTypeDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Метод окрашивания</div>
+                                <div th:text="${sampleDTO.stainingMethodDisplayName}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Назначенный гистолог</div>
+                                <div th:text="${sampleDTO.assignedHistologistFullName} ?: '— Не назначен —'"></div>
+                            </div>
+                            <div class="col-md-12" th:if="${sampleDTO.notes != null and !sampleDTO.notes.isEmpty()}">
+                                <div class="text-muted small">Примечания</div>
+                                <div th:text="${sampleDTO.notes}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Заключение гистолога (read-only) -->
+                        <div th:if="${hasHistologistConclusion}">
+                            <h6 class="form-section-title">Заключение гистолога</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <div class="text-muted small">Диагноз</div>
+                                    <div class="p-3 bg-light rounded fw-semibold" th:text="${histConclusionDiagnosis}"></div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="text-muted small">Текст заключения</div>
+                                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap;" th:text="${histConclusionText}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:if="${!hasHistologistConclusion}" class="mb-4">
+                            <h6 class="form-section-title">Заключение гистолога</h6>
+                            <p class="text-muted">Заключение гистолога ещё не создано</p>
+                        </div>
+
+                        <!-- Действия -->
+                        <div class="profile-actions">
+                            <a th:if="${!hasForensicConclusion}"
+                               th:href="@{/employee/head/conclusions/addConclusion/{id}(id=${sampleDTO.id})}"
+                               class="btn btn-primary btn-profile">
+                                <i class="bi bi-file-earmark-medical"></i> Создать заключение СМЭ
+                            </a>
+                            <a th:if="${hasForensicConclusion}"
+                               th:href="@{/employee/head/conclusions/detailsConclusion/{id}(id=${forensicConclusionId})}"
+                               class="btn btn-outline-primary btn-profile">
+                                <i class="bi bi-file-earmark-medical"></i> Заключение СМЭ
+                                <span th:if="${forensicConclusionIsFinal}" class="ms-1 badge bg-success">Финальное</span>
+                            </a>
+                        </div>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/head/oversight/detailsCase/{id}(id=${sampleDTO.caseId})}">← К карточке дела</a>
+                            <span class="mx-2">|</span>
+                            <a th:href="@{/employee/head/oversight/allSamples}">Все образцы</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

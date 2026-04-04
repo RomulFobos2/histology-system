@@ -1,0 +1,103 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Надзор — Дела | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Надзор — Судебные дела</h1>
+                </div>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="profile-card mb-4 p-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small">Статус дела</label>
+                        <select id="filterStatus" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="cs : ${caseStatuses}" th:value="${cs.displayName}" th:text="${cs.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="casesTable" class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-sortable data-sort-type="text">Номер дела</th>
+                        <th data-sortable data-sort-type="text">Дата поступления</th>
+                        <th data-sortable data-sort-type="text">Ответственный</th>
+                        <th>Образцов</th>
+                        <th>Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c, index : ${allCases}">
+                        <td class="row-number" th:text="${index.index + 1}"></td>
+                        <td>
+                            <a th:href="@{/employee/head/oversight/detailsCase/{id}(id=${c.id})}"
+                               th:text="${c.caseNumber}"></a>
+                        </td>
+                        <td th:text="${c.receiptDate} ? ${#temporals.format(c.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td th:text="${c.expertFullName} ?: '—'"></td>
+                        <td th:text="${c.sampleCount}"></td>
+                        <td class="filter-status">
+                            <span class="badge-active" th:text="${c.statusDisplayName}"></span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script>
+    initPagination('casesTable', { perPage: 20 });
+    initSortable('casesTable');
+
+    var filterStatus = document.getElementById('filterStatus');
+
+    function applyFilters() {
+        var statusVal = filterStatus.value;
+        var rows = document.querySelectorAll('#casesTable tbody tr');
+        rows.forEach(function (row) {
+            var status = row.querySelector('.filter-status');
+            var showStatus = !statusVal || (status && status.textContent.trim() === statusVal);
+            row.style.display = showStatus ? '' : 'none';
+        });
+    }
+
+    function clearFilters() {
+        filterStatus.value = '';
+        applyFilters();
+    }
+
+    filterStatus.addEventListener('change', applyFilters);
+</script>
+</body>
+</html>
