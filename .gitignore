@@ -35,3 +35,4 @@ build/
 autoencoder/venv/
 __pycache__/
 *.pyc
+uploads/
