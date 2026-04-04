@@ -20,19 +20,23 @@ import java.util.UUID;
 @Slf4j
 public class FileStorageService {
 
+    private Path basePath;
+
     @Value("${app.upload.dir}")
     private String uploadDir;
 
     @PostConstruct
     public void init() {
         try {
-            Path path = Paths.get(uploadDir);
-            if (!Files.exists(path)) {
-                Files.createDirectories(path);
-                log.info("Создана директория для загрузок: {}", path.toAbsolutePath());
+            // Преобразуем в абсолютный путь, чтобы не зависеть от working directory Tomcat
+            basePath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            if (!Files.exists(basePath)) {
+                Files.createDirectories(basePath);
             }
+            log.info("Директория для загрузок: {}", basePath);
         } catch (IOException e) {
             log.error("Не удалось создать директорию загрузок: {}", e.getMessage(), e);
+            basePath = Paths.get(uploadDir).toAbsolutePath();
         }
     }
 
@@ -49,7 +53,7 @@ public class FileStorageService {
             }
             String storedFilename = UUID.randomUUID() + ext;
 
-            Path dir = Paths.get(uploadDir, caseNumber, sampleNumber);
+            Path dir = basePath.resolve(caseNumber).resolve(sampleNumber);
             if (!Files.exists(dir)) {
                 Files.createDirectories(dir);
             }
@@ -58,7 +62,7 @@ public class FileStorageService {
             file.transferTo(filePath.toFile());
 
             String relativePath = caseNumber + "/" + sampleNumber + "/" + storedFilename;
-            log.info("Файл сохранён: {}", relativePath);
+            log.info("Файл сохранён: {} (абсолютный: {})", relativePath, filePath);
             return relativePath;
         } catch (IOException e) {
             log.error("Ошибка при сохранении файла: {}", e.getMessage(), e);
@@ -71,7 +75,7 @@ public class FileStorageService {
      */
     public byte[] readFile(String relativePath) {
         try {
-            Path path = Paths.get(uploadDir, relativePath);
+            Path path = basePath.resolve(relativePath);
             if (Files.exists(path)) {
                 return Files.readAllBytes(path);
             }
@@ -88,7 +92,7 @@ public class FileStorageService {
      */
     public boolean deleteFile(String relativePath) {
         try {
-            Path path = Paths.get(uploadDir, relativePath);
+            Path path = basePath.resolve(relativePath);
             if (Files.exists(path)) {
                 Files.delete(path);
                 log.info("Файл удалён: {}", relativePath);
@@ -107,7 +111,7 @@ public class FileStorageService {
      */
     public String generateThumbnail(String relativePath) {
         try {
-            Path originalPath = Paths.get(uploadDir, relativePath);
+            Path originalPath = basePath.resolve(relativePath);
             BufferedImage original = ImageIO.read(originalPath.toFile());
             if (original == null) {
                 log.warn("Не удалось прочитать изображение для миниатюры: {}", relativePath);
@@ -147,7 +151,7 @@ public class FileStorageService {
      */
     public void deleteDirectory(String caseNumber, String sampleNumber) {
         try {
-            Path dir = Paths.get(uploadDir, caseNumber, sampleNumber);
+            Path dir = basePath.resolve(caseNumber).resolve(sampleNumber);
             if (Files.exists(dir)) {
                 Files.walk(dir)
                         .sorted(java.util.Comparator.reverseOrder())
