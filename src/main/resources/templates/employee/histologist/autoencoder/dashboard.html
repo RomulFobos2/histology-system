@@ -1,0 +1,232 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Автоэнкодер | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <h1 class="page-title mb-1">Нейросетевое улучшение изображений</h1>
+                        <p class="page-subtitle mb-0">Управление обучением автоэнкодера, метрики модели и история запусков</p>
+                    </div>
+                    <div>
+                        <span th:if="${serviceAvailable}" class="badge-active">Python-сервис доступен</span>
+                        <span th:unless="${serviceAvailable}" class="badge-inactive">Python-сервис недоступен</span>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-xl-5">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">Параметры обучения</h6>
+                        <form th:action="@{/employee/histologist/autoencoder/train}" method="post" class="auth-form">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Epochs</label>
+                                    <input type="number" class="form-control" name="inputEpochs" value="15" min="1" max="200" required>
+                                    <div class="text-muted small mt-1">
+                                        Сколько полных проходов модель сделает по всему датасету. Больше эпох обычно улучшают качество, но увеличивают время обучения.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Batch Size</label>
+                                    <input type="number" class="form-control" name="inputBatchSize" value="4" min="1" max="32" required>
+                                    <div class="text-muted small mt-1">
+                                        Сколько изображений сеть обрабатывает за один шаг. Меньшее значение снижает нагрузку на память, но обучение идёт дольше.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Learning Rate</label>
+                                    <input type="number" class="form-control" name="inputLearningRate" value="0.0005" min="0.00001" max="1" step="0.0001" required>
+                                    <div class="text-muted small mt-1">
+                                        Скорость обновления весов модели. Слишком большое значение делает обучение нестабильным, слишком маленькое замедляет сходимость.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Image Size</label>
+                                    <select class="form-select" name="inputImageSize" required>
+                                        <option value="128">128</option>
+                                        <option value="256" selected>256</option>
+                                        <option value="384">384</option>
+                                        <option value="512">512</option>
+                                    </select>
+                                    <div class="text-muted small mt-1">
+                                        Размер фрагмента изображения, на котором обучается сеть. Большее значение сохраняет больше деталей, но требует больше времени и ресурсов.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-actions mt-4">
+                                <button type="submit" class="btn btn-warning btn-profile" th:disabled="${!serviceAvailable}">
+                                    <i class="bi bi-cpu"></i> Запустить обучение
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-7">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">Текущий статус и метрики</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="text-muted small">Статус обучения</div>
+                                <div th:text="${trainingStatus['status']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Активная модель</div>
+                                <div th:text="${metrics['activeModel']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Epochs</div>
+                                <div th:text="${metrics['epochs']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Train Loss</div>
+                                <div th:text="${metrics['loss']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Validation Loss</div>
+                                <div th:text="${metrics['validationLoss']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">PSNR</div>
+                                <div th:text="${metrics['psnr']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">SSIM</div>
+                                <div th:text="${metrics['ssim']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Размер датасета</div>
+                                <div th:text="${metrics['datasetSize']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Размер изображения</div>
+                                <div th:text="${metrics['imageSize']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Дата обучения</div>
+                                <div th:text="${metrics['trainedDate']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Время обучения</div>
+                                <div th:text="${metrics['trainingDurationSeconds'] != null ? metrics['trainingDurationSeconds'] + ' сек' : '—'}"></div>
+                            </div>
+                        </div>
+
+                        <h6 class="form-section-title">Модели Python-сервиса</h6>
+                        <div class="table-responsive" th:if="${models != null and !models.isEmpty()}">
+                            <table class="table table-modern">
+                                <thead>
+                                <tr>
+                                    <th>Модель</th>
+                                    <th>Epochs</th>
+                                    <th>Loss</th>
+                                    <th>Val Loss</th>
+                                    <th>Активна</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="modelItem : ${models}">
+                                    <td th:text="${modelItem['modelName']}"></td>
+                                    <td th:text="${modelItem['epochs']}"></td>
+                                    <td th:text="${modelItem['loss']}"></td>
+                                    <td th:text="${modelItem['validationLoss']}"></td>
+                                    <td>
+                                        <span th:if="${modelItem['active']}" class="badge-active">Да</span>
+                                        <span th:unless="${modelItem['active']}" class="badge-inactive">Нет</span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-6">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">История запусков в системе</h6>
+                        <div class="table-responsive" th:if="${trainingSessions != null and !trainingSessions.isEmpty()}">
+                            <table class="table table-modern">
+                                <thead>
+                                <tr>
+                                    <th>Старт</th>
+                                    <th>Статус</th>
+                                    <th>Параметры</th>
+                                    <th>Метрики</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="trainingSession : ${trainingSessions}">
+                                    <td th:text="${trainingSession.startedAt != null ? #temporals.format(trainingSession.startedAt, 'dd.MM.yyyy HH:mm') : '—'}"></td>
+                                    <td th:text="${trainingSession.status}"></td>
+                                    <td th:text="'ep=' + ${trainingSession.epochs} + ', bs=' + ${trainingSession.batchSize} + ', lr=' + ${trainingSession.learningRate} + ', img=' + ${trainingSession.imageSize}"></td>
+                                    <td th:text="'PSNR=' + (${trainingSession.psnr} ?: '—') + ', SSIM=' + (${trainingSession.ssim} ?: '—')"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div th:if="${trainingSessions == null or trainingSessions.isEmpty()}" class="text-muted">
+                            История запусков пока пуста
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-6">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">История Python-сервиса</h6>
+                        <div class="table-responsive" th:if="${pythonTrainingHistory != null and !pythonTrainingHistory.isEmpty()}">
+                            <table class="table table-modern">
+                                <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                    <th>Модель</th>
+                                    <th>Сообщение</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="historyItem : ${pythonTrainingHistory}">
+                                    <td th:text="${historyItem['finishedAt']} ?: '—'"></td>
+                                    <td th:text="${historyItem['status']} ?: '—'"></td>
+                                    <td th:text="${historyItem['modelName']} ?: '—'"></td>
+                                    <td th:text="${historyItem['message']} ?: '—'"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div th:if="${pythonTrainingHistory == null or pythonTrainingHistory.isEmpty()}" class="text-muted">
+                            Python-сервис ещё не сохранил историю запусков
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
