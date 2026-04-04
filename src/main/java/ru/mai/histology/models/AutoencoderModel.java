@@ -32,6 +32,10 @@ public class AutoencoderModel {
 
     private Double validationLoss;
 
+    private Double psnr;
+
+    private Double ssim;
+
     @Column(nullable = false)
     private boolean isActive = false;
 }

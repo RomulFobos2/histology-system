@@ -23,6 +23,7 @@ import java.util.Optional;
 public class AutoencoderClientService {
 
     private final RestTemplate restTemplate;
+    private final RestTemplate trainingRestTemplate;
 
     @Value("${autoencoder.service.url:http://127.0.0.1:8000}")
     private String autoencoderServiceUrl;
@@ -31,6 +32,10 @@ public class AutoencoderClientService {
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(60))
+                .build();
+        this.trainingRestTemplate = restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofMinutes(30))
                 .build();
     }
 
@@ -51,6 +56,53 @@ public class AutoencoderClientService {
         } catch (RestClientException e) {
             log.error("Не удалось получить список моделей автоэнкодера: {}", e.getMessage(), e);
             return List.of();
+        }
+    }
+
+    public Map<String, Object> getMetrics() {
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(autoencoderServiceUrl + "/metrics", Map.class);
+            return response.getBody() == null ? Map.of() : response.getBody();
+        } catch (RestClientException e) {
+            log.error("Не удалось получить метрики автоэнкодера: {}", e.getMessage(), e);
+            return Map.of();
+        }
+    }
+
+    public Map<String, Object> getTrainingStatus() {
+        try {
+            ResponseEntity<Map> response = restTemplate.getForEntity(autoencoderServiceUrl + "/training/status", Map.class);
+            return response.getBody() == null ? Map.of() : response.getBody();
+        } catch (RestClientException e) {
+            log.error("Не удалось получить статус обучения автоэнкодера: {}", e.getMessage(), e);
+            return Map.of();
+        }
+    }
+
+    public List<Map<String, Object>> getTrainingHistory() {
+        try {
+            ResponseEntity<List> response = restTemplate.getForEntity(autoencoderServiceUrl + "/training/history", List.class);
+            return response.getBody() == null ? List.of() : response.getBody();
+        } catch (RestClientException e) {
+            log.error("Не удалось получить историю обучения автоэнкодера: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    public Map<String, Object> trainModel(int epochs, int batchSize, double learningRate, int imageSize) {
+        try {
+            String url = autoencoderServiceUrl + "/train?epochs=" + epochs
+                    + "&batch_size=" + batchSize
+                    + "&learning_rate=" + learningRate
+                    + "&image_size=" + imageSize;
+            ResponseEntity<Map> response = trainingRestTemplate.postForEntity(url, null, Map.class);
+            return response.getBody() == null ? Map.of() : response.getBody();
+        } catch (RestClientException e) {
+            log.error("Не удалось запустить обучение автоэнкодера: {}", e.getMessage(), e);
+            return Map.of(
+                    "status", "error",
+                    "message", "Python-сервис недоступен или вернул ошибку при обучении"
+            );
         }
     }
 

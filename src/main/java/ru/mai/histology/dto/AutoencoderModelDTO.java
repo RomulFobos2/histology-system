@@ -13,5 +13,7 @@ public class AutoencoderModelDTO {
     private Integer epochs;
     private Double loss;
     private Double validationLoss;
+    private Double psnr;
+    private Double ssim;
     private boolean active;
 }
