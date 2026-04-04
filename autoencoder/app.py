@@ -45,13 +45,13 @@ def train(
     learning_rate: float = 0.0005,
     image_size: int = 256,
 ) -> JSONResponse:
-    result = autoencoder_service.train_model(
+    result = autoencoder_service.start_training_async(
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
         image_size=image_size,
     )
-    status_code = 200 if result.get("status") == "ok" else 400
+    status_code = 202 if result.get("status") == "accepted" else 409 if result.get("status") == "busy" else 400
     return JSONResponse(content=result, status_code=status_code)
 
 

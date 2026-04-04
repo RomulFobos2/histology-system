@@ -8,4 +8,6 @@ import java.util.List;
 public interface TrainingSessionRepository extends JpaRepository<TrainingSession, Long> {
 
     List<TrainingSession> findAllByOrderByStartedAtDesc();
+
+    TrainingSession findFirstByStatusOrderByStartedAtDesc(String status);
 }

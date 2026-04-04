@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import random
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -230,6 +231,8 @@ class AutoencoderService:
         self.metadata = self._load_metadata()
         self.training_history = self._load_history()
         self.training_status = self._load_status()
+        self.training_lock = threading.Lock()
+        self.training_thread: threading.Thread | None = None
 
     def list_models(self) -> list[dict[str, object]]:
         models = [
@@ -426,6 +429,49 @@ class AutoencoderService:
         self._finish_training(result, started_at, finished_at)
         return result
 
+    def start_training_async(
+        self,
+        epochs: int,
+        batch_size: int,
+        learning_rate: float,
+        image_size: int = DEFAULT_IMAGE_SIZE,
+    ) -> dict[str, object]:
+        with self.training_lock:
+            if self.training_status.get("status") == "running":
+                return {
+                    "status": "busy",
+                    "message": "Обучение уже запущено. Дождитесь завершения текущего процесса.",
+                    **self.training_status,
+                }
+
+            started_at = datetime.now()
+            dataset_size = len(self._discover_training_images())
+            accepted_status = {
+                "status": "running",
+                "message": "Обучение запущено в фоновом режиме",
+                "startedAt": self._format_datetime(started_at),
+                "epochs": epochs,
+                "batchSize": batch_size,
+                "learningRate": learning_rate,
+                "imageSize": image_size,
+                "datasetSize": dataset_size,
+            }
+            self._set_training_status(accepted_status)
+
+            self.training_thread = threading.Thread(
+                target=self._run_training_job,
+                args=(epochs, batch_size, learning_rate, image_size),
+                daemon=True,
+                name="autoencoder-training",
+            )
+            self.training_thread.start()
+
+        return {
+            "status": "accepted",
+            "message": "Обучение поставлено в очередь и выполняется в фоне.",
+            **accepted_status,
+        }
+
     def get_training_status(self) -> dict[str, object]:
         return self.training_status
 
@@ -455,6 +501,36 @@ class AutoencoderService:
             "device": self.metadata.get("device"),
             "mode": "neural" if self.model is not None else "baseline",
         }
+
+    def _run_training_job(
+        self,
+        epochs: int,
+        batch_size: int,
+        learning_rate: float,
+        image_size: int,
+    ) -> None:
+        try:
+            self.train_model(
+                epochs=epochs,
+                batch_size=batch_size,
+                learning_rate=learning_rate,
+                image_size=image_size,
+            )
+        except Exception as exc:
+            finished_at = datetime.now()
+            started_at = self._parse_datetime(self.training_status.get("startedAt")) or finished_at
+            self._finish_training(
+                {
+                    "status": "error",
+                    "message": f"Ошибка фонового обучения: {exc}",
+                    "epochs": epochs,
+                    "batchSize": batch_size,
+                    "learningRate": learning_rate,
+                    "imageSize": image_size,
+                },
+                started_at,
+                finished_at,
+            )
 
     def enhance_image(
         self,
@@ -645,6 +721,14 @@ class AutoencoderService:
 
     def _format_datetime(self, value: datetime) -> str:
         return value.strftime("%d.%m.%Y %H:%M")
+
+    def _parse_datetime(self, value: object) -> datetime | None:
+        if not value:
+            return None
+        try:
+            return datetime.strptime(str(value), "%d.%m.%Y %H:%M")
+        except ValueError:
+            return None
 
     def _calculate_metrics(self, restored: torch.Tensor, clean: torch.Tensor) -> tuple[float, float]:
         mse = torch.mean((restored - clean) ** 2).item()
