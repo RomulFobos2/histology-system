@@ -32,6 +32,17 @@ public class AutoencoderTrainingController {
         return "employee/histologist/autoencoder/dashboard";
     }
 
+    @PostMapping("/employee/histologist/autoencoder/activateModel")
+    public String activateModel(@RequestParam String modelName, RedirectAttributes redirectAttributes) {
+        boolean ok = autoencoderTrainingService.activateModel(modelName);
+        if (ok) {
+            redirectAttributes.addFlashAttribute("successMessage", "Модель «" + modelName + "» активирована для улучшения изображений.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage", "Не удалось активировать модель.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
     @PostMapping("/employee/histologist/autoencoder/train")
     public String train(@RequestParam int inputEpochs,
                         @RequestParam int inputBatchSize,

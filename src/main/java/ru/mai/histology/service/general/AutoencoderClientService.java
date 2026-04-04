@@ -30,12 +30,12 @@ public class AutoencoderClientService {
 
     public AutoencoderClientService(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .setReadTimeout(Duration.ofSeconds(60))
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(5))
                 .build();
         this.trainingRestTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .setReadTimeout(Duration.ofMinutes(30))
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
@@ -106,7 +106,7 @@ public class AutoencoderClientService {
         }
     }
 
-    public Optional<EnhancedImageResponse> enhanceImage(String filename, String contentType, byte[] data) {
+    public Optional<EnhancedImageResponse> enhanceImage(String filename, String contentType, byte[] data, String mode) {
         try {
             HttpHeaders partHeaders = new HttpHeaders();
             partHeaders.setContentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"));
@@ -120,6 +120,7 @@ public class AutoencoderClientService {
             HttpEntity<ByteArrayResource> filePart = new HttpEntity<>(resource, partHeaders);
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", filePart);
+            body.add("mode", mode != null ? mode : "auto");
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);

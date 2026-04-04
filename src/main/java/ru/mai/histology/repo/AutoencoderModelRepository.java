@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface AutoencoderModelRepository extends JpaRepository<AutoencoderModel, Long> {
 
     Optional<AutoencoderModel> findByModelName(String modelName);
+
+    Optional<AutoencoderModel> findFirstByIsActiveTrue();
 }
