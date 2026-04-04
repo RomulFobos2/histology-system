@@ -40,51 +40,61 @@ public class AutoencoderClientService {
     }
 
     public boolean isServiceAvailable() {
+        long t0 = System.currentTimeMillis();
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(autoencoderServiceUrl + "/health", Map.class);
+            log.debug("GET /health: {}ms", System.currentTimeMillis() - t0);
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {
-            log.error("Python-сервис автоэнкодера недоступен: {}", e.getMessage());
+            log.warn("GET /health failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
             return false;
         }
     }
 
     public List<Map<String, Object>> getModels() {
+        long t0 = System.currentTimeMillis();
         try {
             ResponseEntity<List> response = restTemplate.getForEntity(autoencoderServiceUrl + "/models", List.class);
+            log.debug("GET /models: {}ms", System.currentTimeMillis() - t0);
             return response.getBody() == null ? List.of() : response.getBody();
         } catch (RestClientException e) {
-            log.error("Не удалось получить список моделей автоэнкодера: {}", e.getMessage(), e);
+            log.warn("GET /models failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
             return List.of();
         }
     }
 
     public Map<String, Object> getMetrics() {
+        long t0 = System.currentTimeMillis();
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(autoencoderServiceUrl + "/metrics", Map.class);
+            log.debug("GET /metrics: {}ms", System.currentTimeMillis() - t0);
             return response.getBody() == null ? Map.of() : response.getBody();
         } catch (RestClientException e) {
-            log.error("Не удалось получить метрики автоэнкодера: {}", e.getMessage(), e);
+            log.warn("GET /metrics failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
             return Map.of();
         }
     }
 
     public Map<String, Object> getTrainingStatus() {
+        long t0 = System.currentTimeMillis();
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(autoencoderServiceUrl + "/training/status", Map.class);
+            log.debug("GET /training/status: {}ms", System.currentTimeMillis() - t0);
             return response.getBody() == null ? Map.of() : response.getBody();
         } catch (RestClientException e) {
-            log.error("Не удалось получить статус обучения автоэнкодера: {}", e.getMessage(), e);
+            log.warn("GET /training/status failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
             return Map.of();
         }
     }
 
     public List<Map<String, Object>> getTrainingHistory() {
+        long t0 = System.currentTimeMillis();
         try {
             ResponseEntity<List> response = restTemplate.getForEntity(autoencoderServiceUrl + "/training/history", List.class);
+            log.debug("GET /training/history: {}ms", System.currentTimeMillis() - t0);
             return response.getBody() == null ? List.of() : response.getBody();
         } catch (RestClientException e) {
-            log.error("Не удалось получить историю обучения автоэнкодера: {}", e.getMessage(), e);
+            log.warn("GET /training/history failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
             return List.of();
         }
     }

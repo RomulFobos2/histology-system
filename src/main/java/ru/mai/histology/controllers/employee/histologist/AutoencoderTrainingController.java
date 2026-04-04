@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.service.employee.histologist.AutoencoderTrainingService;
+import ru.mai.histology.service.general.PythonServiceManager;
 
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -16,20 +18,70 @@ import java.util.Map;
 public class AutoencoderTrainingController {
 
     private final AutoencoderTrainingService autoencoderTrainingService;
+    private final PythonServiceManager pythonServiceManager;
 
-    public AutoencoderTrainingController(AutoencoderTrainingService autoencoderTrainingService) {
+    public AutoencoderTrainingController(AutoencoderTrainingService autoencoderTrainingService,
+                                         PythonServiceManager pythonServiceManager) {
         this.autoencoderTrainingService = autoencoderTrainingService;
+        this.pythonServiceManager = pythonServiceManager;
     }
 
     @GetMapping("/employee/histologist/autoencoder/dashboard")
     public String dashboard(Model model) {
-        model.addAttribute("serviceAvailable", autoencoderTrainingService.isServiceAvailable());
+        log.debug("Загрузка дашборда автоэнкодера...");
+        long t0 = System.currentTimeMillis();
+
+        boolean serviceAvailable = autoencoderTrainingService.isServiceAvailable();
+        model.addAttribute("serviceAvailable", serviceAvailable);
+        model.addAttribute("processManaged", pythonServiceManager.isRunning());
+
+        if (!serviceAvailable) {
+            log.info("Python-сервис недоступен, данные дашборда из БД ({}ms)", System.currentTimeMillis() - t0);
+            model.addAttribute("metrics", Map.of());
+            model.addAttribute("trainingStatus",
+                    Map.of("status", "offline", "message", "Python-сервис недоступен"));
+            model.addAttribute("models", List.of());
+            model.addAttribute("pythonTrainingHistory", List.of());
+            model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessionsFromDb());
+            return "employee/histologist/autoencoder/dashboard";
+        }
+
+        Map<String, Object> trainingStatus = autoencoderTrainingService.getTrainingStatus();
+        List<Map<String, Object>> pythonTrainingHistory = autoencoderTrainingService.getPythonTrainingHistory();
         model.addAttribute("metrics", autoencoderTrainingService.getMetrics());
-        model.addAttribute("trainingStatus", autoencoderTrainingService.getTrainingStatus());
+        model.addAttribute("trainingStatus", trainingStatus);
         model.addAttribute("models", autoencoderTrainingService.getModels());
-        model.addAttribute("pythonTrainingHistory", autoencoderTrainingService.getPythonTrainingHistory());
-        model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessions());
+        model.addAttribute("pythonTrainingHistory", pythonTrainingHistory);
+        model.addAttribute("trainingSessions",
+                autoencoderTrainingService.getTrainingSessionsWithData(trainingStatus, pythonTrainingHistory));
+
+        log.debug("Дашборд загружен за {}ms", System.currentTimeMillis() - t0);
         return "employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/startService")
+    public String startService(RedirectAttributes redirectAttributes) {
+        boolean started = pythonServiceManager.start();
+        if (started) {
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Python-сервис запускается. Подождите несколько секунд и обновите страницу.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Не удалось запустить Python-сервис. Возможно, он уже работает или не найден исполняемый файл Python.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/stopService")
+    public String stopService(RedirectAttributes redirectAttributes) {
+        boolean stopped = pythonServiceManager.stop();
+        if (stopped) {
+            redirectAttributes.addFlashAttribute("successMessage", "Python-сервис остановлен.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Не удалось остановить Python-сервис. Возможно, он не был запущен через систему.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
     }
 
     @PostMapping("/employee/histologist/autoencoder/activateModel")

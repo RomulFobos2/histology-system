@@ -19,15 +19,29 @@
         <div th:insert="~{blocks/header :: overlay}"></div>
         <main class="container-fluid">
 
+            <!-- Заголовок + управление сервисом -->
             <div class="profile-card mb-4">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <div>
                         <h1 class="page-title mb-1">Нейросетевое улучшение изображений</h1>
                         <p class="page-subtitle mb-0">Управление обучением автоэнкодера, метрики модели и история запусков</p>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span th:if="${serviceAvailable}" class="badge-active">Python-сервис доступен</span>
                         <span th:unless="${serviceAvailable}" class="badge-inactive">Python-сервис недоступен</span>
+
+                        <form th:if="${!serviceAvailable and !processManaged}"
+                              th:action="@{/employee/histologist/autoencoder/startService}" method="post" style="margin:0">
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-play-circle"></i> Запустить сервис
+                            </button>
+                        </form>
+                        <form th:if="${processManaged}"
+                              th:action="@{/employee/histologist/autoencoder/stopService}" method="post" style="margin:0">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-stop-circle"></i> Остановить сервис
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -40,39 +54,105 @@
                 <div class="col-12 col-xl-5">
                     <div class="profile-card p-4 h-100">
                         <h6 class="form-section-title">Параметры обучения</h6>
-                        <form th:action="@{/employee/histologist/autoencoder/train}" method="post" class="auth-form">
+
+                        <!-- Предустановки -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Предустановки</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('fast')"
+                                        data-bs-toggle="tooltip" title="5 эпох, батч 8, LR 0.001, 128px — быстрый результат за несколько минут, подходит для первичной проверки">
+                                    <i class="bi bi-lightning"></i> Быстрый
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyPreset('medium')"
+                                        data-bs-toggle="tooltip" title="15 эпох, батч 4, LR 0.0005, 256px — оптимальный баланс качества и времени, рекомендуется для большинства задач">
+                                    <i class="bi bi-speedometer2"></i> Средний
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="applyPreset('thorough')"
+                                        data-bs-toggle="tooltip" title="40 эпох, батч 2, LR 0.0002, 384px — длительное обучение (30–60 мин), максимальное качество модели">
+                                    <i class="bi bi-hourglass-split"></i> Тщательный
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="applyPreset('max')"
+                                        data-bs-toggle="tooltip" title="80 эпох, батч 1, LR 0.0001, 512px — максимально глубокое обучение (1–3 часа), для финальной модели">
+                                    <i class="bi bi-fire"></i> Максимальный
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Справка по предустановкам -->
+                        <div class="mb-3">
+                            <a class="text-muted small text-decoration-none" data-bs-toggle="collapse" href="#presetHelp" role="button">
+                                <i class="bi bi-question-circle"></i> Что означают предустановки?
+                            </a>
+                            <div class="collapse mt-2" id="presetHelp">
+                                <div class="card card-body small">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <thead>
+                                        <tr class="text-muted">
+                                            <th>Режим</th>
+                                            <th>Epochs</th>
+                                            <th>Batch</th>
+                                            <th>LR</th>
+                                            <th>Image</th>
+                                            <th>Время*</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr>
+                                            <td><i class="bi bi-lightning text-success"></i> Быстрый</td>
+                                            <td>5</td><td>8</td><td>0.001</td><td>128</td><td>2–5 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-speedometer2 text-primary"></i> Средний</td>
+                                            <td>15</td><td>4</td><td>0.0005</td><td>256</td><td>10–20 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-hourglass-split text-warning"></i> Тщательный</td>
+                                            <td>40</td><td>2</td><td>0.0002</td><td>384</td><td>30–60 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-fire text-danger"></i> Максимальный</td>
+                                            <td>80</td><td>1</td><td>0.0001</td><td>512</td><td>1–3 ч</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                    <div class="text-muted mt-2">* Примерное время на CPU для датасета ~100 изображений. На GPU обучение значительно быстрее.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="trainingForm" th:action="@{/employee/histologist/autoencoder/train}" method="post" class="auth-form">
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Epochs</label>
-                                    <input type="number" class="form-control" name="inputEpochs" value="15" min="1" max="200" required>
+                                    <input type="number" class="form-control" id="inputEpochs" name="inputEpochs" value="15" min="1" max="200" required>
                                     <div class="text-muted small mt-1">
-                                        Сколько полных проходов модель сделает по всему датасету. Больше эпох обычно улучшают качество, но увеличивают время обучения.
+                                        Полных проходов по датасету. Больше — лучше качество, но дольше обучение.
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Batch Size</label>
-                                    <input type="number" class="form-control" name="inputBatchSize" value="4" min="1" max="32" required>
+                                    <input type="number" class="form-control" id="inputBatchSize" name="inputBatchSize" value="4" min="1" max="32" required>
                                     <div class="text-muted small mt-1">
-                                        Сколько изображений сеть обрабатывает за один шаг. Меньшее значение снижает нагрузку на память, но обучение идёт дольше.
+                                        Изображений за один шаг. Меньше — меньше нагрузка на память.
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Learning Rate</label>
-                                    <input type="number" class="form-control" name="inputLearningRate" value="0.0005" min="0.00001" max="1" step="0.00001" required>
+                                    <input type="number" class="form-control" id="inputLearningRate" name="inputLearningRate" value="0.0005" min="0.00001" max="1" step="0.00001" required>
                                     <div class="text-muted small mt-1">
-                                        Скорость обновления весов модели. Для длительного стабильного обучения обычно подходят значения около 0.00005-0.0002.
+                                        Скорость обновления весов. Меньше — стабильнее, но дольше.
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Image Size</label>
-                                    <select class="form-select" name="inputImageSize" required>
+                                    <select class="form-select" id="inputImageSize" name="inputImageSize" required>
                                         <option value="128">128</option>
                                         <option value="256" selected>256</option>
                                         <option value="384">384</option>
                                         <option value="512">512</option>
                                     </select>
                                     <div class="text-muted small mt-1">
-                                        Размер фрагмента изображения, на котором обучается сеть. Большее значение сохраняет больше деталей, но требует больше времени и ресурсов.
+                                        Размер фрагмента. Больше — больше деталей, но дольше.
                                     </div>
                                 </div>
                             </div>
@@ -345,13 +425,38 @@
     </div>
 </div>
 
+<script>
+    // ===== Предустановки =====
+    var PRESETS = {
+        fast:     { epochs: 5,  batchSize: 8, learningRate: 0.001,   imageSize: '128' },
+        medium:   { epochs: 15, batchSize: 4, learningRate: 0.0005,  imageSize: '256' },
+        thorough: { epochs: 40, batchSize: 2, learningRate: 0.0002,  imageSize: '384' },
+        max:      { epochs: 80, batchSize: 1, learningRate: 0.0001,  imageSize: '512' }
+    };
+
+    function applyPreset(name) {
+        var p = PRESETS[name];
+        if (!p) return;
+        document.getElementById('inputEpochs').value = p.epochs;
+        document.getElementById('inputBatchSize').value = p.batchSize;
+        document.getElementById('inputLearningRate').value = p.learningRate;
+        document.getElementById('inputImageSize').value = p.imageSize;
+    }
+</script>
+
 <script th:inline="javascript">
-    const trainingStatus = /*[[${trainingStatus['status']}]]*/ 'idle';
+    var trainingStatus = /*[[${trainingStatus['status']}]]*/ 'idle';
     if (trainingStatus === 'running') {
-        setTimeout(() => window.location.reload(), 15000);
+        setTimeout(function () { window.location.reload(); }, 15000);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Инициализация тултипов Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
+
         // Пагинация таблиц в модалках — инициализируем при открытии
         var systemModal = document.getElementById('systemHistoryModal');
         if (systemModal) {

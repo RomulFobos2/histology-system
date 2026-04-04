@@ -106,6 +106,45 @@ public class AutoencoderTrainingService {
         return TrainingSessionMapper.INSTANCE.toDTOList(trainingSessionRepository.findAllByOrderByStartedAtDesc());
     }
 
+    /**
+     * Возвращает сессии обучения только из БД, без обращения к Python.
+     * Используется когда Python-сервис недоступен.
+     */
+    public List<TrainingSessionDTO> getTrainingSessionsFromDb() {
+        return TrainingSessionMapper.INSTANCE.toDTOList(
+                trainingSessionRepository.findAllByOrderByStartedAtDesc());
+    }
+
+    /**
+     * Обновляет статус RUNNING-сессий на основе уже полученных данных Python (без повторных HTTP-вызовов).
+     * Принимает уже загруженные trainingStatus и history, чтобы не дублировать вызовы к Python API.
+     */
+    @Transactional
+    public List<TrainingSessionDTO> getTrainingSessionsWithData(Map<String, Object> trainingStatus,
+                                                                 List<Map<String, Object>> history) {
+        TrainingSession runningSession = trainingSessionRepository.findFirstByStatusOrderByStartedAtDesc("RUNNING");
+        if (runningSession != null
+                && !"running".equalsIgnoreCase(readString(trainingStatus.get("status")))
+                && !history.isEmpty()) {
+            Map<String, Object> latestResult = history.get(0);
+            runningSession.setFinishedAt(readDateTime(latestResult.get("finishedAt")));
+            runningSession.setStatus(String.valueOf(latestResult.getOrDefault("status", "error")).toUpperCase());
+            runningSession.setMessage(readString(latestResult.get("message")));
+            runningSession.setDatasetSize(readInteger(latestResult.get("datasetSize")));
+            runningSession.setLoss(readDouble(latestResult.get("loss")));
+            runningSession.setValidationLoss(readDouble(latestResult.get("validationLoss")));
+            runningSession.setPsnr(readDouble(latestResult.get("psnr")));
+            runningSession.setSsim(readDouble(latestResult.get("ssim")));
+            runningSession.setModelName(readString(latestResult.get("modelName")));
+            trainingSessionRepository.save(runningSession);
+            if ("OK".equalsIgnoreCase(runningSession.getStatus())) {
+                updateAutoencoderModel(latestResult);
+            }
+        }
+        return TrainingSessionMapper.INSTANCE.toDTOList(
+                trainingSessionRepository.findAllByOrderByStartedAtDesc());
+    }
+
     @Transactional
     public Map<String, Object> startTraining(int epochs, int batchSize, double learningRate, int imageSize) {
         Map<String, Object> response = autoencoderClientService.trainModel(epochs, batchSize, learningRate, imageSize);
