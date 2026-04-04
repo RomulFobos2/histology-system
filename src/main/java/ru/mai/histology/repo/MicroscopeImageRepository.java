@@ -15,4 +15,6 @@ public interface MicroscopeImageRepository extends JpaRepository<MicroscopeImage
     List<MicroscopeImage> findAllBySampleId(Long sampleId);
 
     Optional<MicroscopeImage> findFirstByOriginalImageIdOrderByUploadDateDesc(Long originalImageId);
+
+    List<MicroscopeImage> findAllByOriginalImageId(Long originalImageId);
 }
