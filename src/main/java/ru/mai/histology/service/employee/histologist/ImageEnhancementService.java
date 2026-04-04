@@ -61,11 +61,13 @@ public class ImageEnhancementService {
         }
 
         long startedAt = System.currentTimeMillis();
+        String activeMode = resolveActiveMode();
         Optional<AutoencoderClientService.EnhancedImageResponse> responseOpt =
                 autoencoderClientService.enhanceImage(
                         originalImage.getOriginalFilename(),
                         originalImage.getContentType(),
-                        originalBytes
+                        originalBytes,
+                        activeMode
                 );
         if (responseOpt.isEmpty()) {
             return Optional.empty();
@@ -123,6 +125,22 @@ public class ImageEnhancementService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Optional.empty();
         }
+    }
+
+    /**
+     * Определяет режим улучшения по активной модели в БД.
+     * Если активна baseline → "baseline", если neural → "neural", иначе "auto".
+     */
+    private String resolveActiveMode() {
+        return autoencoderModelRepository.findFirstByIsActiveTrue()
+                .map(model -> {
+                    String name = model.getModelName();
+                    if (name != null && name.toLowerCase().contains("baseline")) {
+                        return "baseline";
+                    }
+                    return "neural";
+                })
+                .orElse("auto");
     }
 
     private AutoencoderModel resolveAutoencoderModel(String modelName) {

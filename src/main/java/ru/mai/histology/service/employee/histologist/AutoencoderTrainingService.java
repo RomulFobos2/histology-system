@@ -63,6 +63,44 @@ public class AutoencoderTrainingService {
         return autoencoderClientService.getTrainingHistory();
     }
 
+    /**
+     * Активирует модель по имени. Деактивирует все остальные.
+     * Для baseline-модели, которой может не быть в БД, создаёт запись.
+     */
+    @Transactional
+    public boolean activateModel(String modelName) {
+        if (modelName == null || modelName.isBlank()) {
+            return false;
+        }
+
+        // Деактивировать все модели
+        List<AutoencoderModel> allModels = autoencoderModelRepository.findAll();
+        for (AutoencoderModel m : allModels) {
+            m.setActive(false);
+            autoencoderModelRepository.save(m);
+        }
+
+        // Найти или создать нужную
+        AutoencoderModel target = autoencoderModelRepository.findByModelName(modelName)
+                .orElseGet(() -> {
+                    AutoencoderModel newModel = new AutoencoderModel();
+                    newModel.setModelName(modelName);
+                    newModel.setDescription(modelName.contains("baseline")
+                            ? "Базовый пайплайн улучшения на Pillow"
+                            : "Нейросетевая модель улучшения");
+                    newModel.setTrainedDate(java.time.LocalDate.now());
+                    newModel.setEpochs(0);
+                    newModel.setLoss(0.0);
+                    newModel.setValidationLoss(0.0);
+                    return newModel;
+                });
+
+        target.setActive(true);
+        autoencoderModelRepository.save(target);
+        log.info("Активирована модель: {}", modelName);
+        return true;
+    }
+
     public List<TrainingSessionDTO> getTrainingSessions() {
         refreshTrainingSessionsFromPython();
         return TrainingSessionMapper.INSTANCE.toDTOList(trainingSessionRepository.findAllByOrderByStartedAtDesc());
