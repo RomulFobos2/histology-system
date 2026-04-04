@@ -1,0 +1,136 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Загрузить изображение | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-10">
+                    <div class="profile-card p-4">
+
+                        <h1 class="page-title">Загрузить изображение</h1>
+                        <p class="page-subtitle" th:text="'Образец № ' + ${sampleDTO.sampleNumber} + ' — Дело № ' + ${sampleDTO.caseNumber}"></p>
+
+                        <div th:if="${imageError}" class="alert alert-danger" th:text="${imageError}"></div>
+
+                        <form th:action="@{/employee/laborant/images/uploadImage/{id}(id=${sampleDTO.id})}"
+                              method="post" enctype="multipart/form-data" class="auth-form">
+
+                            <h6 class="form-section-title">Файл изображения</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-12">
+                                    <label class="form-label">Файл (TIF, JPG) * — макс. 50 МБ</label>
+                                    <input type="file" id="inputFile" name="inputFile" class="form-control"
+                                           required accept=".tif,.tiff,.jpg,.jpeg">
+                                    <div id="fileFeedback" class="form-text"></div>
+                                </div>
+                                <div class="col-md-12" id="previewContainer" style="display:none;">
+                                    <img id="imagePreview" src="" alt="Предпросмотр" style="max-height:200px; border-radius:8px; border:1px solid var(--border);">
+                                </div>
+                            </div>
+
+                            <h6 class="form-section-title">Метаданные</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Увеличение</label>
+                                    <input type="text" name="inputMagnification" class="form-control"
+                                           maxlength="50" placeholder="Например: x400">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Описание</label>
+                                    <textarea name="inputDescription" class="form-control" rows="3"
+                                              placeholder="Описание изображения"></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile" disabled>
+                                <i class="bi bi-upload"></i> Загрузить
+                            </button>
+                        </form>
+
+                        <div class="link-section mt-3">
+                            <a th:href="@{/employee/laborant/images/allImages/{id}(id=${sampleDTO.id})}">← К изображениям</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    var fileInput = document.getElementById('inputFile');
+    var fileFeedback = document.getElementById('fileFeedback');
+    var submitBtn = document.getElementById('submitBtn');
+    var previewContainer = document.getElementById('previewContainer');
+    var imagePreview = document.getElementById('imagePreview');
+    var maxSize = 50 * 1024 * 1024;
+    var allowedExtensions = ['jpg', 'jpeg', 'tif', 'tiff'];
+
+    fileInput.addEventListener('change', function () {
+        var file = fileInput.files[0];
+        if (!file) {
+            submitBtn.disabled = true;
+            previewContainer.style.display = 'none';
+            fileFeedback.textContent = '';
+            return;
+        }
+
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (allowedExtensions.indexOf(ext) === -1) {
+            fileFeedback.textContent = 'Недопустимый формат. Разрешены: TIF, JPG';
+            fileFeedback.style.color = 'var(--danger)';
+            fileInput.classList.add('is-invalid');
+            submitBtn.disabled = true;
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        if (file.size > maxSize) {
+            fileFeedback.textContent = 'Файл превышает 50 МБ';
+            fileFeedback.style.color = 'var(--danger)';
+            fileInput.classList.add('is-invalid');
+            submitBtn.disabled = true;
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        var sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        fileFeedback.textContent = file.name + ' — ' + sizeMB + ' МБ';
+        fileFeedback.style.color = 'var(--success)';
+        fileInput.classList.remove('is-invalid');
+        fileInput.classList.add('is-valid');
+        submitBtn.disabled = false;
+
+        // Предпросмотр для JPG
+        if (ext === 'jpg' || ext === 'jpeg') {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>

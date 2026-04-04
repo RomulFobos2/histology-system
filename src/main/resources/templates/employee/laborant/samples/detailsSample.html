@@ -90,6 +90,10 @@
                         </div>
 
                         <div class="profile-actions">
+                            <a th:href="@{/employee/laborant/images/allImages/{id}(id=${sampleDTO.id})}"
+                               class="btn btn-success btn-profile">
+                                <i class="bi bi-images"></i> Изображения
+                            </a>
                             <a th:href="@{/employee/laborant/samples/editSample/{id}(id=${sampleDTO.id})}"
                                class="btn btn-primary btn-profile">
                                 <i class="bi bi-pencil"></i> Редактировать

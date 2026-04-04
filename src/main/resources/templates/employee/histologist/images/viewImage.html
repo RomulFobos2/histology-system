@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${imageDTO.originalFilename} + ' | АИС ГИ'">Просмотр | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; overflow: hidden; width: 100vw; height: 100vh; }
+
+        .viewer-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 100;
+            gap: 0.75rem;
+        }
+
+        .viewer-toolbar .btn-viewer {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .viewer-toolbar .btn-viewer:hover { background: rgba(255,255,255,0.2); }
+
+        .viewer-title {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            margin-left: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .viewer-zoom-info {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .viewer-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            overflow: hidden;
+        }
+        .viewer-container.dragging { cursor: grabbing; }
+
+        .viewer-container img {
+            transform-origin: center center;
+            user-select: none;
+            -webkit-user-drag: none;
+            max-width: none;
+            max-height: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="viewer-toolbar">
+    <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${imageDTO.id})}" class="btn-viewer">
+        <i class="bi bi-arrow-left"></i> Назад
+    </a>
+    <button class="btn-viewer" onclick="zoomIn()"><i class="bi bi-zoom-in"></i></button>
+    <button class="btn-viewer" onclick="zoomOut()"><i class="bi bi-zoom-out"></i></button>
+    <button class="btn-viewer" onclick="resetView()"><i class="bi bi-arrows-angle-contract"></i> Сброс</button>
+    <span id="zoomInfo" class="viewer-zoom-info">100%</span>
+    <span class="viewer-title" th:text="${imageDTO.originalFilename}"></span>
+</div>
+
+<div class="viewer-container" id="viewerContainer">
+    <img th:src="@{/files/images/serve/{id}(id=${imageDTO.id})}"
+         th:alt="${imageDTO.originalFilename}"
+         id="viewerImage"
+         draggable="false">
+</div>
+
+<script src="/js/imageViewer.js"></script>
+</body>
+</html>

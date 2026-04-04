@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Изображения | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div>
+                    <h1 class="page-title mb-0">Изображения</h1>
+                    <p class="page-subtitle mb-0" th:text="'Образец № ' + ${sampleDTO.sampleNumber} + ' — Дело № ' + ${sampleDTO.caseNumber}"></p>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(allImages)}" class="profile-card p-4 text-center">
+                <i class="bi bi-images text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">Изображения ещё не загружены</p>
+            </div>
+
+            <div th:unless="${#lists.isEmpty(allImages)}" class="row g-3">
+                <div class="col-6 col-md-4 col-lg-3" th:each="img : ${allImages}">
+                    <div class="image-card">
+                        <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${img.id})}">
+                            <img th:src="@{/files/images/thumb/{id}(id=${img.id})}"
+                                 th:alt="${img.originalFilename}"
+                                 class="image-thumb">
+                        </a>
+                        <div class="image-card-body">
+                            <div class="image-card-title" th:text="${img.originalFilename}"></div>
+                            <div class="image-card-meta">
+                                <span th:text="${img.fileSizeFormatted}"></span>
+                                <span th:if="${img.enhanced}" class="badge-active" style="font-size:0.7rem;">Улучшено</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="link-section mt-4">
+                <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${sampleDTO.id})}">← К карточке образца</a>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>
