@@ -4,6 +4,16 @@ from fastapi.responses import JSONResponse, Response
 from model.autoencoder import AutoencoderService
 
 
+import logging
+import logging.config
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,
+)
+
 app = FastAPI(
     title="Histology Autoencoder Service",
     description="Python API для улучшения микроскопических изображений",

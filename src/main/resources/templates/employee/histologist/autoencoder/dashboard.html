@@ -48,6 +48,9 @@
 
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+            <div th:if="${processManaged and !serviceAvailable}" class="alert alert-info">
+                <i class="bi bi-hourglass-split"></i> Python-сервис запускается, подождите...
+            </div>
 
             <div class="row g-4 mb-4">
                 <!-- Параметры обучения -->
@@ -454,6 +457,11 @@
 
 <script th:inline="javascript">
     var trainingStatus = /*[[${trainingStatus['status']}]]*/ 'idle';
+    var processManaged = /*[[${processManaged}]]*/ false;
+    var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
+    if (processManaged && !serviceAvailable) {
+        setTimeout(function () { window.location.reload(); }, 3000);
+    }
     if (trainingStatus === 'running') {
         setTimeout(function () { window.location.reload(); }, 15000);
     }
