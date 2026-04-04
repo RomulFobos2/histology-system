@@ -10,6 +10,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.service.employee.histologist.AutoencoderTrainingService;
 import ru.mai.histology.service.general.PythonServiceManager;
 
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -27,13 +28,34 @@ public class AutoencoderTrainingController {
 
     @GetMapping("/employee/histologist/autoencoder/dashboard")
     public String dashboard(Model model) {
-        model.addAttribute("serviceAvailable", autoencoderTrainingService.isServiceAvailable());
+        log.debug("Загрузка дашборда автоэнкодера...");
+        long t0 = System.currentTimeMillis();
+
+        boolean serviceAvailable = autoencoderTrainingService.isServiceAvailable();
+        model.addAttribute("serviceAvailable", serviceAvailable);
         model.addAttribute("processManaged", pythonServiceManager.isRunning());
+
+        if (!serviceAvailable) {
+            log.info("Python-сервис недоступен, данные дашборда из БД ({}ms)", System.currentTimeMillis() - t0);
+            model.addAttribute("metrics", Map.of());
+            model.addAttribute("trainingStatus",
+                    Map.of("status", "offline", "message", "Python-сервис недоступен"));
+            model.addAttribute("models", List.of());
+            model.addAttribute("pythonTrainingHistory", List.of());
+            model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessionsFromDb());
+            return "employee/histologist/autoencoder/dashboard";
+        }
+
+        Map<String, Object> trainingStatus = autoencoderTrainingService.getTrainingStatus();
+        List<Map<String, Object>> pythonTrainingHistory = autoencoderTrainingService.getPythonTrainingHistory();
         model.addAttribute("metrics", autoencoderTrainingService.getMetrics());
-        model.addAttribute("trainingStatus", autoencoderTrainingService.getTrainingStatus());
+        model.addAttribute("trainingStatus", trainingStatus);
         model.addAttribute("models", autoencoderTrainingService.getModels());
-        model.addAttribute("pythonTrainingHistory", autoencoderTrainingService.getPythonTrainingHistory());
-        model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessions());
+        model.addAttribute("pythonTrainingHistory", pythonTrainingHistory);
+        model.addAttribute("trainingSessions",
+                autoencoderTrainingService.getTrainingSessionsWithData(trainingStatus, pythonTrainingHistory));
+
+        log.debug("Дашборд загружен за {}ms", System.currentTimeMillis() - t0);
         return "employee/histologist/autoencoder/dashboard";
     }
 

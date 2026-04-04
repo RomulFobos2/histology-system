@@ -232,7 +232,7 @@ class AutoencoderService:
         self.model = self._load_model_if_available()
         self.metadata = self._load_metadata()
         self.training_history = self._load_history()
-        self.training_status = self._load_status()
+        self.training_status = self._normalize_training_status(self._load_status())
         self.training_process: subprocess.Popen | None = None
 
     def list_models(self) -> list[dict[str, object]]:
@@ -475,11 +475,16 @@ class AutoencoderService:
         ]
 
         try:
+            # На Windows: CREATE_NEW_PROCESS_GROUP изолирует дочерний процесс
+            # от консольной группы uvicorn, чтобы завершение train.py
+            # не отправляло CTRL_CLOSE_EVENT родителю и не гасило сервис.
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
             self.training_process = subprocess.Popen(
                 command,
                 cwd=str(ROOT_DIR),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                creationflags=creation_flags,
             )
         except OSError as exc:
             self._finish_training(
@@ -507,7 +512,7 @@ class AutoencoderService:
         }
 
     def get_training_status(self) -> dict[str, object]:
-        self.training_status = self._load_status()
+        self.training_status = self._normalize_training_status(self._load_status())
         return self.training_status
 
     def get_training_history(self) -> list[dict[str, object]]:
