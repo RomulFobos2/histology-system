@@ -1,0 +1,296 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Дашборд | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Аналитический дашборд</h1>
+                </div>
+            </div>
+
+            <!-- KPI-карточки -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body">
+                            <i class="bi bi-folder2-open text-primary" style="font-size:2rem"></i>
+                            <h3 class="mt-2 mb-0" th:text="${stats.totalCases}">0</h3>
+                            <small class="text-muted">Всего дел</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body">
+                            <i class="bi bi-unlock text-success" style="font-size:2rem"></i>
+                            <h3 class="mt-2 mb-0" th:text="${stats.openCases}">0</h3>
+                            <small class="text-muted">Открытых дел</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body">
+                            <i class="bi bi-lock text-secondary" style="font-size:2rem"></i>
+                            <h3 class="mt-2 mb-0" th:text="${stats.closedCases}">0</h3>
+                            <small class="text-muted">Закрытых дел</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body">
+                            <i class="bi bi-cpu text-info" style="font-size:2rem"></i>
+                            <h3 class="mt-2 mb-0" th:text="${stats.autoencoderProcessedCount}">0</h3>
+                            <small class="text-muted">Обработано автоэнкодером</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-sm-12">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body">
+                            <i class="bi bi-clock-history text-warning" style="font-size:2rem"></i>
+                            <h3 class="mt-2 mb-0" th:text="${#numbers.formatDecimal(stats.avgDaysReceiptToConclusion, 1, 1)}">0.0</h3>
+                            <small class="text-muted">Среднее дней от поступления до заключения</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Графики -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Образцы по статусам</strong></div>
+                        <div class="card-body text-center">
+                            <canvas id="pieChart" width="350" height="350" style="max-width:350px; margin:0 auto"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Поступления за последние 30 дней</strong></div>
+                        <div class="card-body">
+                            <canvas id="lineChart" width="100%" height="300" style="width:100%; max-height:350px"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Топ-5 методов окрашивания -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Топ-5 методов окрашивания</strong></div>
+                        <div class="card-body p-0">
+                            <table class="table table-modern mb-0">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Метод</th>
+                                    <th>Количество</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="entry, iter : ${stats.topStainingMethods}">
+                                    <td th:text="${iter.count}">1</td>
+                                    <td th:text="${entry.key}">Метод</td>
+                                    <td th:text="${entry.value}">0</td>
+                                </tr>
+                                <tr th:if="${stats.topStainingMethods.isEmpty()}">
+                                    <td colspan="3" class="text-center text-muted py-3">Нет данных</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ссылки на отчёты -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header"><strong>Excel-отчёты</strong></div>
+                        <div class="card-body">
+                            <div class="list-group list-group-flush">
+                                <a th:href="@{/employee/head/reports/samplesReceived}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-spreadsheet text-success"></i> Поступившие образцы
+                                </a>
+                                <a th:href="@{/employee/head/reports/completedStudies}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-spreadsheet text-success"></i> Выполненные исследования
+                                </a>
+                                <a th:href="@{/employee/head/reports/stainingMethods}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-spreadsheet text-success"></i> Методы окрашивания
+                                </a>
+                                <a th:href="@{/employee/head/reports/researchResults}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-spreadsheet text-success"></i> Результаты исследований
+                                </a>
+                                <a th:href="@{/employee/head/reports/imageProcessingStats}" class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-spreadsheet text-success"></i> Обработка изображений
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<!-- Данные для графиков (передаём через data-атрибуты) -->
+<div id="chartData" style="display:none"
+     th:attr="data-pie-labels=${stats.samplesByStatus.keySet()},
+              data-pie-values=${stats.samplesByStatus.values()},
+              data-line-labels=${stats.samplesLast30Days.keySet()},
+              data-line-values=${stats.samplesLast30Days.values()}">
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var chartDataEl = document.getElementById('chartData');
+
+        // ===== Парсинг данных =====
+        function parseAttr(attr) {
+            var raw = chartDataEl.getAttribute(attr) || '';
+            // Thymeleaf передаёт коллекцию как "[a, b, c]"
+            raw = raw.replace(/^\[/, '').replace(/]$/, '');
+            if (!raw) return [];
+            return raw.split(',').map(function (s) { return s.trim(); });
+        }
+
+        var pieLabels = parseAttr('data-pie-labels');
+        var pieValues = parseAttr('data-pie-values').map(Number);
+        var lineLabels = parseAttr('data-line-labels');
+        var lineValues = parseAttr('data-line-values').map(Number);
+
+        // ===== Цвета =====
+        var COLORS = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
+                       '#edc949', '#af7aa1', '#ff9da7', '#9c755f', '#bab0ab'];
+
+        // ===== Pie Chart (Canvas) =====
+        (function () {
+            var canvas = document.getElementById('pieChart');
+            if (!canvas || pieLabels.length === 0) return;
+            var ctx = canvas.getContext('2d');
+            var total = pieValues.reduce(function (a, b) { return a + b; }, 0);
+            if (total === 0) return;
+
+            var cx = canvas.width / 2;
+            var cy = canvas.height / 2;
+            var radius = Math.min(cx, cy) - 40;
+            var startAngle = -Math.PI / 2;
+
+            for (var i = 0; i < pieValues.length; i++) {
+                var sliceAngle = (pieValues[i] / total) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = COLORS[i % COLORS.length];
+                ctx.fill();
+
+                // Метка
+                var midAngle = startAngle + sliceAngle / 2;
+                var labelR = radius + 20;
+                var lx = cx + Math.cos(midAngle) * labelR;
+                var ly = cy + Math.sin(midAngle) * labelR;
+                ctx.fillStyle = '#333';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = Math.cos(midAngle) >= 0 ? 'left' : 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(pieLabels[i] + ' (' + pieValues[i] + ')', lx, ly);
+
+                startAngle += sliceAngle;
+            }
+        })();
+
+        // ===== Line Chart (Canvas) =====
+        (function () {
+            var canvas = document.getElementById('lineChart');
+            if (!canvas || lineLabels.length === 0) return;
+            var ctx = canvas.getContext('2d');
+            var W = canvas.width = canvas.parentElement.clientWidth - 30;
+            var H = canvas.height = 300;
+
+            var padL = 50, padR = 20, padT = 20, padB = 50;
+            var chartW = W - padL - padR;
+            var chartH = H - padT - padB;
+
+            var maxVal = Math.max.apply(null, lineValues);
+            if (maxVal === 0) maxVal = 1;
+
+            // Сетка Y
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            var yTicks = 5;
+            for (var t = 0; t <= yTicks; t++) {
+                var yy = padT + chartH - (t / yTicks) * chartH;
+                ctx.beginPath();
+                ctx.moveTo(padL, yy);
+                ctx.lineTo(padL + chartW, yy);
+                ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(Math.round(maxVal * t / yTicks), padL - 8, yy);
+            }
+
+            // Линия данных
+            ctx.strokeStyle = '#4e79a7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var i = 0; i < lineValues.length; i++) {
+                var x = padL + (i / (lineValues.length - 1 || 1)) * chartW;
+                var y = padT + chartH - (lineValues[i] / maxVal) * chartH;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Точки
+            for (var i = 0; i < lineValues.length; i++) {
+                var x = padL + (i / (lineValues.length - 1 || 1)) * chartW;
+                var y = padT + chartH - (lineValues[i] / maxVal) * chartH;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = '#4e79a7';
+                ctx.fill();
+            }
+
+            // Подписи X (каждый 5-й)
+            ctx.fillStyle = '#666';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (var i = 0; i < lineLabels.length; i++) {
+                if (i % 5 === 0 || i === lineLabels.length - 1) {
+                    var x = padL + (i / (lineLabels.length - 1 || 1)) * chartW;
+                    ctx.fillText(lineLabels[i], x, padT + chartH + 8);
+                }
+            }
+        })();
+    });
+</script>
+</body>
+</html>
