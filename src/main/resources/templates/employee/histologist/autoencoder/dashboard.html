@@ -36,7 +36,7 @@
                                 <i class="bi bi-play-circle"></i> Запустить сервис
                             </button>
                         </form>
-                        <form th:if="${processManaged}"
+                        <form th:if="${serviceAvailable or processManaged}"
                               th:action="@{/employee/histologist/autoencoder/stopService}" method="post" style="margin:0">
                             <button type="submit" class="btn btn-danger btn-sm">
                                 <i class="bi bi-stop-circle"></i> Остановить сервис
@@ -157,8 +157,16 @@
                                 </div>
                             </div>
 
-                            <div class="alert alert-info mt-4 mb-0" th:if="${trainingStatus['status'] == 'running'}">
-                                Обучение уже выполняется. Страница обновляется автоматически, а повторный запуск временно недоступен.
+                            <div class="alert alert-info mt-4 mb-2" th:if="${trainingStatus['status'] == 'running'}">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <span>Обучение уже выполняется. Страница обновляется автоматически, а повторный запуск временно недоступен.</span>
+                                    <form th:action="@{/employee/histologist/autoencoder/resetTrainingStatus}" method="post" style="margin:0">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                onclick="return confirm('Сбросить статус обучения? Нажмите «ОК» только если обучение зависло или завершилось с ошибкой.')">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Сбросить статус
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
 
                             <div class="profile-actions mt-4">

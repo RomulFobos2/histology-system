@@ -33,6 +33,11 @@ def training_status() -> JSONResponse:
     return JSONResponse(content=autoencoder_service.get_training_status())
 
 
+@app.post("/training/reset-status")
+def reset_training_status() -> JSONResponse:
+    return JSONResponse(content=autoencoder_service.reset_training_status())
+
+
 @app.get("/training/history")
 def training_history() -> JSONResponse:
     return JSONResponse(content=autoencoder_service.get_training_history())

@@ -515,6 +515,15 @@ class AutoencoderService:
         self.training_status = self._normalize_training_status(self._load_status())
         return self.training_status
 
+    def reset_training_status(self) -> dict[str, object]:
+        """Принудительно сбрасывает зависший статус обучения в idle."""
+        if self.training_process is not None and self.training_process.poll() is not None:
+            self.training_process = None
+        idle: dict[str, object] = {"status": "idle", "message": "Статус сброшен вручную."}
+        self._set_training_status(idle)
+        self.training_status = idle
+        return idle
+
     def get_training_history(self) -> list[dict[str, object]]:
         self.training_history = self._load_history()
         return self.training_history
