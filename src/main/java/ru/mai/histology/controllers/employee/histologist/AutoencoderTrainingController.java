@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.service.employee.histologist.AutoencoderTrainingService;
 
+import java.util.Map;
+
 @Controller
 @Slf4j
 public class AutoencoderTrainingController {
@@ -36,17 +38,23 @@ public class AutoencoderTrainingController {
                         @RequestParam double inputLearningRate,
                         @RequestParam int inputImageSize,
                         RedirectAttributes redirectAttributes) {
-        boolean success = autoencoderTrainingService.startTraining(
+        Map<String, Object> result = autoencoderTrainingService.startTraining(
                 inputEpochs,
                 inputBatchSize,
                 inputLearningRate,
                 inputImageSize
         );
 
-        if (success) {
-            redirectAttributes.addFlashAttribute("successMessage", "Обучение модели успешно завершено.");
+        String status = String.valueOf(result.getOrDefault("status", "error"));
+        String message = String.valueOf(result.getOrDefault("message", "Не удалось запустить обучение."));
+
+        if ("accepted".equalsIgnoreCase(status)) {
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Обучение запущено в фоновом режиме. Страница будет обновлять статус автоматически."
+            );
         } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Обучение модели завершилось с ошибкой. Проверьте статус и историю запусков.");
+            redirectAttributes.addFlashAttribute("errorMessage", message);
         }
         return "redirect:/employee/histologist/autoencoder/dashboard";
     }

@@ -16,6 +16,8 @@ import ru.mai.histology.service.general.AutoencoderClientService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,8 @@ import java.util.Map;
 @Getter
 @Slf4j
 public class AutoencoderTrainingService {
+
+    private static final DateTimeFormatter PYTHON_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final AutoencoderClientService autoencoderClientService;
     private final EmployeeService employeeService;
@@ -60,49 +64,66 @@ public class AutoencoderTrainingService {
     }
 
     public List<TrainingSessionDTO> getTrainingSessions() {
+        refreshTrainingSessionsFromPython();
         return TrainingSessionMapper.INSTANCE.toDTOList(trainingSessionRepository.findAllByOrderByStartedAtDesc());
     }
 
     @Transactional
-    public boolean startTraining(int epochs, int batchSize, double learningRate, int imageSize) {
+    public Map<String, Object> startTraining(int epochs, int batchSize, double learningRate, int imageSize) {
+        Map<String, Object> response = autoencoderClientService.trainModel(epochs, batchSize, learningRate, imageSize);
+        String responseStatus = readString(response.get("status"));
+
+        if (!"accepted".equalsIgnoreCase(responseStatus)) {
+            return response;
+        }
+
         Employee currentEmployee = employeeService.getAuthenticationEmployee();
 
         TrainingSession session = new TrainingSession();
-        session.setStartedAt(LocalDateTime.now());
+        session.setStartedAt(readDateTime(response.get("startedAt")));
         session.setStatus("RUNNING");
         session.setEpochs(epochs);
         session.setBatchSize(batchSize);
         session.setLearningRate(learningRate);
         session.setImageSize(imageSize);
+        session.setDatasetSize(readInteger(response.get("datasetSize")));
+        session.setMessage(readString(response.get("message")));
         session.setTriggeredBy(currentEmployee);
         trainingSessionRepository.save(session);
+        return response;
+    }
 
-        try {
-            Map<String, Object> response = autoencoderClientService.trainModel(epochs, batchSize, learningRate, imageSize);
-            session.setFinishedAt(LocalDateTime.now());
-            session.setStatus(String.valueOf(response.getOrDefault("status", "error")).toUpperCase());
-            session.setMessage(String.valueOf(response.getOrDefault("message", "Нет ответа от Python-сервиса")));
-            session.setDatasetSize(readInteger(response.get("datasetSize")));
-            session.setLoss(readDouble(response.get("loss")));
-            session.setValidationLoss(readDouble(response.get("validationLoss")));
-            session.setPsnr(readDouble(response.get("psnr")));
-            session.setSsim(readDouble(response.get("ssim")));
-            session.setModelName(readString(response.get("modelName")));
+    @Transactional
+    public void refreshTrainingSessionsFromPython() {
+        TrainingSession runningSession = trainingSessionRepository.findFirstByStatusOrderByStartedAtDesc("RUNNING");
+        if (runningSession == null) {
+            return;
+        }
 
-            trainingSessionRepository.save(session);
+        Map<String, Object> pythonStatus = autoencoderClientService.getTrainingStatus();
+        if ("running".equalsIgnoreCase(readString(pythonStatus.get("status")))) {
+            return;
+        }
 
-            if ("ok".equalsIgnoreCase(readString(response.get("status")))) {
-                updateAutoencoderModel(response);
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            log.error("Ошибка при запуске обучения автоэнкодера: {}", e.getMessage(), e);
-            session.setFinishedAt(LocalDateTime.now());
-            session.setStatus("ERROR");
-            session.setMessage("Ошибка при запуске обучения: " + e.getMessage());
-            trainingSessionRepository.save(session);
-            return false;
+        List<Map<String, Object>> history = autoencoderClientService.getTrainingHistory();
+        if (history.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> latestResult = history.get(0);
+        runningSession.setFinishedAt(readDateTime(latestResult.get("finishedAt")));
+        runningSession.setStatus(String.valueOf(latestResult.getOrDefault("status", "error")).toUpperCase());
+        runningSession.setMessage(readString(latestResult.get("message")));
+        runningSession.setDatasetSize(readInteger(latestResult.get("datasetSize")));
+        runningSession.setLoss(readDouble(latestResult.get("loss")));
+        runningSession.setValidationLoss(readDouble(latestResult.get("validationLoss")));
+        runningSession.setPsnr(readDouble(latestResult.get("psnr")));
+        runningSession.setSsim(readDouble(latestResult.get("ssim")));
+        runningSession.setModelName(readString(latestResult.get("modelName")));
+        trainingSessionRepository.save(runningSession);
+
+        if ("OK".equalsIgnoreCase(runningSession.getStatus())) {
+            updateAutoencoderModel(latestResult);
         }
     }
 
@@ -151,5 +172,17 @@ public class AutoencoderTrainingService {
 
     private String readString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private LocalDateTime readDateTime(Object value) {
+        if (value == null) {
+            return LocalDateTime.now();
+        }
+        try {
+            return LocalDateTime.parse(String.valueOf(value), PYTHON_DATE_TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            log.warn("Не удалось распарсить дату обучения из Python-сервиса: {}", value);
+            return LocalDateTime.now();
+        }
     }
 }
