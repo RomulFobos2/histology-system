@@ -3,6 +3,7 @@
 import io
 import json
 import random
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -716,6 +717,21 @@ class AutoencoderService:
     def _set_training_status(self, status: dict[str, object]) -> None:
         self.training_status = status
         STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _is_process_alive(self, pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+
+    def _normalize_training_status(self, status: dict[str, object]) -> dict[str, object]:
+        if status.get("status") != "running":
+            return status
+        pid = status.get("pid")
+        if pid is not None and self._is_process_alive(int(pid)):
+            return status
+        return {"status": "idle", "message": "Обучение не выполняется (процесс завершён)."}
 
     def _finish_training(
         self,
