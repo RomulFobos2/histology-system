@@ -12,6 +12,7 @@ import ru.mai.histology.models.Employee;
 import ru.mai.histology.models.MicroscopeImage;
 import ru.mai.histology.models.Sample;
 import ru.mai.histology.repo.EmployeeRepository;
+import ru.mai.histology.repo.ImageProcessingLogRepository;
 import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.repo.SampleRepository;
 import ru.mai.histology.service.general.FileStorageService;
@@ -29,15 +30,18 @@ public class ImageUploadService {
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
 
     private final MicroscopeImageRepository imageRepository;
+    private final ImageProcessingLogRepository processingLogRepository;
     private final SampleRepository sampleRepository;
     private final EmployeeRepository employeeRepository;
     private final FileStorageService fileStorageService;
 
     public ImageUploadService(MicroscopeImageRepository imageRepository,
+                              ImageProcessingLogRepository processingLogRepository,
                               SampleRepository sampleRepository,
                               EmployeeRepository employeeRepository,
                               FileStorageService fileStorageService) {
         this.imageRepository = imageRepository;
+        this.processingLogRepository = processingLogRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
         this.fileStorageService = fileStorageService;
@@ -145,14 +149,22 @@ public class ImageUploadService {
 
         try {
             MicroscopeImage image = imageOpt.get();
-            String relativePath = image.getFilePath();
+
+            // Удаление улучшенных копий (если это оригинал)
+            List<MicroscopeImage> enhancedCopies = imageRepository.findAllByOriginalImageId(id);
+            for (MicroscopeImage enhanced : enhancedCopies) {
+                processingLogRepository.deleteAllByEnhancedImageId(enhanced.getId());
+                processingLogRepository.deleteAllByOriginalImageId(enhanced.getId());
+                deleteFileAndThumb(enhanced.getFilePath());
+                imageRepository.delete(enhanced);
+            }
+
+            // Удаление логов обработки, ссылающихся на это изображение
+            processingLogRepository.deleteAllByOriginalImageId(id);
+            processingLogRepository.deleteAllByEnhancedImageId(id);
 
             // Удаление файлов с диска (оригинал + миниатюра)
-            fileStorageService.deleteFile(relativePath);
-            String thumbPath = getThumbPath(relativePath);
-            if (thumbPath != null) {
-                fileStorageService.deleteFile(thumbPath);
-            }
+            deleteFileAndThumb(image.getFilePath());
 
             imageRepository.deleteById(id);
             log.info("Изображение удалено: id={}", id);
@@ -172,16 +184,22 @@ public class ImageUploadService {
         log.info("Каскадное удаление изображений образца: sampleId={}", sampleId);
         List<MicroscopeImage> images = imageRepository.findAllBySampleId(sampleId);
         for (MicroscopeImage image : images) {
-            fileStorageService.deleteFile(image.getFilePath());
-            String thumbPath = getThumbPath(image.getFilePath());
-            if (thumbPath != null) {
-                fileStorageService.deleteFile(thumbPath);
-            }
+            processingLogRepository.deleteAllByOriginalImageId(image.getId());
+            processingLogRepository.deleteAllByEnhancedImageId(image.getId());
+            deleteFileAndThumb(image.getFilePath());
         }
         imageRepository.deleteAll(images);
     }
 
     // ========== Утилиты ==========
+
+    private void deleteFileAndThumb(String relativePath) {
+        fileStorageService.deleteFile(relativePath);
+        String thumbPath = getThumbPath(relativePath);
+        if (thumbPath != null) {
+            fileStorageService.deleteFile(thumbPath);
+        }
+    }
 
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
