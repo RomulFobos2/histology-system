@@ -458,25 +458,51 @@
 
     function startPolling() {
         if (!pollingInterval) {
-            pollingInterval = setInterval(pollTrainingStatus, 10000);
+            pollingInterval = setInterval(pollTrainingStatus, 3000);
         }
     }
 
-    // Запускаем поллинг если обучение уже идёт
-    if (initialStatus === 'running') {
+    // Запускаем поллинг если сервис доступен (ловим переход idle→running)
+    if (serviceAvailable) {
         startPolling();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // На submit формы: мгновенная обратная связь + запуск поллинга
+        // Отправка обучения через AJAX (без перезагрузки страницы)
         var form = document.getElementById('trainingForm');
         if (form) {
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
                 var btn = document.getElementById('trainButton');
                 if (btn) {
                     btn.disabled = true;
                     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Отправка...';
                 }
+
+                var formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                }).then(function (r) {
+                    if (r.redirected) {
+                        // POST прошёл, сервер вернул redirect — не переходим, ждём поллинг
+                    }
+                    // Показать прогресс-блок сразу
+                    var progressBlock = document.getElementById('trainingProgressBlock');
+                    if (progressBlock) progressBlock.style.display = 'block';
+                    var progressText = document.getElementById('trainingProgressText');
+                    if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается...';
+                    var progressBar = document.getElementById('trainingProgressBar');
+                    if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
+                    wasRunning = true;
+                    startPolling();
+                }).catch(function () {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+                    }
+                    alert('Ошибка при отправке запроса на обучение.');
+                });
             });
         }
 
