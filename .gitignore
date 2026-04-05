@@ -38,5 +38,8 @@ __pycache__/
 uploads/
 autoencoder/data/
 autoencoder/weights/
+autoencoder/service.pid
+autoencoder/service.log
+autoencoder/service.log.err
 .claude
 log/
