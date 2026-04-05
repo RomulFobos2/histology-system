@@ -4,26 +4,8 @@ from fastapi.responses import JSONResponse, Response
 from model.autoencoder import AutoencoderService
 
 import logging
-import uvicorn.config
 
-# Модифицируем LOGGING_CONFIG uvicorn ДО создания приложения,
-# чтобы все форматтеры включали дату и время в каждой строке лога.
-# logging.basicConfig(force=True) здесь бесполезен — uvicorn
-# переопределяет его при старте своим собственным конфигом.
-for _formatter in uvicorn.config.LOGGING_CONFIG.get("formatters", {}).values():
-    if "fmt" in _formatter:
-        _formatter["fmt"] = "%(asctime)s " + _formatter["fmt"]
-    _formatter.setdefault("datefmt", "%Y-%m-%d %H:%M:%S")
-
-import logging
-import logging.config
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    force=True,
-)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Histology Autoencoder Service",

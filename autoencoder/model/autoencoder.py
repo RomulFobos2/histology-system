@@ -418,7 +418,7 @@ class AutoencoderService:
             "weightsPath": str(WEIGHTS_PATH.name),
         }
         METADATA_PATH.write_text(
-            json.dumps(metadata, ensure_ascii=True , indent=2),
+            json.dumps(metadata, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 
@@ -721,7 +721,7 @@ class AutoencoderService:
 
     def _set_training_status(self, status: dict[str, object]) -> None:
         self.training_status = status
-        STATUS_PATH.write_text(json.dumps(status, ensure_ascii=True , indent=2), encoding="utf-8")
+        STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _is_process_alive(self, pid: int) -> bool:
         try:
@@ -757,7 +757,7 @@ class AutoencoderService:
         self.training_history.insert(0, finished)
         self.training_history = self.training_history[:20]
         HISTORY_PATH.write_text(
-            json.dumps(self.training_history, ensure_ascii=True , indent=2),
+            json.dumps(self.training_history, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         self._set_training_status(finished)
