@@ -153,6 +153,7 @@
                                         <option value="256" selected>256</option>
                                         <option value="384">384</option>
                                         <option value="512">512</option>
+                                        <option value="1024">1024</option>
                                     </select>
                                     <div class="text-muted small mt-1">
                                         Размер фрагмента. Больше — больше деталей, но дольше.
@@ -160,9 +161,11 @@
                                 </div>
                             </div>
 
-                            <div class="alert alert-info mt-4 mb-2" th:if="${trainingStatus['status'] == 'running'}">
+                            <!-- Блок прогресса обучения (обновляется через AJAX) -->
+                            <div id="trainingProgressBlock" class="alert alert-info mt-4 mb-2"
+                                 th:style="${trainingStatus['status'] == 'running'} ? '' : 'display:none'">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                    <span>
+                                    <span id="trainingProgressText">
                                         <i class="bi bi-hourglass-split"></i> Обучение выполняется.
                                         <span th:if="${trainingStatus['currentEpoch'] != null}"
                                               th:text="'Эпоха ' + ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']}"></span>
@@ -178,18 +181,18 @@
                                         </button>
                                     </form>
                                 </div>
-                                <div th:if="${trainingStatus['currentEpoch'] != null and trainingStatus['epochs'] != null}" class="progress" style="height: 20px;">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                <div class="progress" style="height: 20px;">
+                                    <div id="trainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info"
                                          role="progressbar"
-                                         th:style="'width: ' + ${(trainingStatus['currentEpoch'] * 100) / trainingStatus['epochs']} + '%'"
-                                         th:text="${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']}">
+                                         th:style="${trainingStatus['currentEpoch'] != null and trainingStatus['epochs'] != null} ? 'width:' + ${(trainingStatus['currentEpoch'] * 100) / trainingStatus['epochs']} + '%' : 'width:0%'"
+                                         th:text="${trainingStatus['currentEpoch'] != null} ? ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']} : ''">
                                     </div>
                                 </div>
-                                <div class="text-muted small mt-1">Страница обновляется автоматически каждые 15 секунд.</div>
+                                <div class="text-muted small mt-1">Статус обновляется автоматически каждые 10 секунд.</div>
                             </div>
 
                             <div class="profile-actions mt-4">
-                                <button type="submit"
+                                <button type="submit" id="trainButton"
                                         class="btn btn-warning btn-profile"
                                         th:disabled="${!serviceAvailable or trainingStatus['status'] == 'running'}">
                                     <i class="bi bi-cpu"></i> Запустить обучение
@@ -199,18 +202,18 @@
                     </div>
                 </div>
 
-                <!-- Метрики и модели -->
+                <!-- Метрики -->
                 <div class="col-12 col-xl-7">
                     <div class="profile-card p-4 h-100">
                         <h6 class="form-section-title">Текущий статус и метрики</h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <div class="text-muted small">Статус обучения</div>
-                                <div th:text="${trainingStatus['status']} ?: '—'"></div>
+                                <div id="metricStatus" th:text="${trainingStatus['status']} ?: '—'"></div>
                             </div>
                             <div class="col-md-6">
-                                <div class="text-muted small">Активная модель</div>
-                                <div th:text="${metrics['activeModel']} ?: '—'"></div>
+                                <div class="text-muted small">Режим улучшения</div>
+                                <div th:text="${metrics['mode'] == 'neural' ? 'Нейросеть (U-Net)' : 'Базовый (Pillow)'}"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Epochs</div>
@@ -249,86 +252,28 @@
                                 <div th:text="${metrics['trainingDurationSeconds'] != null ? metrics['trainingDurationSeconds'] + ' сек' : '—'}"></div>
                             </div>
                         </div>
-
-                        <h6 class="form-section-title">Модели Python-сервиса</h6>
-                        <div class="table-responsive" th:if="${models != null and !models.isEmpty()}">
-                            <table class="table table-modern">
-                                <thead>
-                                <tr>
-                                    <th>Модель</th>
-                                    <th>Epochs</th>
-                                    <th>Loss</th>
-                                    <th>Val Loss</th>
-                                    <th>Статус</th>
-                                    <th>Действие</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="modelItem : ${models}">
-                                    <td th:text="${modelItem['modelName']}"></td>
-                                    <td th:text="${modelItem['epochs']}"></td>
-                                    <td th:text="${modelItem['loss']}"></td>
-                                    <td th:text="${modelItem['validationLoss']}"></td>
-                                    <td>
-                                        <span th:if="${modelItem['active']}" class="badge-active">Активна</span>
-                                        <span th:unless="${modelItem['active']}" class="badge-inactive">Неактивна</span>
-                                    </td>
-                                    <td>
-                                        <form th:action="@{/employee/histologist/autoencoder/activateModel}" method="post" style="margin:0; display:inline">
-                                            <input type="hidden" name="modelName" th:value="${modelItem['modelName']}">
-                                            <button type="submit"
-                                                    class="btn btn-sm"
-                                                    th:classappend="${modelItem['active']} ? 'btn-outline-secondary disabled' : 'btn-primary'"
-                                                    th:disabled="${modelItem['active']}">
-                                                <i class="bi bi-check-circle"></i>
-                                                <span th:text="${modelItem['active']} ? 'Выбрана' : 'Активировать'"></span>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div th:if="${models == null or models.isEmpty()}" class="text-muted">
-                            Модели не обнаружены
-                        </div>
-                        <div class="text-muted small mt-2">
-                            <i class="bi bi-info-circle"></i> Активная модель отмечается в системе для отслеживания.
-                            Python-сервис автоматически применяет последнюю обученную нейросеть или базовый пайплайн.
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle"></i> Python-сервис автоматически применяет последнюю обученную нейросеть.
+                            Если нейросеть не обучена — используется базовый пайплайн улучшения (Pillow).
+                            Выбор модели осуществляется при улучшении конкретного изображения.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Кнопки открытия модальных окон истории -->
+            <!-- Кнопка открытия модального окна истории -->
             <div class="row g-4 mb-4">
-                <div class="col-12 col-xl-6">
-                    <div class="profile-card p-4 h-100 d-flex flex-column justify-content-between">
+                <div class="col-12">
+                    <div class="profile-card p-4 d-flex flex-column justify-content-between">
                         <div>
-                            <h6 class="form-section-title">История запусков в системе</h6>
-                            <p class="text-muted small mb-3">Запуски обучения, сохранённые в базе данных АИС ГИ.</p>
+                            <h6 class="form-section-title">История обучения</h6>
+                            <p class="text-muted small mb-3">Запуски обучения модели, зарегистрированные в системе.</p>
                         </div>
                         <div>
                             <span class="text-muted me-2" th:text="'Записей: ' + (${trainingSessions != null} ? ${trainingSessions.size()} : 0)"></span>
                             <button type="button" class="btn btn-outline-primary btn-sm"
-                                    data-bs-toggle="modal" data-bs-target="#systemHistoryModal"
+                                    data-bs-toggle="modal" data-bs-target="#historyModal"
                                     th:disabled="${trainingSessions == null or trainingSessions.isEmpty()}">
-                                <i class="bi bi-clock-history"></i> Открыть историю
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-xl-6">
-                    <div class="profile-card p-4 h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <h6 class="form-section-title">История Python-сервиса</h6>
-                            <p class="text-muted small mb-3">Запуски обучения, сохранённые Python-сервисом локально.</p>
-                        </div>
-                        <div>
-                            <span class="text-muted me-2" th:text="'Записей: ' + (${pythonTrainingHistory != null} ? ${pythonTrainingHistory.size()} : 0)"></span>
-                            <button type="button" class="btn btn-outline-primary btn-sm"
-                                    data-bs-toggle="modal" data-bs-target="#pythonHistoryModal"
-                                    th:disabled="${pythonTrainingHistory == null or pythonTrainingHistory.isEmpty()}">
                                 <i class="bi bi-clock-history"></i> Открыть историю
                             </button>
                         </div>
@@ -341,58 +286,65 @@
     </div>
 </div>
 
-<!-- ========== Модальное окно: История запусков в системе ========== -->
-<div class="modal fade" id="systemHistoryModal" tabindex="-1" aria-labelledby="systemHistoryModalLabel" aria-hidden="true">
+<!-- ========== Модальное окно: История обучения ========== -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="systemHistoryModalLabel">
-                    <i class="bi bi-clock-history"></i> История запусков в системе
+                <h5 class="modal-title" id="historyModalLabel">
+                    <i class="bi bi-clock-history"></i> История обучения
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small">Запуски обучения, зарегистрированные в базе данных АИС ГИ. Содержит информацию об инициаторе, времени и параметрах каждого запуска.</p>
                 <div th:if="${trainingSessions != null and !trainingSessions.isEmpty()}">
-                    <table id="systemHistoryTable" class="table table-modern">
+                    <table id="historyTable" class="table table-modern" style="font-size: 0.8rem;">
                         <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Старт</th>
-                            <th>Завершение</th>
-                            <th>Статус</th>
-                            <th>Инициатор</th>
-                            <th>Epochs</th>
-                            <th>Image</th>
-                            <th>Датасет</th>
-                            <th>PSNR</th>
-                            <th>SSIM</th>
-                            <th>Модель</th>
+                            <th data-bs-toggle="tooltip" title="Порядковый номер">#</th>
+                            <th data-bs-toggle="tooltip" title="Дата и время начала обучения">Старт</th>
+                            <th data-bs-toggle="tooltip" title="Результат: OK, RUNNING, ERROR">Статус</th>
+                            <th data-bs-toggle="tooltip" title="Инициатор обучения">Кто</th>
+                            <th data-bs-toggle="tooltip" title="Epochs — кол-во проходов по датасету">Ep</th>
+                            <th data-bs-toggle="tooltip" title="Batch size — изображений за один шаг">Bat</th>
+                            <th data-bs-toggle="tooltip" title="Learning rate — скорость обучения">LR</th>
+                            <th data-bs-toggle="tooltip" title="Размер изображения (px)">Img</th>
+                            <th data-bs-toggle="tooltip" title="Train loss — функция потерь на обучении">Loss</th>
+                            <th data-bs-toggle="tooltip" title="Validation loss — потери на валидации">VLoss</th>
+                            <th data-bs-toggle="tooltip" title="Peak Signal-to-Noise Ratio — качество восстановления">PSNR</th>
+                            <th data-bs-toggle="tooltip" title="Structural Similarity — структурное сходство с оригиналом">SSIM</th>
+                            <th data-bs-toggle="tooltip" title="Сообщение Python-сервиса о результате">Сообщ.</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="ts, iter : ${trainingSessions}">
-                            <td class="row-number" th:text="${iter.count}">1</td>
-                            <td th:text="${ts.startedAt != null ? #temporals.format(ts.startedAt, 'dd.MM.yyyy HH:mm') : '—'}"></td>
-                            <td th:text="${ts.finishedAt != null ? #temporals.format(ts.finishedAt, 'dd.MM.yyyy HH:mm') : '—'}"></td>
+                            <td th:text="${iter.count}">1</td>
+                            <td style="white-space:nowrap" th:text="${ts.startedAt != null ? #temporals.format(ts.startedAt, 'dd.MM HH:mm') : '—'}"></td>
                             <td>
                                 <span th:if="${ts.status == 'OK'}" class="badge-active">OK</span>
-                                <span th:if="${ts.status == 'RUNNING'}" class="badge bg-warning text-dark">RUNNING</span>
+                                <span th:if="${ts.status == 'RUNNING'}" class="badge bg-warning text-dark">RUN</span>
                                 <span th:if="${ts.status != 'OK' and ts.status != 'RUNNING'}" class="badge-inactive" th:text="${ts.status}"></span>
                             </td>
-                            <td th:text="${ts.triggeredByFullName != null ? ts.triggeredByFullName : '—'}"></td>
+                            <td style="max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                th:text="${ts.triggeredByFullName != null ? ts.triggeredByFullName : '—'}"
+                                th:title="${ts.triggeredByFullName}"></td>
                             <td th:text="${ts.epochs}"></td>
+                            <td th:text="${ts.batchSize}"></td>
+                            <td th:text="${ts.learningRate}"></td>
                             <td th:text="${ts.imageSize}"></td>
-                            <td th:text="${ts.datasetSize != null ? ts.datasetSize : '—'}"></td>
+                            <td th:text="${ts.loss != null ? ts.loss : '—'}"></td>
+                            <td th:text="${ts.validationLoss != null ? ts.validationLoss : '—'}"></td>
                             <td th:text="${ts.psnr != null ? ts.psnr : '—'}"></td>
                             <td th:text="${ts.ssim != null ? ts.ssim : '—'}"></td>
-                            <td th:text="${ts.modelName != null ? ts.modelName : '—'}"></td>
+                            <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                th:text="${ts.message != null ? ts.message : '—'}"
+                                th:title="${ts.message}"></td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
                 <div th:if="${trainingSessions == null or trainingSessions.isEmpty()}" class="text-center text-muted py-4">
-                    История запусков пока пуста
+                    История обучения пока пуста
                 </div>
             </div>
             <div class="modal-footer">
@@ -400,73 +352,6 @@
                       th:action="@{/employee/histologist/autoencoder/clearSystemHistory}" method="post" style="margin:0">
                     <button type="submit" class="btn btn-outline-danger btn-sm"
                             onclick="return confirm('Удалить все записи истории из базы данных? Это действие необратимо.')">
-                        <i class="bi bi-trash"></i> Очистить историю
-                    </button>
-                </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ========== Модальное окно: История Python-сервиса ========== -->
-<div class="modal fade" id="pythonHistoryModal" tabindex="-1" aria-labelledby="pythonHistoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="pythonHistoryModalLabel">
-                    <i class="bi bi-clock-history"></i> История Python-сервиса
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small">Результаты обучения, сохранённые Python-сервисом в локальный JSON-файл. Содержит метрики качества и технические параметры каждого обучения.</p>
-                <div th:if="${pythonTrainingHistory != null and !pythonTrainingHistory.isEmpty()}">
-                    <table id="pythonHistoryTable" class="table table-modern">
-                        <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Дата</th>
-                            <th>Статус</th>
-                            <th>Модель</th>
-                            <th>Epochs</th>
-                            <th>Loss</th>
-                            <th>Val Loss</th>
-                            <th>PSNR</th>
-                            <th>SSIM</th>
-                            <th>Время (сек)</th>
-                            <th>Сообщение</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="hi, iter : ${pythonTrainingHistory}">
-                            <td class="row-number" th:text="${iter.count}">1</td>
-                            <td th:text="${hi['finishedAt']} ?: '—'"></td>
-                            <td>
-                                <span th:if="${hi['status'] == 'ok'}" class="badge-active">OK</span>
-                                <span th:unless="${hi['status'] == 'ok'}" class="badge-inactive" th:text="${hi['status']} ?: '—'"></span>
-                            </td>
-                            <td th:text="${hi['modelName']} ?: '—'"></td>
-                            <td th:text="${hi['epochs']} ?: '—'"></td>
-                            <td th:text="${hi['loss']} ?: '—'"></td>
-                            <td th:text="${hi['validationLoss']} ?: '—'"></td>
-                            <td th:text="${hi['psnr']} ?: '—'"></td>
-                            <td th:text="${hi['ssim']} ?: '—'"></td>
-                            <td th:text="${hi['trainingDurationSeconds']} ?: '—'"></td>
-                            <td th:text="${hi['message']} ?: '—'"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div th:if="${pythonTrainingHistory == null or pythonTrainingHistory.isEmpty()}" class="text-center text-muted py-4">
-                    Python-сервис ещё не сохранил историю запусков
-                </div>
-            </div>
-            <div class="modal-footer">
-                <form th:if="${pythonTrainingHistory != null and !pythonTrainingHistory.isEmpty()}"
-                      th:action="@{/employee/histologist/autoencoder/clearPythonHistory}" method="post" style="margin:0">
-                    <button type="submit" class="btn btn-outline-danger btn-sm"
-                            onclick="return confirm('Удалить все записи истории Python-сервиса? Это действие необратимо.')">
                         <i class="bi bi-trash"></i> Очистить историю
                     </button>
                 </form>
@@ -496,41 +381,124 @@
 </script>
 
 <script th:inline="javascript">
-    var trainingStatus = String(/*[[${trainingStatus['status']}]]*/ 'idle');
+    var initialStatus = String(/*[[${trainingStatus['status']}]]*/ 'idle');
     var processManaged = /*[[${processManaged}]]*/ false;
     var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
+
+    // Авто-обновление при запуске сервиса (ждём пока поднимется)
     if (processManaged && !serviceAvailable) {
         setTimeout(function () { window.location.reload(); }, 3000);
     }
-    if (trainingStatus === 'running') {
-        setTimeout(function () { window.location.reload(); }, 15000);
+
+    // ===== AJAX-поллинг статуса обучения =====
+    var pollingInterval = null;
+    var wasRunning = (initialStatus === 'running');
+
+    function updateTrainingUI(data) {
+        var ts = data.trainingStatus || {};
+        var status = String(ts.status || 'idle');
+        var isRunning = (status === 'running');
+
+        // Кнопка «Запустить обучение»
+        var trainBtn = document.getElementById('trainButton');
+        if (trainBtn) {
+            trainBtn.disabled = !data.serviceAvailable || isRunning;
+            if (!isRunning && data.serviceAvailable) {
+                trainBtn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+            }
+        }
+
+        // Блок прогресса
+        var progressBlock = document.getElementById('trainingProgressBlock');
+        if (progressBlock) {
+            progressBlock.style.display = isRunning ? 'block' : 'none';
+        }
+
+        if (isRunning) {
+            var currentEpoch = ts.currentEpoch || 0;
+            var totalEpochs = ts.epochs || 1;
+            var pct = Math.round((currentEpoch / totalEpochs) * 100);
+
+            var text = '<i class="bi bi-hourglass-split"></i> Обучение выполняется.';
+            if (currentEpoch > 0) {
+                text += ' Эпоха ' + currentEpoch + ' / ' + totalEpochs;
+            }
+            if (ts.currentLoss != null) {
+                text += ' | Loss: ' + ts.currentLoss;
+            }
+            if (ts.currentValLoss != null) {
+                text += ' | Val Loss: ' + ts.currentValLoss;
+            }
+            var progressText = document.getElementById('trainingProgressText');
+            if (progressText) progressText.innerHTML = text;
+
+            var progressBar = document.getElementById('trainingProgressBar');
+            if (progressBar) {
+                progressBar.style.width = pct + '%';
+                progressBar.textContent = currentEpoch + ' / ' + totalEpochs;
+            }
+        }
+
+        // Обучение завершилось — обновить страницу для подтягивания истории и метрик
+        if (wasRunning && !isRunning) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            window.location.reload();
+            return;
+        }
+        wasRunning = isRunning;
+    }
+
+    function pollTrainingStatus() {
+        fetch('/employee/histologist/autoencoder/api/training-status')
+            .then(function (r) { return r.json(); })
+            .then(updateTrainingUI)
+            .catch(function () { /* сеть недоступна — пропускаем */ });
+    }
+
+    function startPolling() {
+        if (!pollingInterval) {
+            pollingInterval = setInterval(pollTrainingStatus, 10000);
+        }
+    }
+
+    // Запускаем поллинг если обучение уже идёт
+    if (initialStatus === 'running') {
+        startPolling();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        // На submit формы: мгновенная обратная связь + запуск поллинга
+        var form = document.getElementById('trainingForm');
+        if (form) {
+            form.addEventListener('submit', function () {
+                var btn = document.getElementById('trainButton');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Отправка...';
+                }
+            });
+        }
+
         // Инициализация тултипов Bootstrap
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function (el) {
             new bootstrap.Tooltip(el);
         });
 
-        // Пагинация таблиц в модалках — инициализируем при открытии
-        var systemModal = document.getElementById('systemHistoryModal');
-        if (systemModal) {
-            systemModal.addEventListener('shown.bs.modal', function () {
-                if (!systemModal._paginationInit && typeof initPagination === 'function') {
-                    initPagination('systemHistoryTable', { perPage: 10 });
-                    systemModal._paginationInit = true;
+        // Пагинация таблицы в модалке
+        var historyModal = document.getElementById('historyModal');
+        if (historyModal) {
+            historyModal.addEventListener('shown.bs.modal', function () {
+                if (!historyModal._paginationInit && typeof initPagination === 'function') {
+                    initPagination('historyTable', { perPage: 10 });
+                    historyModal._paginationInit = true;
                 }
-            });
-        }
-
-        var pythonModal = document.getElementById('pythonHistoryModal');
-        if (pythonModal) {
-            pythonModal.addEventListener('shown.bs.modal', function () {
-                if (!pythonModal._paginationInit && typeof initPagination === 'function') {
-                    initPagination('pythonHistoryTable', { perPage: 10 });
-                    pythonModal._paginationInit = true;
-                }
+                // Инициализация тултипов внутри модалки
+                var modalTooltips = [].slice.call(historyModal.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                modalTooltips.forEach(function (el) {
+                    new bootstrap.Tooltip(el);
+                });
             });
         }
     });

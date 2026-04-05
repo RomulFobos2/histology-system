@@ -1,15 +1,18 @@
 package ru.mai.histology.controllers.employee.histologist;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.service.employee.histologist.AutoencoderTrainingService;
 import ru.mai.histology.service.general.PythonServiceManager;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,23 +43,34 @@ public class AutoencoderTrainingController {
             model.addAttribute("metrics", Map.of());
             model.addAttribute("trainingStatus",
                     Map.of("status", "offline", "message", "Python-сервис недоступен"));
-            model.addAttribute("models", List.of());
-            model.addAttribute("pythonTrainingHistory", List.of());
             model.addAttribute("trainingSessions", autoencoderTrainingService.getTrainingSessionsFromDb());
             return "employee/histologist/autoencoder/dashboard";
         }
 
         Map<String, Object> trainingStatus = autoencoderTrainingService.getTrainingStatus();
-        List<Map<String, Object>> pythonTrainingHistory = autoencoderTrainingService.getPythonTrainingHistory();
+        List<Map<String, Object>> pythonHistory = autoencoderTrainingService.getPythonTrainingHistory();
         model.addAttribute("metrics", autoencoderTrainingService.getMetrics());
         model.addAttribute("trainingStatus", trainingStatus);
-        model.addAttribute("models", autoencoderTrainingService.getModels());
-        model.addAttribute("pythonTrainingHistory", pythonTrainingHistory);
         model.addAttribute("trainingSessions",
-                autoencoderTrainingService.getTrainingSessionsWithData(trainingStatus, pythonTrainingHistory));
+                autoencoderTrainingService.getTrainingSessionsWithData(trainingStatus, pythonHistory));
 
         log.debug("Дашборд загружен за {}ms", System.currentTimeMillis() - t0);
         return "employee/histologist/autoencoder/dashboard";
+    }
+
+    @GetMapping("/employee/histologist/autoencoder/api/training-status")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> trainingStatusApi() {
+        Map<String, Object> result = new HashMap<>();
+        boolean serviceAvailable = autoencoderTrainingService.isServiceAvailable();
+        result.put("serviceAvailable", serviceAvailable);
+        result.put("processManaged", pythonServiceManager.isRunning());
+        if (serviceAvailable) {
+            result.put("trainingStatus", autoencoderTrainingService.getTrainingStatus());
+        } else {
+            result.put("trainingStatus", Map.of("status", "offline"));
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/employee/histologist/autoencoder/startService")
