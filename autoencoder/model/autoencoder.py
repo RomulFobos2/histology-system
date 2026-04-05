@@ -403,6 +403,7 @@ class AutoencoderService:
             self._set_training_status({
                 "status": "running",
                 "message": f"Эпоха {epoch_idx + 1} / {epochs}",
+                "pid": os.getpid(),
                 "startedAt": self._format_datetime(started_at),
                 "epochs": epochs,
                 "currentEpoch": epoch_idx + 1,
@@ -507,6 +508,9 @@ class AutoencoderService:
                 creationflags=creation_flags,
                 env=child_env,
             )
+            # Записываем PID в статус — _normalize_training_status проверяет его
+            accepted_status["pid"] = self.training_process.pid
+            self._set_training_status(accepted_status)
         except OSError as exc:
             self._finish_training(
                 {
