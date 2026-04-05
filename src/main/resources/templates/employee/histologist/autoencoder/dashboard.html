@@ -393,12 +393,10 @@
     // ===== AJAX-поллинг статуса обучения =====
     var pollingInterval = null;
     var wasRunning = (initialStatus === 'running');
-    var pendingStart = false; // true после нажатия кнопки, пока Python не подтвердит running
 
     function updateMetricsBlock(metrics) {
         if (!metrics) return;
-        var fields = {
-            'metricStatus': null, // обновляется отдельно
+        var map = {
             'metricEpochs': metrics.epochs,
             'metricLoss': metrics.loss,
             'metricValLoss': metrics.validationLoss,
@@ -409,9 +407,9 @@
             'metricTrainedDate': metrics.trainedDate,
             'metricDuration': metrics.trainingDurationSeconds != null ? metrics.trainingDurationSeconds + ' сек' : null
         };
-        for (var id in fields) {
+        for (var id in map) {
             var el = document.getElementById(id);
-            if (el && fields[id] != null) el.textContent = fields[id];
+            if (el && map[id] != null) el.textContent = map[id];
         }
     }
 
@@ -420,70 +418,33 @@
         var status = String(ts.status || 'idle');
         var isRunning = (status === 'running');
 
-        // Обновляем статус в метриках
+        // Статус в метриках
         var metricStatus = document.getElementById('metricStatus');
         if (metricStatus) metricStatus.textContent = status;
 
-        // Кнопка «Запустить обучение»
+        // Кнопка
         var trainBtn = document.getElementById('trainButton');
         if (trainBtn) {
-            trainBtn.disabled = !data.serviceAvailable || isRunning || pendingStart;
-            if (!isRunning && !pendingStart && data.serviceAvailable) {
+            trainBtn.disabled = !data.serviceAvailable || isRunning;
+            if (!isRunning && data.serviceAvailable) {
                 trainBtn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
             }
         }
 
-        // Ждём подтверждения старта от Python
-        if (pendingStart) {
-            if (isRunning) {
-                // Python подтвердил — переходим к отслеживанию прогресса
-                pendingStart = false;
-                wasRunning = true;
-            } else if (status !== 'idle') {
-                // Обучение завершилось быстрее чем мы поймали running (ok/error/completed)
-                pendingStart = false;
-                wasRunning = false;
-                var progressBlock = document.getElementById('trainingProgressBlock');
-                if (progressBlock) progressBlock.style.display = 'none';
-                updateMetricsBlock(data.metrics || {});
-                var trainBtn2 = document.getElementById('trainButton');
-                if (trainBtn2 && data.serviceAvailable) {
-                    trainBtn2.disabled = false;
-                    trainBtn2.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
-                }
-                var alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> Обучение завершено. Метрики обновлены.' +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                var main = document.querySelector('main.container-fluid');
-                if (main) main.insertBefore(alertDiv, main.children[2]);
-                return;
-            }
-            // status === 'idle' — Python ещё не начал, продолжаем ждать
-            return;
-        }
-
-        // Блок прогресса
+        // Прогресс-блок
         var progressBlock = document.getElementById('trainingProgressBlock');
-        if (progressBlock) {
-            progressBlock.style.display = isRunning ? 'block' : 'none';
-        }
-
         if (isRunning) {
             var currentEpoch = ts.currentEpoch || 0;
             var totalEpochs = ts.epochs || 1;
             var pct = Math.round((currentEpoch / totalEpochs) * 100);
 
+            if (progressBlock) progressBlock.style.display = 'block';
+
             var text = '<i class="bi bi-hourglass-split"></i> Обучение выполняется.';
-            if (currentEpoch > 0) {
-                text += ' Эпоха ' + currentEpoch + ' / ' + totalEpochs;
-            }
-            if (ts.currentLoss != null) {
-                text += ' | Loss: ' + ts.currentLoss;
-            }
-            if (ts.currentValLoss != null) {
-                text += ' | Val Loss: ' + ts.currentValLoss;
-            }
+            if (currentEpoch > 0) text += ' Эпоха ' + currentEpoch + ' / ' + totalEpochs;
+            if (ts.currentLoss != null) text += ' | Loss: ' + ts.currentLoss;
+            if (ts.currentValLoss != null) text += ' | Val Loss: ' + ts.currentValLoss;
+
             var progressText = document.getElementById('trainingProgressText');
             if (progressText) progressText.innerHTML = text;
 
@@ -492,14 +453,13 @@
                 progressBar.style.width = pct + '%';
                 progressBar.textContent = currentEpoch + ' / ' + totalEpochs;
             }
+        } else {
+            if (progressBlock) progressBlock.style.display = 'none';
         }
 
-        // Обучение завершилось — обновить метрики без перезагрузки
+        // Обучение завершилось — обновить метрики, показать alert
         if (wasRunning && !isRunning) {
-            wasRunning = false;
             updateMetricsBlock(data.metrics || {});
-
-            // Показать уведомление об окончании
             var alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show';
             alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> Обучение завершено. Метрики обновлены.' +
@@ -507,28 +467,24 @@
             var main = document.querySelector('main.container-fluid');
             if (main) main.insertBefore(alertDiv, main.children[2]);
         }
+
+        wasRunning = isRunning;
     }
 
     function pollTrainingStatus() {
         fetch('/employee/histologist/autoencoder/api/training-status')
             .then(function (r) { return r.json(); })
             .then(updateTrainingUI)
-            .catch(function () { /* сеть недоступна — пропускаем */ });
+            .catch(function () {});
     }
 
-    function startPolling() {
-        if (!pollingInterval) {
-            pollingInterval = setInterval(pollTrainingStatus, 3000);
-        }
-    }
-
-    // Запускаем поллинг если сервис доступен
+    // Поллинг всегда активен когда сервис доступен
     if (serviceAvailable) {
-        startPolling();
+        pollingInterval = setInterval(pollTrainingStatus, 3000);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Отправка обучения через AJAX (без перезагрузки страницы)
+        // Отправка обучения через AJAX
         var form = document.getElementById('trainingForm');
         if (form) {
             form.addEventListener('submit', function (e) {
@@ -540,32 +496,28 @@
                 }
 
                 var formData = new FormData(form);
-                fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                }).then(function (r) {
-                    // Показать прогресс-блок сразу
-                    var progressBlock = document.getElementById('trainingProgressBlock');
-                    if (progressBlock) progressBlock.style.display = 'block';
-                    var progressText = document.getElementById('trainingProgressText');
-                    if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается... Ожидание ответа Python-сервиса.';
-                    var progressBar = document.getElementById('trainingProgressBar');
-                    if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
-                    pendingStart = true;
-                    startPolling();
-                }).catch(function () {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
-                    }
-                    alert('Ошибка при отправке запроса на обучение.');
-                });
+                fetch(form.action, { method: 'POST', body: formData })
+                    .then(function () {
+                        var progressBlock = document.getElementById('trainingProgressBlock');
+                        if (progressBlock) progressBlock.style.display = 'block';
+                        var progressText = document.getElementById('trainingProgressText');
+                        if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается...';
+                        var progressBar = document.getElementById('trainingProgressBar');
+                        if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
+                        // polling уже идёт, подхватит running
+                    })
+                    .catch(function () {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+                        }
+                        alert('Ошибка при отправке запроса на обучение.');
+                    });
             });
         }
 
-        // Инициализация тултипов Bootstrap
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function (el) {
+        // Тултипы Bootstrap
+        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
             new bootstrap.Tooltip(el);
         });
 
@@ -577,9 +529,7 @@
                     initPagination('historyTable', { perPage: 10 });
                     historyModal._paginationInit = true;
                 }
-                // Инициализация тултипов внутри модалки
-                var modalTooltips = [].slice.call(historyModal.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                modalTooltips.forEach(function (el) {
+                [].slice.call(historyModal.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
                     new bootstrap.Tooltip(el);
                 });
             });
