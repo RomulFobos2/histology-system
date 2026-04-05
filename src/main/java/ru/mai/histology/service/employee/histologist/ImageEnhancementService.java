@@ -46,7 +46,7 @@ public class ImageEnhancementService {
     }
 
     @Transactional
-    public Optional<Long> enhanceImage(Long imageId) {
+    public Optional<Long> enhanceImage(Long imageId, String mode) {
         Optional<MicroscopeImage> originalImageOpt = microscopeImageRepository.findById(imageId);
         if (originalImageOpt.isEmpty()) {
             log.error("Изображение не найдено: id={}", imageId);
@@ -61,7 +61,7 @@ public class ImageEnhancementService {
         }
 
         long startedAt = System.currentTimeMillis();
-        String activeMode = resolveActiveMode();
+        String activeMode = (mode != null && !mode.isBlank()) ? mode : resolveActiveMode();
         Optional<AutoencoderClientService.EnhancedImageResponse> responseOpt =
                 autoencoderClientService.enhanceImage(
                         originalImage.getOriginalFilename(),
@@ -98,7 +98,7 @@ public class ImageEnhancementService {
             enhancedImage.setFileSize((long) response.imageBytes().length);
             enhancedImage.setContentType(response.contentType());
             enhancedImage.setUploadDate(LocalDate.now());
-            enhancedImage.setDescription(buildEnhancedDescription(originalImage.getDescription()));
+            enhancedImage.setDescription(buildEnhancedDescription(originalImage.getDescription(), response.modelName()));
             enhancedImage.setMagnification(originalImage.getMagnification());
             enhancedImage.setEnhanced(true);
             enhancedImage.setSample(originalImage.getSample());
@@ -166,10 +166,19 @@ public class ImageEnhancementService {
         return autoencoderModelRepository.save(autoencoderModel);
     }
 
-    private String buildEnhancedDescription(String originalDescription) {
-        if (originalDescription == null || originalDescription.isBlank()) {
-            return "Улучшенная копия, созданная Python-сервисом";
+    private String buildEnhancedDescription(String originalDescription, String modelName) {
+        String modelLabel;
+        if (modelName != null && modelName.toLowerCase().contains("baseline")) {
+            modelLabel = "Улучшено базовым пайплайном (" + modelName + ")";
+        } else if (modelName != null && !modelName.isBlank()) {
+            modelLabel = "Улучшено нейросетью (" + modelName + ")";
+        } else {
+            modelLabel = "Улучшенная копия, созданная Python-сервисом";
         }
-        return originalDescription + " | Улучшенная копия, созданная Python-сервисом";
+
+        if (originalDescription == null || originalDescription.isBlank()) {
+            return modelLabel;
+        }
+        return originalDescription + " | " + modelLabel;
     }
 }
