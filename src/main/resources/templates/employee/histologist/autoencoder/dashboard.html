@@ -217,39 +217,39 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Epochs</div>
-                                <div th:text="${metrics['epochs']} ?: '—'"></div>
+                                <div id="metricEpochs" th:text="${metrics['epochs']} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Train Loss</div>
-                                <div th:text="${metrics['loss']} ?: '—'"></div>
+                                <div id="metricLoss" th:text="${metrics['loss']} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Validation Loss</div>
-                                <div th:text="${metrics['validationLoss']} ?: '—'"></div>
+                                <div id="metricValLoss" th:text="${metrics['validationLoss']} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">PSNR</div>
-                                <div th:text="${metrics['psnr']} ?: '—'"></div>
+                                <div id="metricPsnr" th:text="${metrics['psnr']} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">SSIM</div>
-                                <div th:text="${metrics['ssim']} ?: '—'"></div>
+                                <div id="metricSsim" th:text="${metrics['ssim']} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Размер датасета</div>
-                                <div th:text="${metrics['datasetSize']} ?: '—'"></div>
+                                <div id="metricDatasetSize" th:text="${metrics['datasetSize']} ?: '—'"></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Размер изображения</div>
-                                <div th:text="${metrics['imageSize']} ?: '—'"></div>
+                                <div id="metricImageSize" th:text="${metrics['imageSize']} ?: '—'"></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Дата обучения</div>
-                                <div th:text="${metrics['trainedDate']} ?: '—'"></div>
+                                <div id="metricTrainedDate" th:text="${metrics['trainedDate']} ?: '—'"></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Время обучения</div>
-                                <div th:text="${metrics['trainingDurationSeconds'] != null ? metrics['trainingDurationSeconds'] + ' сек' : '—'}"></div>
+                                <div id="metricDuration" th:text="${metrics['trainingDurationSeconds'] != null ? metrics['trainingDurationSeconds'] + ' сек' : '—'}"></div>
                             </div>
                         </div>
                         <div class="text-muted small">
@@ -393,19 +393,54 @@
     // ===== AJAX-поллинг статуса обучения =====
     var pollingInterval = null;
     var wasRunning = (initialStatus === 'running');
+    var pendingStart = false; // true после нажатия кнопки, пока Python не подтвердит running
+
+    function updateMetricsBlock(metrics) {
+        if (!metrics) return;
+        var fields = {
+            'metricStatus': null, // обновляется отдельно
+            'metricEpochs': metrics.epochs,
+            'metricLoss': metrics.loss,
+            'metricValLoss': metrics.validationLoss,
+            'metricPsnr': metrics.psnr,
+            'metricSsim': metrics.ssim,
+            'metricDatasetSize': metrics.datasetSize,
+            'metricImageSize': metrics.imageSize,
+            'metricTrainedDate': metrics.trainedDate,
+            'metricDuration': metrics.trainingDurationSeconds != null ? metrics.trainingDurationSeconds + ' сек' : null
+        };
+        for (var id in fields) {
+            var el = document.getElementById(id);
+            if (el && fields[id] != null) el.textContent = fields[id];
+        }
+    }
 
     function updateTrainingUI(data) {
         var ts = data.trainingStatus || {};
         var status = String(ts.status || 'idle');
         var isRunning = (status === 'running');
 
+        // Обновляем статус в метриках
+        var metricStatus = document.getElementById('metricStatus');
+        if (metricStatus) metricStatus.textContent = status;
+
         // Кнопка «Запустить обучение»
         var trainBtn = document.getElementById('trainButton');
         if (trainBtn) {
-            trainBtn.disabled = !data.serviceAvailable || isRunning;
-            if (!isRunning && data.serviceAvailable) {
+            trainBtn.disabled = !data.serviceAvailable || isRunning || pendingStart;
+            if (!isRunning && !pendingStart && data.serviceAvailable) {
                 trainBtn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
             }
+        }
+
+        // Ждём подтверждения старта от Python
+        if (pendingStart) {
+            if (isRunning) {
+                pendingStart = false;
+                wasRunning = true;
+            }
+            // Пока не running — продолжаем ждать, не трогаем прогресс-блок
+            return;
         }
 
         // Блок прогресса
@@ -439,14 +474,19 @@
             }
         }
 
-        // Обучение завершилось — обновить страницу для подтягивания истории и метрик
+        // Обучение завершилось — обновить метрики без перезагрузки
         if (wasRunning && !isRunning) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
-            window.location.reload();
-            return;
+            wasRunning = false;
+            updateMetricsBlock(data.metrics || {});
+
+            // Показать уведомление об окончании
+            var alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> Обучение завершено. Метрики обновлены.' +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            var main = document.querySelector('main.container-fluid');
+            if (main) main.insertBefore(alertDiv, main.children[2]);
         }
-        wasRunning = isRunning;
     }
 
     function pollTrainingStatus() {
@@ -462,7 +502,7 @@
         }
     }
 
-    // Запускаем поллинг если сервис доступен (ловим переход idle→running)
+    // Запускаем поллинг если сервис доступен
     if (serviceAvailable) {
         startPolling();
     }
@@ -484,17 +524,14 @@
                     method: 'POST',
                     body: formData
                 }).then(function (r) {
-                    if (r.redirected) {
-                        // POST прошёл, сервер вернул redirect — не переходим, ждём поллинг
-                    }
                     // Показать прогресс-блок сразу
                     var progressBlock = document.getElementById('trainingProgressBlock');
                     if (progressBlock) progressBlock.style.display = 'block';
                     var progressText = document.getElementById('trainingProgressText');
-                    if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается...';
+                    if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается... Ожидание ответа Python-сервиса.';
                     var progressBar = document.getElementById('trainingProgressBar');
                     if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
-                    wasRunning = true;
+                    pendingStart = true;
                     startPolling();
                 }).catch(function () {
                     if (btn) {

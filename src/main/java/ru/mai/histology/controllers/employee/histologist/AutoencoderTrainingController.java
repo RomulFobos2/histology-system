@@ -67,8 +67,10 @@ public class AutoencoderTrainingController {
         result.put("processManaged", pythonServiceManager.isRunning());
         if (serviceAvailable) {
             result.put("trainingStatus", autoencoderTrainingService.getTrainingStatus());
+            result.put("metrics", autoencoderTrainingService.getMetrics());
         } else {
             result.put("trainingStatus", Map.of("status", "offline"));
+            result.put("metrics", Map.of());
         }
         return ResponseEntity.ok(result);
     }
