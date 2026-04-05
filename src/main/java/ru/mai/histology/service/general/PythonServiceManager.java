@@ -80,8 +80,18 @@ public class PythonServiceManager {
             long pid = Long.parseLong(content);
             Optional<ProcessHandle> handle = ProcessHandle.of(pid).filter(ProcessHandle::isAlive);
             if (handle.isPresent()) {
+                // Защита от stale PID: после перезагрузки ОС PID может быть переиспользован
+                // другим процессом. Проверяем, что это действительно Python.
+                boolean isPython = handle.get().info().command()
+                        .map(cmd -> cmd.toLowerCase().contains("python"))
+                        .orElse(false);
+                if (!isPython) {
+                    log.info("PID={} жив, но не Python-процесс — удаляем stale PID-файл", pid);
+                    Files.deleteIfExists(pidFile);
+                    return;
+                }
                 managedPid = pid;
-                log.info("PID={} восстановлен из файла {} — процесс жив", pid, pidFile);
+                log.info("PID={} восстановлен из файла {} — процесс жив (Python)", pid, pidFile);
             } else {
                 log.info("PID={} из файла {} уже не существует, удаляем устаревший файл", pid, pidFile);
                 Files.deleteIfExists(pidFile);

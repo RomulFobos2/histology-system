@@ -46,6 +46,11 @@ def training_history() -> JSONResponse:
     return JSONResponse(content=autoencoder_service.get_training_history())
 
 
+@app.delete("/training/history")
+def clear_training_history() -> JSONResponse:
+    return JSONResponse(content=autoencoder_service.clear_training_history())
+
+
 @app.post("/train")
 def train(
     epochs: int = 15,
