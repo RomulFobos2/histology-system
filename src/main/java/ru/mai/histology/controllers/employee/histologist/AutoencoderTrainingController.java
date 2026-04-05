@@ -79,7 +79,20 @@ public class AutoencoderTrainingController {
             redirectAttributes.addFlashAttribute("successMessage", "Python-сервис остановлен.");
         } else {
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "Не удалось остановить Python-сервис. Возможно, он не был запущен через систему.");
+                    "Не удалось остановить сервис через систему — он был запущен вручную. Остановите uvicorn самостоятельно.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/resetTrainingStatus")
+    public String resetTrainingStatus(RedirectAttributes redirectAttributes) {
+        Map<String, Object> result = autoencoderTrainingService.resetTrainingStatus();
+        String status = String.valueOf(result.getOrDefault("status", "error"));
+        if ("idle".equals(status)) {
+            redirectAttributes.addFlashAttribute("successMessage", "Статус обучения сброшен.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Не удалось сбросить статус. Python-сервис недоступен или вернул ошибку.");
         }
         return "redirect:/employee/histologist/autoencoder/dashboard";
     }

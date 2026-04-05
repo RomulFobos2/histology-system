@@ -87,6 +87,19 @@ public class AutoencoderClientService {
         }
     }
 
+    public Map<String, Object> resetTrainingStatus() {
+        long t0 = System.currentTimeMillis();
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    autoencoderServiceUrl + "/training/reset-status", null, Map.class);
+            log.debug("POST /training/reset-status: {}ms", System.currentTimeMillis() - t0);
+            return response.getBody() == null ? Map.of() : response.getBody();
+        } catch (RestClientException e) {
+            log.warn("POST /training/reset-status failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
+            return Map.of("status", "error", "message", e.getMessage());
+        }
+    }
+
     public List<Map<String, Object>> getTrainingHistory() {
         long t0 = System.currentTimeMillis();
         try {

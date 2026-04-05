@@ -44,6 +44,7 @@ public class PythonServiceManager {
     private boolean stopOnShutdown;
 
     private static final int MAX_WAIT_SECONDS = 30;
+    private static final Path PID_FILE = Path.of("autoencoder", "service.pid");
 
     private Long managedPid;
     private boolean externalServiceDetected;
@@ -56,6 +57,54 @@ public class PythonServiceManager {
         factory.setReadTimeout(3000);
         healthCheckTemplate = new RestTemplate(factory);
         log.debug("healthCheckTemplate инициализирован с таймаутами connect=2s read=3s");
+
+        // Восстановить PID из файла (переживает DevTools restart и перезапуск Spring Boot)
+        restorePidFromFile();
+    }
+
+    /**
+     * Читает PID из файла autoencoder/service.pid.
+     * Если процесс жив — восстанавливает managedPid.
+     * Если процесс мёртв — удаляет устаревший PID-файл.
+     */
+    private void restorePidFromFile() {
+        if (!Files.isRegularFile(PID_FILE)) {
+            return;
+        }
+        try {
+            String content = Files.readString(PID_FILE).trim();
+            long pid = Long.parseLong(content);
+            Optional<ProcessHandle> handle = ProcessHandle.of(pid).filter(ProcessHandle::isAlive);
+            if (handle.isPresent()) {
+                managedPid = pid;
+                log.info("PID={} восстановлен из файла {} — процесс жив", pid, PID_FILE);
+            } else {
+                log.info("PID={} из файла {} уже не существует, удаляем устаревший файл", pid, PID_FILE);
+                Files.deleteIfExists(PID_FILE);
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Некорректное содержимое PID-файла {}: {}", PID_FILE, e.getMessage());
+            deletePidFileSilently();
+        } catch (IOException e) {
+            log.warn("Не удалось прочитать PID-файл {}: {}", PID_FILE, e.getMessage());
+        }
+    }
+
+    private void writePidFile(long pid) {
+        try {
+            Files.writeString(PID_FILE, String.valueOf(pid));
+            log.debug("PID={} записан в {}", pid, PID_FILE);
+        } catch (IOException e) {
+            log.warn("Не удалось записать PID-файл {}: {}", PID_FILE, e.getMessage());
+        }
+    }
+
+    private void deletePidFileSilently() {
+        try {
+            Files.deleteIfExists(PID_FILE);
+        } catch (IOException e) {
+            log.warn("Не удалось удалить PID-файл {}: {}", PID_FILE, e.getMessage());
+        }
     }
 
     public synchronized boolean start() {
@@ -92,6 +141,7 @@ public class PythonServiceManager {
 
             managedPid = startedPid;
             externalServiceDetected = false;
+            writePidFile(managedPid);
             log.info("Python-сервис запущен detached-процессом: PID={}, python={}, workdir={}, port={}. "
                     + "Статус будет проверен при следующем открытии дашборда.",
                     managedPid, resolvedPythonExecutable, workDirectory, port);
@@ -120,6 +170,7 @@ public class PythonServiceManager {
         if (handle.isEmpty()) {
             managedPid = null;
             externalServiceDetected = false;
+            deletePidFileSilently();
             return false;
         }
 
@@ -128,6 +179,7 @@ public class PythonServiceManager {
         handle.get().destroyForcibly();
         managedPid = null;
         externalServiceDetected = false;
+        deletePidFileSilently();
         log.info("Python-сервис остановлен (PID={})", pid);
         return true;
     }
@@ -254,6 +306,7 @@ public class PythonServiceManager {
         });
         managedPid = null;
         externalServiceDetected = false;
+        deletePidFileSilently();
     }
 
     @PreDestroy

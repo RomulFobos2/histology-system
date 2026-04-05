@@ -47,6 +47,10 @@ public class AutoencoderTrainingService {
         return autoencoderClientService.isServiceAvailable();
     }
 
+    public Map<String, Object> resetTrainingStatus() {
+        return autoencoderClientService.resetTrainingStatus();
+    }
+
     public Map<String, Object> getMetrics() {
         return autoencoderClientService.getMetrics();
     }

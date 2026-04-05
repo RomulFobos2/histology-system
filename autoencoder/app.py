@@ -3,6 +3,17 @@ from fastapi.responses import JSONResponse, Response
 
 from model.autoencoder import AutoencoderService
 
+import logging
+import uvicorn.config
+
+# Модифицируем LOGGING_CONFIG uvicorn ДО создания приложения,
+# чтобы все форматтеры включали дату и время в каждой строке лога.
+# logging.basicConfig(force=True) здесь бесполезен — uvicorn
+# переопределяет его при старте своим собственным конфигом.
+for _formatter in uvicorn.config.LOGGING_CONFIG.get("formatters", {}).values():
+    if "fmt" in _formatter:
+        _formatter["fmt"] = "%(asctime)s " + _formatter["fmt"]
+    _formatter.setdefault("datefmt", "%Y-%m-%d %H:%M:%S")
 
 import logging
 import logging.config
@@ -41,6 +52,11 @@ def metrics() -> JSONResponse:
 @app.get("/training/status")
 def training_status() -> JSONResponse:
     return JSONResponse(content=autoencoder_service.get_training_status())
+
+
+@app.post("/training/reset-status")
+def reset_training_status() -> JSONResponse:
+    return JSONResponse(content=autoencoder_service.reset_training_status())
 
 
 @app.get("/training/history")
