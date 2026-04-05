@@ -161,8 +161,16 @@
                             </div>
 
                             <div class="alert alert-info mt-4 mb-2" th:if="${trainingStatus['status'] == 'running'}">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <span>Обучение уже выполняется. Страница обновляется автоматически, а повторный запуск временно недоступен.</span>
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                    <span>
+                                        <i class="bi bi-hourglass-split"></i> Обучение выполняется.
+                                        <span th:if="${trainingStatus['currentEpoch'] != null}"
+                                              th:text="'Эпоха ' + ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']}"></span>
+                                        <span th:if="${trainingStatus['currentLoss'] != null}"
+                                              th:text="' | Loss: ' + ${trainingStatus['currentLoss']}"></span>
+                                        <span th:if="${trainingStatus['currentValLoss'] != null}"
+                                              th:text="' | Val Loss: ' + ${trainingStatus['currentValLoss']}"></span>
+                                    </span>
                                     <form th:action="@{/employee/histologist/autoencoder/resetTrainingStatus}" method="post" style="margin:0">
                                         <button type="submit" class="btn btn-sm btn-outline-secondary"
                                                 onclick="return confirm('Сбросить статус обучения? Нажмите «ОК» только если обучение зависло или завершилось с ошибкой.')">
@@ -170,6 +178,14 @@
                                         </button>
                                     </form>
                                 </div>
+                                <div th:if="${trainingStatus['currentEpoch'] != null and trainingStatus['epochs'] != null}" class="progress" style="height: 20px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                         role="progressbar"
+                                         th:style="'width: ' + ${(trainingStatus['currentEpoch'] * 100) / trainingStatus['epochs']} + '%'"
+                                         th:text="${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']}">
+                                    </div>
+                                </div>
+                                <div class="text-muted small mt-1">Страница обновляется автоматически каждые 15 секунд.</div>
                             </div>
 
                             <div class="profile-actions mt-4">
@@ -276,6 +292,10 @@
                         <div th:if="${models == null or models.isEmpty()}" class="text-muted">
                             Модели не обнаружены
                         </div>
+                        <div class="text-muted small mt-2">
+                            <i class="bi bi-info-circle"></i> Активная модель отмечается в системе для отслеживания.
+                            Python-сервис автоматически применяет последнюю обученную нейросеть или базовый пайплайн.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -332,6 +352,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
+                <p class="text-muted small">Запуски обучения, зарегистрированные в базе данных АИС ГИ. Содержит информацию об инициаторе, времени и параметрах каждого запуска.</p>
                 <div th:if="${trainingSessions != null and !trainingSessions.isEmpty()}">
                     <table id="systemHistoryTable" class="table table-modern">
                         <thead>
@@ -340,10 +361,10 @@
                             <th>Старт</th>
                             <th>Завершение</th>
                             <th>Статус</th>
+                            <th>Инициатор</th>
                             <th>Epochs</th>
-                            <th>Batch</th>
-                            <th>LR</th>
                             <th>Image</th>
+                            <th>Датасет</th>
                             <th>PSNR</th>
                             <th>SSIM</th>
                             <th>Модель</th>
@@ -359,10 +380,10 @@
                                 <span th:if="${ts.status == 'RUNNING'}" class="badge bg-warning text-dark">RUNNING</span>
                                 <span th:if="${ts.status != 'OK' and ts.status != 'RUNNING'}" class="badge-inactive" th:text="${ts.status}"></span>
                             </td>
+                            <td th:text="${ts.triggeredByFullName != null ? ts.triggeredByFullName : '—'}"></td>
                             <td th:text="${ts.epochs}"></td>
-                            <td th:text="${ts.batchSize}"></td>
-                            <td th:text="${ts.learningRate}"></td>
                             <td th:text="${ts.imageSize}"></td>
+                            <td th:text="${ts.datasetSize != null ? ts.datasetSize : '—'}"></td>
                             <td th:text="${ts.psnr != null ? ts.psnr : '—'}"></td>
                             <td th:text="${ts.ssim != null ? ts.ssim : '—'}"></td>
                             <td th:text="${ts.modelName != null ? ts.modelName : '—'}"></td>
@@ -375,6 +396,13 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <form th:if="${trainingSessions != null and !trainingSessions.isEmpty()}"
+                      th:action="@{/employee/histologist/autoencoder/clearSystemHistory}" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Удалить все записи истории из базы данных? Это действие необратимо.')">
+                        <i class="bi bi-trash"></i> Очистить историю
+                    </button>
+                </form>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
             </div>
         </div>
@@ -392,6 +420,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
             </div>
             <div class="modal-body">
+                <p class="text-muted small">Результаты обучения, сохранённые Python-сервисом в локальный JSON-файл. Содержит метрики качества и технические параметры каждого обучения.</p>
                 <div th:if="${pythonTrainingHistory != null and !pythonTrainingHistory.isEmpty()}">
                     <table id="pythonHistoryTable" class="table table-modern">
                         <thead>
@@ -401,9 +430,11 @@
                             <th>Статус</th>
                             <th>Модель</th>
                             <th>Epochs</th>
-                            <th>Batch</th>
-                            <th>LR</th>
-                            <th>Image</th>
+                            <th>Loss</th>
+                            <th>Val Loss</th>
+                            <th>PSNR</th>
+                            <th>SSIM</th>
+                            <th>Время (сек)</th>
                             <th>Сообщение</th>
                         </tr>
                         </thead>
@@ -417,9 +448,11 @@
                             </td>
                             <td th:text="${hi['modelName']} ?: '—'"></td>
                             <td th:text="${hi['epochs']} ?: '—'"></td>
-                            <td th:text="${hi['batchSize']} ?: '—'"></td>
-                            <td th:text="${hi['learningRate']} ?: '—'"></td>
-                            <td th:text="${hi['imageSize']} ?: '—'"></td>
+                            <td th:text="${hi['loss']} ?: '—'"></td>
+                            <td th:text="${hi['validationLoss']} ?: '—'"></td>
+                            <td th:text="${hi['psnr']} ?: '—'"></td>
+                            <td th:text="${hi['ssim']} ?: '—'"></td>
+                            <td th:text="${hi['trainingDurationSeconds']} ?: '—'"></td>
                             <td th:text="${hi['message']} ?: '—'"></td>
                         </tr>
                         </tbody>
@@ -430,6 +463,13 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <form th:if="${pythonTrainingHistory != null and !pythonTrainingHistory.isEmpty()}"
+                      th:action="@{/employee/histologist/autoencoder/clearPythonHistory}" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Удалить все записи истории Python-сервиса? Это действие необратимо.')">
+                        <i class="bi bi-trash"></i> Очистить историю
+                    </button>
+                </form>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
             </div>
         </div>
@@ -456,7 +496,7 @@
 </script>
 
 <script th:inline="javascript">
-    var trainingStatus = /*[[${trainingStatus['status']}]]*/ 'idle';
+    var trainingStatus = String(/*[[${trainingStatus['status']}]]*/ 'idle');
     var processManaged = /*[[${processManaged}]]*/ false;
     var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
     if (processManaged && !serviceAvailable) {

@@ -108,6 +108,25 @@ public class AutoencoderTrainingController {
         return "redirect:/employee/histologist/autoencoder/dashboard";
     }
 
+    @PostMapping("/employee/histologist/autoencoder/clearSystemHistory")
+    public String clearSystemHistory(RedirectAttributes redirectAttributes) {
+        autoencoderTrainingService.clearSystemTrainingSessions();
+        redirectAttributes.addFlashAttribute("successMessage", "История запусков в системе очищена.");
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
+    @PostMapping("/employee/histologist/autoencoder/clearPythonHistory")
+    public String clearPythonHistory(RedirectAttributes redirectAttributes) {
+        Map<String, Object> result = autoencoderTrainingService.clearPythonTrainingHistory();
+        String status = String.valueOf(result.getOrDefault("status", "error"));
+        if ("ok".equals(status)) {
+            redirectAttributes.addFlashAttribute("successMessage", "История Python-сервиса очищена.");
+        } else {
+            redirectAttributes.addFlashAttribute("errorMessage", "Не удалось очистить историю Python-сервиса.");
+        }
+        return "redirect:/employee/histologist/autoencoder/dashboard";
+    }
+
     @PostMapping("/employee/histologist/autoencoder/train")
     public String train(@RequestParam int inputEpochs,
                         @RequestParam int inputBatchSize,

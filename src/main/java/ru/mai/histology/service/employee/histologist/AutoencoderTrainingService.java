@@ -67,6 +67,15 @@ public class AutoencoderTrainingService {
         return autoencoderClientService.getTrainingHistory();
     }
 
+    public Map<String, Object> clearPythonTrainingHistory() {
+        return autoencoderClientService.clearTrainingHistory();
+    }
+
+    @Transactional
+    public void clearSystemTrainingSessions() {
+        trainingSessionRepository.deleteAll();
+    }
+
     /**
      * Активирует модель по имени. Деактивирует все остальные.
      * Для baseline-модели, которой может не быть в БД, создаёт запись.

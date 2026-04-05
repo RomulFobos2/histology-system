@@ -112,6 +112,18 @@ public class AutoencoderClientService {
         }
     }
 
+    public Map<String, Object> clearTrainingHistory() {
+        long t0 = System.currentTimeMillis();
+        try {
+            restTemplate.delete(autoencoderServiceUrl + "/training/history");
+            log.debug("DELETE /training/history: {}ms", System.currentTimeMillis() - t0);
+            return Map.of("status", "ok", "message", "История Python-сервиса очищена");
+        } catch (RestClientException e) {
+            log.warn("DELETE /training/history failed ({}ms): {}", System.currentTimeMillis() - t0, e.getMessage());
+            return Map.of("status", "error", "message", e.getMessage());
+        }
+    }
+
     public Map<String, Object> trainModel(int epochs, int batchSize, double learningRate, int imageSize) {
         try {
             String url = autoencoderServiceUrl + "/train?epochs=" + epochs

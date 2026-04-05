@@ -354,7 +354,7 @@ class AutoencoderService:
         final_psnr = 0.0
         final_ssim = 0.0
 
-        for _ in range(epochs):
+        for epoch_idx in range(epochs):
             model.train()
             train_losses = []
             for degraded_batch, clean_batch in train_loader:
@@ -398,6 +398,21 @@ class AutoencoderService:
             validation_batches = max(1, len(validation_losses))
             final_psnr = final_psnr / validation_batches
             final_ssim = final_ssim / validation_batches
+
+            # Обновляем статус после каждой эпохи для отображения прогресса на дашборде
+            self._set_training_status({
+                "status": "running",
+                "message": f"Эпоха {epoch_idx + 1} / {epochs}",
+                "startedAt": self._format_datetime(started_at),
+                "epochs": epochs,
+                "currentEpoch": epoch_idx + 1,
+                "currentLoss": round(final_train_loss, 6),
+                "currentValLoss": round(final_validation_loss, 6),
+                "batchSize": batch_size,
+                "learningRate": learning_rate,
+                "imageSize": image_size,
+                "datasetSize": len(dataset),
+            })
 
         torch.save(model.state_dict(), WEIGHTS_PATH)
         finished_at = datetime.now()
@@ -533,6 +548,11 @@ class AutoencoderService:
     def get_training_history(self) -> list[dict[str, object]]:
         self.training_history = self._load_history()
         return self.training_history
+
+    def clear_training_history(self) -> dict[str, object]:
+        self.training_history = []
+        HISTORY_PATH.write_text("[]", encoding="utf-8")
+        return {"status": "ok", "message": "История очищена"}
 
     def get_metrics(self) -> dict[str, object]:
         self.model = self._load_model_if_available()
