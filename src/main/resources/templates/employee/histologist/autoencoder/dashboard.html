@@ -27,8 +27,8 @@
                         <p class="page-subtitle mb-0">Управление обучением автоэнкодера, метрики модели и история запусков</p>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <span th:if="${serviceAvailable}" class="badge-active">Python-сервис доступен</span>
-                        <span th:unless="${serviceAvailable}" class="badge-inactive">Python-сервис недоступен</span>
+                        <span id="serviceBadgeActive" th:if="${serviceAvailable}" class="badge-active">Python-сервис доступен</span>
+                        <span id="serviceBadgeInactive" th:unless="${serviceAvailable}" class="badge-inactive">Python-сервис недоступен</span>
 
                         <form th:if="${!serviceAvailable and !processManaged}"
                               th:action="@{/employee/histologist/autoencoder/startService}" method="post" style="margin:0">
@@ -385,10 +385,8 @@
     var processManaged = /*[[${processManaged}]]*/ false;
     var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
 
-    // Авто-обновление при запуске сервиса (ждём пока поднимется)
-    if (processManaged && !serviceAvailable) {
-        setTimeout(function () { window.location.reload(); }, 3000);
-    }
+    // Если сервис запускается — поллинг подхватит когда станет доступен
+    // (без перезагрузки страницы)
 
     // ===== AJAX-поллинг статуса обучения =====
     var pollingInterval = null;
@@ -421,6 +419,12 @@
         // Статус в метриках
         var metricStatus = document.getElementById('metricStatus');
         if (metricStatus) metricStatus.textContent = status;
+
+        // Бейдж доступности сервиса
+        var badgeActive = document.getElementById('serviceBadgeActive');
+        var badgeInactive = document.getElementById('serviceBadgeInactive');
+        if (badgeActive) badgeActive.style.display = data.serviceAvailable ? '' : 'none';
+        if (badgeInactive) badgeInactive.style.display = data.serviceAvailable ? 'none' : '';
 
         // Кнопка
         var trainBtn = document.getElementById('trainButton');
@@ -478,8 +482,8 @@
             .catch(function () {});
     }
 
-    // Поллинг всегда активен когда сервис доступен
-    if (serviceAvailable) {
+    // Поллинг активен когда сервис доступен или запускается
+    if (serviceAvailable || processManaged) {
         pollingInterval = setInterval(pollTrainingStatus, 3000);
     }
 
