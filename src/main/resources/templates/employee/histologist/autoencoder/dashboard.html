@@ -197,7 +197,7 @@
                                      th:text="${trainingStatus['currentEpoch'] != null} ? ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']} : ''">
                                 </div>
                             </div>
-                            <div class="text-muted small mt-1">Статус обновляется автоматически каждые 10 секунд.</div>
+                            <div class="text-muted small mt-1">Статус обновляется автоматически каждые 3 секунды.</div>
                         </div>
                     </div>
                 </div>
@@ -436,10 +436,30 @@
         // Ждём подтверждения старта от Python
         if (pendingStart) {
             if (isRunning) {
+                // Python подтвердил — переходим к отслеживанию прогресса
                 pendingStart = false;
                 wasRunning = true;
+            } else if (status !== 'idle') {
+                // Обучение завершилось быстрее чем мы поймали running (ok/error/completed)
+                pendingStart = false;
+                wasRunning = false;
+                var progressBlock = document.getElementById('trainingProgressBlock');
+                if (progressBlock) progressBlock.style.display = 'none';
+                updateMetricsBlock(data.metrics || {});
+                var trainBtn2 = document.getElementById('trainButton');
+                if (trainBtn2 && data.serviceAvailable) {
+                    trainBtn2.disabled = false;
+                    trainBtn2.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+                }
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> Обучение завершено. Метрики обновлены.' +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                var main = document.querySelector('main.container-fluid');
+                if (main) main.insertBefore(alertDiv, main.children[2]);
+                return;
             }
-            // Пока не running — продолжаем ждать, не трогаем прогресс-блок
+            // status === 'idle' — Python ещё не начал, продолжаем ждать
             return;
         }
 
