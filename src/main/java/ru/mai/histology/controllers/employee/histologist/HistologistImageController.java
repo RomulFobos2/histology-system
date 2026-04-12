@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.MicroscopeImageDTO;
 import ru.mai.histology.dto.SampleDTO;
@@ -83,8 +84,10 @@ public class HistologistImageController {
     // ========== Улучшение ==========
 
     @PostMapping("/employee/histologist/images/enhance/{id}")
-    public String enhanceImage(@PathVariable(value = "id") long id, RedirectAttributes redirectAttributes) {
-        Optional<Long> enhancedImageId = imageEnhancementService.enhanceImage(id);
+    public String enhanceImage(@PathVariable(value = "id") long id,
+                               @RequestParam(value = "mode", defaultValue = "auto") String mode,
+                               RedirectAttributes redirectAttributes) {
+        Optional<Long> enhancedImageId = imageEnhancementService.enhanceImage(id, mode);
         if (enhancedImageId.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Не удалось улучшить изображение. Проверьте, что Python-сервис автоэнкодера запущен.");
