@@ -415,7 +415,6 @@
         var ts = data.trainingStatus || {};
         var status = String(ts.status || 'idle');
         var isRunning = (status === 'running');
-        console.log('[POLL]', 'status=' + status, 'isRunning=' + isRunning, 'wasRunning=' + wasRunning, 'epoch=' + (ts.currentEpoch || '-'), JSON.stringify(ts));
 
         // Статус в метриках
         var metricStatus = document.getElementById('metricStatus');
@@ -494,7 +493,6 @@
         if (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                console.log('[SUBMIT] preventDefault called, form.action=' + form.action);
                 var btn = document.getElementById('trainButton');
                 if (btn) {
                     btn.disabled = true;
@@ -503,8 +501,7 @@
 
                 var formData = new FormData(form);
                 fetch(form.action, { method: 'POST', body: formData, redirect: 'manual' })
-                    .then(function (r) {
-                        console.log('[SUBMIT] fetch response status=' + r.status + ' type=' + r.type);
+                    .then(function () {
                         var progressBlock = document.getElementById('trainingProgressBlock');
                         if (progressBlock) progressBlock.style.display = 'block';
                         var progressText = document.getElementById('trainingProgressText');
