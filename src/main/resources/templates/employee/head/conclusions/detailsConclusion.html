@@ -92,6 +92,12 @@
                                class="btn btn-primary btn-profile">
                                 <i class="bi bi-pencil"></i> Редактировать
                             </a>
+                            <form th:action="@{/employee/head/conclusions/exportConclusion/{id}(id=${conclusionDTO.id})}"
+                                  method="post" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-profile">
+                                    <i class="bi bi-file-earmark-word"></i> Экспорт в Word
+                                </button>
+                            </form>
                             <a th:href="@{/employee/head/oversight/detailsSample/{id}(id=${conclusionDTO.sampleId})}"
                                class="btn btn-outline-secondary btn-profile">
                                 <i class="bi bi-droplet"></i> К образцу

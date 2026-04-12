@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Поступившие образцы | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-0" th:text="${reportTitle}"></h1>
+            </div>
+
+            <!-- Форма выбора периода -->
+            <div class="profile-card mb-4">
+                <form th:action="@{/employee/head/reports/samplesReceived}" method="post">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Дата с</label>
+                            <input type="date" name="dateFrom" class="form-control" th:value="${dateFrom}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Дата по</label>
+                            <input type="date" name="dateTo" class="form-control" th:value="${dateTo}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Сформировать
+                            </button>
+                        </div>
+                        <div class="col-md-3" th:if="${report}">
+                            <button type="submit" name="export" value="excel" class="btn btn-success">
+                                <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Результаты -->
+            <div th:if="${report}" class="profile-card">
+                <div class="mb-3">
+                    <span class="fw-bold">Всего образцов за период: </span>
+                    <span th:text="${report.total}"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Тип ткани</th>
+                            <th>Количество</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="row : ${report.rows}">
+                            <td th:text="${row[0]}"></td>
+                            <td th:text="${row[1]}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="link-section mt-3">
+                    <a th:href="@{/employee/head/reports/dashboard}">&#8592; К дашборду отчётов</a>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

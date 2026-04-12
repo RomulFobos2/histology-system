@@ -3,11 +3,14 @@ package ru.mai.histology.repo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.mai.histology.models.Sample;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface SampleRepository extends JpaRepository<Sample, Long> {
 
     List<Sample> findAllByOrderByReceiptDateDesc();
+
+    List<Sample> findAllByReceiptDateBetween(LocalDate from, LocalDate to);
 
     List<Sample> findAllByForensicCaseIdOrderBySampleNumberAsc(Long caseId);
 

@@ -62,7 +62,7 @@ public class ForensicCaseController {
 
     @GetMapping("/employee/laborant/cases/addCase")
     public String addCaseForm(Model model) {
-        model.addAttribute("allExperts", employeeRepository.findAllByOrderByLastNameAsc());
+        model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
         return "employee/laborant/cases/addCase";
     }
 
@@ -77,7 +77,7 @@ public class ForensicCaseController {
 
         if (result.isEmpty()) {
             model.addAttribute("caseError", "Ошибка при сохранении. Возможно, номер дела уже занят.");
-            model.addAttribute("allExperts", employeeRepository.findAllByOrderByLastNameAsc());
+            model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
             return "employee/laborant/cases/addCase";
         }
         return "redirect:/employee/laborant/cases/detailsCase/" + result.get();
@@ -105,7 +105,7 @@ public class ForensicCaseController {
             return "redirect:/employee/laborant/cases/allCases";
         }
         model.addAttribute("caseDTO", caseOptional.get());
-        model.addAttribute("allExperts", employeeRepository.findAllByOrderByLastNameAsc());
+        model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
         return "employee/laborant/cases/editCase";
     }
 

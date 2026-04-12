@@ -1,6 +1,8 @@
 package ru.mai.histology.controllers.employee.histologist;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -10,6 +12,7 @@ import ru.mai.histology.dto.ResearchProtocolDTO;
 import ru.mai.histology.dto.SampleDTO;
 import ru.mai.histology.service.employee.histologist.ProtocolService;
 import ru.mai.histology.service.employee.histologist.SampleViewService;
+import ru.mai.histology.service.general.WordExportService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,11 +25,14 @@ public class ProtocolController {
 
     private final ProtocolService protocolService;
     private final SampleViewService sampleViewService;
+    private final WordExportService wordExportService;
 
     public ProtocolController(ProtocolService protocolService,
-                              SampleViewService sampleViewService) {
+                              SampleViewService sampleViewService,
+                              WordExportService wordExportService) {
         this.protocolService = protocolService;
         this.sampleViewService = sampleViewService;
+        this.wordExportService = wordExportService;
     }
 
     // ========== Список протоколов ==========
@@ -134,9 +140,21 @@ public class ProtocolController {
     // ========== Экспорт протокола (Word-подобный вывод) ==========
 
     @PostMapping("/employee/histologist/protocols/exportProtocol/{id}")
-    public String exportProtocol(@PathVariable(value = "id") long id, RedirectAttributes attrs) {
-        // TODO: Этап 7 — реализация экспорта в Excel/Word через Apache POI
-        attrs.addFlashAttribute("successMessage", "Функция экспорта будет доступна в следующей версии.");
-        return "redirect:/employee/histologist/protocols/detailsProtocol/" + id;
+    public ResponseEntity<byte[]> exportProtocol(@PathVariable(value = "id") long id) {
+        Optional<ResearchProtocolDTO> protocolOpt = protocolService.getProtocolById(id);
+        if (protocolOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            byte[] docx = wordExportService.exportProtocol(protocolOpt.get());
+            String filename = "protocol_" + protocolOpt.get().getProtocolNumber() + ".docx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                    .body(docx);
+        } catch (Exception e) {
+            log.error("Ошибка экспорта протокола id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

@@ -19,6 +19,7 @@ import ru.mai.histology.service.general.FileStorageService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -113,7 +114,7 @@ public class ImageUploadService {
 
             // Сохранение записи в БД
             MicroscopeImage image = new MicroscopeImage();
-            image.setOriginalFilename(originalFilename);
+            image.setOriginalFilename(transliterate(originalFilename));
             image.setStoredFilename(relativePath.substring(relativePath.lastIndexOf("/") + 1));
             image.setFilePath(relativePath);
             image.setFileSize(file.getSize());
@@ -211,5 +212,36 @@ public class ImageUploadService {
         int lastSlash = relativePath.lastIndexOf("/");
         if (lastSlash < 0) return "thumb_" + relativePath;
         return relativePath.substring(0, lastSlash + 1) + "thumb_" + relativePath.substring(lastSlash + 1);
+    }
+
+    private static final Map<Character, String> TRANSLIT_MAP = Map.ofEntries(
+            Map.entry('А', "A"), Map.entry('Б', "B"), Map.entry('В', "V"), Map.entry('Г', "G"),
+            Map.entry('Д', "D"), Map.entry('Е', "E"), Map.entry('Ё', "Yo"), Map.entry('Ж', "Zh"),
+            Map.entry('З', "Z"), Map.entry('И', "I"), Map.entry('Й', "Y"), Map.entry('К', "K"),
+            Map.entry('Л', "L"), Map.entry('М', "M"), Map.entry('Н', "N"), Map.entry('О', "O"),
+            Map.entry('П', "P"), Map.entry('Р', "R"), Map.entry('С', "S"), Map.entry('Т', "T"),
+            Map.entry('У', "U"), Map.entry('Ф', "F"), Map.entry('Х', "Kh"), Map.entry('Ц', "Ts"),
+            Map.entry('Ч', "Ch"), Map.entry('Ш', "Sh"), Map.entry('Щ', "Shch"), Map.entry('Ъ', ""),
+            Map.entry('Ы', "Y"), Map.entry('Ь', ""), Map.entry('Э', "E"), Map.entry('Ю', "Yu"),
+            Map.entry('Я', "Ya"),
+            Map.entry('а', "a"), Map.entry('б', "b"), Map.entry('в', "v"), Map.entry('г', "g"),
+            Map.entry('д', "d"), Map.entry('е', "e"), Map.entry('ё', "yo"), Map.entry('ж', "zh"),
+            Map.entry('з', "z"), Map.entry('и', "i"), Map.entry('й', "y"), Map.entry('к', "k"),
+            Map.entry('л', "l"), Map.entry('м', "m"), Map.entry('н', "n"), Map.entry('о', "o"),
+            Map.entry('п', "p"), Map.entry('р', "r"), Map.entry('с', "s"), Map.entry('т', "t"),
+            Map.entry('у', "u"), Map.entry('ф', "f"), Map.entry('х', "kh"), Map.entry('ц', "ts"),
+            Map.entry('ч', "ch"), Map.entry('ш', "sh"), Map.entry('щ', "shch"), Map.entry('ъ', ""),
+            Map.entry('ы', "y"), Map.entry('ь', ""), Map.entry('э', "e"), Map.entry('ю', "yu"),
+            Map.entry('я', "ya")
+    );
+
+    private String transliterate(String input) {
+        if (input == null) return null;
+        StringBuilder sb = new StringBuilder(input.length());
+        for (char c : input.toCharArray()) {
+            String replacement = TRANSLIT_MAP.get(c);
+            sb.append(replacement != null ? replacement : c);
+        }
+        return sb.toString();
     }
 }

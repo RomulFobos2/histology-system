@@ -1,7 +1,6 @@
 package ru.mai.histology.dto;
 
 import lombok.Data;
-import ru.mai.histology.enumeration.ResearchStage;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
@@ -17,8 +16,6 @@ public class SampleDTO {
     private String tissueTypeDisplayName;
     private StainingMethod stainingMethod;
     private String stainingMethodDisplayName;
-    private ResearchStage researchStage;
-    private String researchStageDisplayName;
     private SampleStatus status;
     private String statusDisplayName;
     private String notes;
@@ -27,5 +24,4 @@ public class SampleDTO {
     private String registeredByFullName;
     private Long assignedHistologistId;
     private String assignedHistologistFullName;
-    private boolean canAdvanceStage;
 }

@@ -164,15 +164,4 @@ public class SampleController {
         return "redirect:/employee/laborant/samples/allSamples";
     }
 
-    // ========== Продвижение стадии ==========
-
-    @PostMapping("/employee/laborant/samples/advanceStage/{id}")
-    public String advanceStage(@PathVariable(value = "id") long id, RedirectAttributes redirectAttributes) {
-        if (sampleService.advanceStage(id)) {
-            redirectAttributes.addFlashAttribute("successMessage", "Стадия исследования продвинута.");
-        } else {
-            redirectAttributes.addFlashAttribute("errorMessage", "Невозможно продвинуть стадию.");
-        }
-        return "redirect:/employee/laborant/samples/detailsSample/" + id;
-    }
 }

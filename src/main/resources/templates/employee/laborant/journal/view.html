@@ -1,0 +1,151 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Журнал | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+    <script src="/js/tableSort.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Электронный журнал</h1>
+                    <form th:action="@{/employee/laborant/journal/export}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="profile-card mb-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Тип ткани</label>
+                        <select id="filterTissue" class="form-select form-select-sm" onchange="applyJournalFilters()">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Метод окрашивания</label>
+                        <select id="filterStaining" class="form-select form-select-sm" onchange="applyJournalFilters()">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Статус</label>
+                        <select id="filterStatus" class="form-select form-select-sm" onchange="applyJournalFilters()">
+                            <option value="">Все</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Поиск</label>
+                        <input type="text" id="filterSearch" class="form-control form-control-sm"
+                               placeholder="По номеру дела или образца..." oninput="applyJournalFilters()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="journalTable" data-sortable-table data-page-size="20">
+                        <thead>
+                        <tr>
+                            <th data-sortable data-sort-type="number">№</th>
+                            <th data-sortable data-sort-type="text">№ дела</th>
+                            <th data-sortable data-sort-type="text">№ образца</th>
+                            <th data-sortable data-sort-type="date">Дата поступления</th>
+                            <th data-sortable data-sort-type="text">Тип ткани</th>
+                            <th data-sortable data-sort-type="text">Метод окрашивания</th>
+                            <th data-sortable data-sort-type="text">Эксперт</th>
+                            <th data-sortable data-sort-type="text">Статус</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="s, index : ${allSamples}">
+                            <td class="row-number" th:text="${index.index + 1}"></td>
+                            <td class="filter-case" th:text="${s.caseNumber}"></td>
+                            <td class="filter-sample" th:text="${s.sampleNumber}"></td>
+                            <td th:text="${s.receiptDate} ? ${#temporals.format(s.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
+                            <td class="filter-tissue" th:text="${s.tissueTypeDisplayName}"></td>
+                            <td class="filter-staining" th:text="${s.stainingMethodDisplayName}"></td>
+                            <td th:text="${s.assignedHistologistFullName} ?: '—'"></td>
+                            <td class="filter-status">
+                                <span class="badge-active" th:text="${s.statusDisplayName}"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="journalTable-pagination"></div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<script>
+    // Инициализация фильтров уникальными значениями из таблицы
+    document.addEventListener('DOMContentLoaded', function() {
+        populateFilter('filterTissue', '.filter-tissue');
+        populateFilter('filterStaining', '.filter-staining');
+        populateFilter('filterStatus', '.filter-status');
+    });
+
+    function populateFilter(selectId, cellSelector) {
+        const select = document.getElementById(selectId);
+        const cells = document.querySelectorAll('#journalTable tbody ' + cellSelector);
+        const values = new Set();
+        cells.forEach(c => {
+            const text = c.textContent.trim();
+            if (text) values.add(text);
+        });
+        Array.from(values).sort().forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            select.appendChild(opt);
+        });
+    }
+
+    function applyJournalFilters() {
+        const tissue = document.getElementById('filterTissue').value;
+        const staining = document.getElementById('filterStaining').value;
+        const status = document.getElementById('filterStatus').value;
+        const search = document.getElementById('filterSearch').value.toLowerCase();
+
+        const rows = document.querySelectorAll('#journalTable tbody tr');
+        rows.forEach(row => {
+            const tTissue = row.querySelector('.filter-tissue')?.textContent.trim() || '';
+            const tStaining = row.querySelector('.filter-staining')?.textContent.trim() || '';
+            const tStatus = row.querySelector('.filter-status')?.textContent.trim() || '';
+            const tCase = row.querySelector('.filter-case')?.textContent.trim().toLowerCase() || '';
+            const tSample = row.querySelector('.filter-sample')?.textContent.trim().toLowerCase() || '';
+
+            let show = true;
+            if (tissue && tTissue !== tissue) show = false;
+            if (staining && tStaining !== staining) show = false;
+            if (status && tStatus !== status) show = false;
+            if (search && !tCase.includes(search) && !tSample.includes(search)) show = false;
+
+            row.style.display = show ? '' : 'none';
+        });
+    }
+</script>
+</body>
+</html>
