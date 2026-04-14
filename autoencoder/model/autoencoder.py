@@ -38,6 +38,7 @@ METADATA_PATH = WEIGHTS_DIR / "latest_metadata.json"
 WEIGHTS_PATH = WEIGHTS_DIR / "latest_autoencoder.pt"
 HISTORY_PATH = WEIGHTS_DIR / "training_history.json"
 STATUS_PATH = WEIGHTS_DIR / "training_status.json"
+TRAINING_LOG_PATH = ROOT_DIR / "training.log"
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 DEFAULT_MODEL_NAME = "histology-denoising-unet"
@@ -500,11 +501,12 @@ class AutoencoderService:
             # чтобы русские строки не проходили двойное кодирование
             # через Windows CP1251 locale (PEP 540).
             child_env = {**os.environ, "PYTHONUTF8": "1"}
+            log_file = open(TRAINING_LOG_PATH, "w", encoding="utf-8")
             self.training_process = subprocess.Popen(
                 command,
                 cwd=str(ROOT_DIR),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
                 creationflags=creation_flags,
                 env=child_env,
             )
