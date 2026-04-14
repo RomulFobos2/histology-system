@@ -11,6 +11,12 @@ import ru.mai.histology.models.MicroscopeImage;
 import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.service.general.FileStorageService;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
@@ -51,9 +57,30 @@ public class ImageFileController {
             contentType = fileStorageService.getContentType(image.getOriginalFilename());
         }
 
+        // Конвертация TIFF → PNG для отображения в браузере
+        if ("image/tiff".equalsIgnoreCase(contentType)) {
+            try {
+                BufferedImage buffered = ImageIO.read(new ByteArrayInputStream(data));
+                if (buffered != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(buffered, "png", baos);
+                    data = baos.toByteArray();
+                    contentType = "image/png";
+                }
+            } catch (Exception e) {
+                log.warn("Не удалось сконвертировать TIFF в PNG для id={}: {}", id, e.getMessage());
+            }
+        }
+
+        // RFC 5987: безопасный Content-Disposition для Unicode-имён
+        String originalFilename = image.getOriginalFilename();
+        String asciiName = originalFilename.replaceAll("[^\\x20-\\x7E]", "_");
+        String encoded = URLEncoder.encode(originalFilename, StandardCharsets.UTF_8).replace("+", "%20");
+
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, contentType);
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + image.getOriginalFilename() + "\"");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=\"" + asciiName + "\"; filename*=UTF-8''" + encoded);
         headers.setContentLength(data.length);
 
         return new ResponseEntity<>(data, headers, HttpStatus.OK);

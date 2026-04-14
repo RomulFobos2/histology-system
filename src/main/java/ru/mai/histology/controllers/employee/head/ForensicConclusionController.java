@@ -1,6 +1,9 @@
 package ru.mai.histology.controllers.employee.head;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +15,7 @@ import ru.mai.histology.dto.SampleDTO;
 import ru.mai.histology.repo.HistologistConclusionRepository;
 import ru.mai.histology.service.employee.head.ForensicConclusionService;
 import ru.mai.histology.service.employee.head.OversightService;
+import ru.mai.histology.service.general.WordExportService;
 
 import java.util.Optional;
 
@@ -23,13 +27,16 @@ public class ForensicConclusionController {
     private final ForensicConclusionService conclusionService;
     private final OversightService oversightService;
     private final HistologistConclusionRepository histConclusionRepository;
+    private final WordExportService wordExportService;
 
     public ForensicConclusionController(ForensicConclusionService conclusionService,
                                         OversightService oversightService,
-                                        HistologistConclusionRepository histConclusionRepository) {
+                                        HistologistConclusionRepository histConclusionRepository,
+                                        WordExportService wordExportService) {
         this.conclusionService = conclusionService;
         this.oversightService = oversightService;
         this.histConclusionRepository = histConclusionRepository;
+        this.wordExportService = wordExportService;
     }
 
     // ========== Список заключений ==========
@@ -128,5 +135,26 @@ public class ForensicConclusionController {
         }
 
         return "redirect:/employee/head/conclusions/detailsConclusion/" + id;
+    }
+
+    // ========== Экспорт в Word ==========
+
+    @PostMapping("/employee/head/conclusions/exportConclusion/{id}")
+    public ResponseEntity<byte[]> exportConclusion(@PathVariable(value = "id") long id) {
+        Optional<ForensicConclusionDTO> conclusionOpt = conclusionService.getConclusionById(id);
+        if (conclusionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            byte[] docx = wordExportService.exportConclusion(conclusionOpt.get());
+            String filename = "conclusion_" + id + ".docx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                    .body(docx);
+        } catch (Exception e) {
+            log.error("Ошибка экспорта заключения id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

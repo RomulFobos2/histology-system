@@ -137,21 +137,15 @@ public class AutoencoderTrainingService {
                                                                  List<Map<String, Object>> history) {
         TrainingSession runningSession = trainingSessionRepository.findFirstByStatusOrderByStartedAtDesc("RUNNING");
         if (runningSession != null
-                && !"running".equalsIgnoreCase(readString(trainingStatus.get("status")))
-                && !history.isEmpty()) {
-            Map<String, Object> latestResult = history.get(0);
-            runningSession.setFinishedAt(readDateTime(latestResult.get("finishedAt")));
-            runningSession.setStatus(String.valueOf(latestResult.getOrDefault("status", "error")).toUpperCase());
-            runningSession.setMessage(readString(latestResult.get("message")));
-            runningSession.setDatasetSize(readInteger(latestResult.get("datasetSize")));
-            runningSession.setLoss(readDouble(latestResult.get("loss")));
-            runningSession.setValidationLoss(readDouble(latestResult.get("validationLoss")));
-            runningSession.setPsnr(readDouble(latestResult.get("psnr")));
-            runningSession.setSsim(readDouble(latestResult.get("ssim")));
-            runningSession.setModelName(readString(latestResult.get("modelName")));
-            trainingSessionRepository.save(runningSession);
-            if ("OK".equalsIgnoreCase(runningSession.getStatus())) {
-                updateAutoencoderModel(latestResult);
+                && !"running".equalsIgnoreCase(readString(trainingStatus.get("status")))) {
+            Map<String, Object> matchedResult = findMatchingHistoryEntry(runningSession, history);
+            if (matchedResult != null) {
+                applyHistoryResult(runningSession, matchedResult);
+            } else {
+                runningSession.setStatus("ERROR");
+                runningSession.setFinishedAt(LocalDateTime.now());
+                runningSession.setMessage("Обучение завершилось без результата (процесс прервался)");
+                trainingSessionRepository.save(runningSession);
             }
         }
         return TrainingSessionMapper.INSTANCE.toDTOList(
@@ -196,24 +190,44 @@ public class AutoencoderTrainingService {
         }
 
         List<Map<String, Object>> history = autoencoderClientService.getTrainingHistory();
-        if (history.isEmpty()) {
-            return;
+        Map<String, Object> matchedResult = findMatchingHistoryEntry(runningSession, history);
+        if (matchedResult != null) {
+            applyHistoryResult(runningSession, matchedResult);
+        } else {
+            runningSession.setStatus("ERROR");
+            runningSession.setFinishedAt(LocalDateTime.now());
+            runningSession.setMessage("Обучение завершилось без результата (процесс прервался)");
+            trainingSessionRepository.save(runningSession);
         }
+    }
 
-        Map<String, Object> latestResult = history.get(0);
-        runningSession.setFinishedAt(readDateTime(latestResult.get("finishedAt")));
-        runningSession.setStatus(String.valueOf(latestResult.getOrDefault("status", "error")).toUpperCase());
-        runningSession.setMessage(readString(latestResult.get("message")));
-        runningSession.setDatasetSize(readInteger(latestResult.get("datasetSize")));
-        runningSession.setLoss(readDouble(latestResult.get("loss")));
-        runningSession.setValidationLoss(readDouble(latestResult.get("validationLoss")));
-        runningSession.setPsnr(readDouble(latestResult.get("psnr")));
-        runningSession.setSsim(readDouble(latestResult.get("ssim")));
-        runningSession.setModelName(readString(latestResult.get("modelName")));
-        trainingSessionRepository.save(runningSession);
+    private Map<String, Object> findMatchingHistoryEntry(TrainingSession session, List<Map<String, Object>> history) {
+        if (history == null || history.isEmpty() || session.getStartedAt() == null) {
+            return null;
+        }
+        String sessionStart = session.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER);
+        for (Map<String, Object> entry : history) {
+            String entryStart = readString(entry.get("startedAt"));
+            if (sessionStart.equals(entryStart)) {
+                return entry;
+            }
+        }
+        return null;
+    }
 
-        if ("OK".equalsIgnoreCase(runningSession.getStatus())) {
-            updateAutoencoderModel(latestResult);
+    private void applyHistoryResult(TrainingSession session, Map<String, Object> result) {
+        session.setFinishedAt(readDateTime(result.get("finishedAt")));
+        session.setStatus(String.valueOf(result.getOrDefault("status", "error")).toUpperCase());
+        session.setMessage(readString(result.get("message")));
+        session.setDatasetSize(readInteger(result.get("datasetSize")));
+        session.setLoss(readDouble(result.get("loss")));
+        session.setValidationLoss(readDouble(result.get("validationLoss")));
+        session.setPsnr(readDouble(result.get("psnr")));
+        session.setSsim(readDouble(result.get("ssim")));
+        session.setModelName(readString(result.get("modelName")));
+        trainingSessionRepository.save(session);
+        if ("OK".equalsIgnoreCase(session.getStatus())) {
+            updateAutoencoderModel(result);
         }
     }
 

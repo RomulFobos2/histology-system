@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.histology.dto.SampleDTO;
-import ru.mai.histology.enumeration.ResearchStage;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
@@ -91,7 +90,6 @@ public class SampleService {
             sample.setReceiptDate(LocalDate.now());
             sample.setTissueType(tissueType);
             sample.setStainingMethod(stainingMethod);
-            sample.setResearchStage(ResearchStage.RECEIVED);
             sample.setStatus(SampleStatus.NEW);
             sample.setNotes(notes);
             sample.setForensicCase(caseOpt.get());
@@ -177,46 +175,6 @@ public class SampleService {
             return true;
         } catch (Exception e) {
             log.error("Ошибка при удалении образца: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return false;
-        }
-    }
-
-    @Transactional
-    public boolean advanceStage(Long id) {
-        log.info("Продвижение стадии образца: id={}", id);
-
-        Optional<Sample> sampleOpt = sampleRepository.findById(id);
-        if (sampleOpt.isEmpty()) {
-            log.error("Образец не найден: id={}", id);
-            return false;
-        }
-
-        Sample sample = sampleOpt.get();
-        ResearchStage currentStage = sample.getResearchStage();
-
-        if (currentStage == ResearchStage.COMPLETED) {
-            log.warn("Образец id={} уже на финальной стадии", id);
-            return false;
-        }
-
-        try {
-            ResearchStage nextStage = ResearchStage.values()[currentStage.ordinal() + 1];
-            sample.setResearchStage(nextStage);
-
-            if (sample.getStatus() == SampleStatus.NEW) {
-                sample.setStatus(SampleStatus.IN_PROGRESS);
-            }
-
-            if (nextStage == ResearchStage.MICROSCOPY) {
-                sample.setStatus(SampleStatus.AWAITING_ANALYSIS);
-            }
-
-            sampleRepository.save(sample);
-            log.info("Образец id={} переведён на стадию {}", id, nextStage);
-            return true;
-        } catch (Exception e) {
-            log.error("Ошибка при продвижении стадии: {}", e.getMessage(), e);
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return false;
         }

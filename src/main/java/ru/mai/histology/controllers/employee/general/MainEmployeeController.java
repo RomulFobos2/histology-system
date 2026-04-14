@@ -24,7 +24,7 @@ public class MainEmployeeController {
         return "employee/general/login";
     }
 
-    @GetMapping("/employee/profile")
+    @GetMapping("/employee/general/profile")
     public String employeeProfile(Model model) {
         EmployeeDTO currentEmployeeDTO = employeeService.getAuthenticationEmployeeDTO();
         if (currentEmployeeDTO != null) {

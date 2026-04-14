@@ -7,7 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
-import ru.mai.histology.enumeration.ResearchStage;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
@@ -41,11 +40,6 @@ public class Sample {
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
     private StainingMethod stainingMethod;
-
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private ResearchStage researchStage;
 
     @NotNull
     @Enumerated(EnumType.STRING)

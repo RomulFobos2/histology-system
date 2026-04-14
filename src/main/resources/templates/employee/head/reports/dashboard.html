@@ -1,0 +1,97 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Отчёты | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <h1 class="page-title mb-0">Отчёты и аналитика</h1>
+            </div>
+
+            <!-- Сводная статистика -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="profile-card text-center">
+                        <div class="text-muted small">Всего образцов</div>
+                        <div class="fs-2 fw-bold" th:text="${totalSamples}">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="profile-card text-center">
+                        <div class="text-muted small">Заключений гистолога</div>
+                        <div class="fs-2 fw-bold" th:text="${totalConclusions}">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="profile-card text-center">
+                        <div class="text-muted small">Судебных заключений</div>
+                        <div class="fs-2 fw-bold" th:text="${totalForensicConclusions}">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="profile-card text-center">
+                        <div class="text-muted small">Обработано изображений</div>
+                        <div class="fs-2 fw-bold" th:text="${totalImageProcessed}">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ссылки на отчёты -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="profile-card">
+                        <h5><i class="bi bi-clipboard-data"></i> Поступившие образцы</h5>
+                        <p class="text-muted">Количество образцов за период, группировка по типу ткани</p>
+                        <a th:href="@{/employee/head/reports/samplesReceived}" class="btn btn-primary btn-sm">Открыть</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="profile-card">
+                        <h5><i class="bi bi-check2-circle"></i> Выполненные исследования</h5>
+                        <p class="text-muted">Завершённые исследования за период, статистика по экспертам</p>
+                        <a th:href="@{/employee/head/reports/completedStudies}" class="btn btn-primary btn-sm">Открыть</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="profile-card">
+                        <h5><i class="bi bi-palette"></i> Методы окрашивания</h5>
+                        <p class="text-muted">Частота использования каждого метода окрашивания</p>
+                        <a th:href="@{/employee/head/reports/stainingMethods}" class="btn btn-primary btn-sm">Открыть</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="profile-card">
+                        <h5><i class="bi bi-journal-medical"></i> Результаты исследований</h5>
+                        <p class="text-muted">Диагнозы и заключения за период</p>
+                        <a th:href="@{/employee/head/reports/researchResults}" class="btn btn-primary btn-sm">Открыть</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="profile-card">
+                        <h5><i class="bi bi-cpu"></i> Обработка изображений</h5>
+                        <p class="text-muted">Статистика автоэнкодера: количество, среднее время, модели</p>
+                        <a th:href="@{/employee/head/reports/imageProcessingStats}" class="btn btn-primary btn-sm">Открыть</a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

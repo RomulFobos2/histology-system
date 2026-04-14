@@ -61,7 +61,6 @@
                         <th data-sortable data-sort-type="text">Дело</th>
                         <th data-sortable data-sort-type="text">Тип ткани</th>
                         <th data-sortable data-sort-type="text">Метод</th>
-                        <th data-sortable data-sort-type="text">Стадия</th>
                         <th>Статус</th>
                     </tr>
                     </thead>
@@ -78,7 +77,6 @@
                         </td>
                         <td class="filter-tissue" th:text="${s.tissueTypeDisplayName}"></td>
                         <td class="filter-staining" th:text="${s.stainingMethodDisplayName}"></td>
-                        <td th:text="${s.researchStageDisplayName}"></td>
                         <td>
                             <span class="badge-active" th:text="${s.statusDisplayName}"></span>
                         </td>
