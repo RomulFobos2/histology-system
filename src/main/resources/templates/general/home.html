@@ -12,6 +12,7 @@
 </head>
 <body>
 
+<!-- ===== Гость ===== -->
 <th:block sec:authorize="!isAuthenticated()">
 <main>
     <section class="home-hero">
@@ -26,47 +27,13 @@
         </div>
     </section>
 
-    <section class="home-features">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="bi bi-droplet"></i></div>
-                        <h5>Образцы</h5>
-                        <p class="text-muted">Регистрация и отслеживание образцов тканей на всех стадиях исследования.</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="bi bi-image"></i></div>
-                        <h5>Микроскопия</h5>
-                        <p class="text-muted">Загрузка, просмотр и улучшение микроскопических изображений.</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="bi bi-journal-medical"></i></div>
-                        <h5>Заключения</h5>
-                        <p class="text-muted">Формирование гистологических и судебно-медицинских заключений.</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon"><i class="bi bi-bar-chart-line"></i></div>
-                        <h5>Отчёты</h5>
-                        <p class="text-muted">Статистические отчёты и аналитика по результатам исследований.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <footer class="text-center py-3" style="color: var(--text-secondary); font-size: 0.85rem;">
         &copy; 2026 АИС ГИ &mdash; ГБУ «БСМЭ города Байконур»
     </footer>
 </main>
 </th:block>
 
+<!-- ===== Авторизованный пользователь ===== -->
 <th:block sec:authorize="isAuthenticated()">
 <div id="wrapper">
     <div th:insert="~{blocks/header :: sidebar}"></div>
@@ -80,34 +47,118 @@
                 <p class="mb-0" style="opacity: 0.9;">Рабочее место для регистрации образцов, анализа изображений и формирования заключений.</p>
             </div>
 
-            <div class="row">
+            <!-- ADMIN -->
+            <div sec:authorize="hasRole('ROLE_EMPLOYEE_ADMIN')" class="row">
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/admin/users/allUsers}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-people"></i></div>
+                            <h5>Пользователи</h5>
+                            <p class="text-muted">Управление учётными записями сотрудников, сброс паролей, деактивация.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- HEAD -->
+            <div sec:authorize="hasRole('ROLE_EMPLOYEE_HEAD')" class="row">
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/head/oversight/allCases}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-eye"></i></div>
+                            <h5>Надзор</h5>
+                            <p class="text-muted">Просмотр всех судебных дел и образцов в системе.</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/head/conclusions/allConclusions}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-file-earmark-medical"></i></div>
+                            <h5>Заключения СМЭ</h5>
+                            <p class="text-muted">Формирование судебно-медицинских заключений и экспорт в Word.</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/head/reports/dashboard}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-bar-chart-line"></i></div>
+                            <h5>Отчёты</h5>
+                            <p class="text-muted">Дашборд и пять аналитических отчётов с экспортом в Excel.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- HISTOLOGIST -->
+            <div sec:authorize="hasRole('ROLE_EMPLOYEE_HISTOLOGIST')" class="row">
                 <div class="col-md-3 mb-3">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon"><i class="bi bi-droplet"></i></div>
-                        <h5>Образцы</h5>
-                        <p class="text-muted">Регистрация и отслеживание образцов тканей на всех стадиях исследования.</p>
-                    </div>
+                    <a th:href="@{/employee/histologist/samples/allSamples}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-droplet"></i></div>
+                            <h5>Образцы</h5>
+                            <p class="text-muted">Просмотр поступивших образцов и микроскопических изображений.</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon"><i class="bi bi-image"></i></div>
-                        <h5>Микроскопия</h5>
-                        <p class="text-muted">Загрузка, просмотр и улучшение микроскопических изображений.</p>
-                    </div>
+                    <a th:href="@{/employee/histologist/conclusions/allConclusions}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-journal-medical"></i></div>
+                            <h5>Заключения</h5>
+                            <p class="text-muted">Создание заключений гистолога с микроскопическим описанием и диагнозом.</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon"><i class="bi bi-journal-medical"></i></div>
-                        <h5>Заключения</h5>
-                        <p class="text-muted">Формирование гистологических и судебно-медицинских заключений.</p>
-                    </div>
+                    <a th:href="@{/employee/histologist/protocols/allProtocols}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+                            <h5>Протоколы</h5>
+                            <p class="text-muted">Формирование протоколов исследования и экспорт в Word.</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon"><i class="bi bi-bar-chart-line"></i></div>
-                        <h5>Отчёты</h5>
-                        <p class="text-muted">Статистические отчёты и аналитика по результатам исследований.</p>
-                    </div>
+                    <a th:href="@{/employee/histologist/autoencoder/dashboard}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-cpu"></i></div>
+                            <h5>Автоэнкодер</h5>
+                            <p class="text-muted">Улучшение изображений нейросетью, запуск обучения, метрики моделей.</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- LABORANT -->
+            <div sec:authorize="hasRole('ROLE_EMPLOYEE_LABORANT')" class="row">
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/laborant/cases/allCases}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-folder2-open"></i></div>
+                            <h5>Дела</h5>
+                            <p class="text-muted">Регистрация судебных дел и назначение ответственных экспертов.</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/laborant/samples/allSamples}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-droplet"></i></div>
+                            <h5>Образцы</h5>
+                            <p class="text-muted">Создание образцов ткани и загрузка микроскопических изображений.</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <a th:href="@{/employee/laborant/journal/view}" class="text-decoration-none">
+                        <div class="feature-card h-100">
+                            <div class="feature-icon"><i class="bi bi-journal-text"></i></div>
+                            <h5>Журнал</h5>
+                            <p class="text-muted">Сводный журнал всех образцов с фильтрацией и экспортом в Excel.</p>
+                        </div>
+                    </a>
                 </div>
             </div>
 

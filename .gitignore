@@ -46,3 +46,7 @@ log/
 # Python service runtime logs
 autoencoder/*.log
 autoencoder/*.log.err
+
+# Presentation build artifacts
+presentation/node_modules/
+presentation/package-lock.json
