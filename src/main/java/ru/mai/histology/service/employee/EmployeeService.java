@@ -220,6 +220,16 @@ public class EmployeeService implements UserDetailsService {
 
     // ========== Смена собственного пароля ==========
 
+    /**
+     * Проверяет, совпадает ли переданный пароль с текущим паролем авторизованного пользователя.
+     * Используется перед добровольной сменой пароля на странице профиля.
+     */
+    public boolean verifyCurrentPassword(String rawPassword) {
+        Employee currentEmployee = getAuthenticationEmployee();
+        if (currentEmployee == null || rawPassword == null) return false;
+        return bCryptPasswordEncoder.matches(rawPassword, currentEmployee.getPassword());
+    }
+
     @Transactional
     public boolean changeOwnPassword(String newPassword) {
         Employee currentEmployee = getAuthenticationEmployee();
