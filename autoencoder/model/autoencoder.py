@@ -493,13 +493,9 @@ class AutoencoderService:
         ]
 
         try:
-            # На Windows: CREATE_NEW_PROCESS_GROUP изолирует дочерний процесс
-            # от консольной группы uvicorn, чтобы завершение train.py
-            # не отправляло CTRL_CLOSE_EVENT родителю и не гасило сервис.
+            # На Windows отделяем обучение от консоли uvicorn
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
-            # PYTHONUTF8=1 — форсируем UTF-8 для всех I/O в подпроцессе,
-            # чтобы русские строки не проходили двойное кодирование
-            # через Windows CP1251 locale (PEP 540).
+            # Включаем UTF-8 для вывода train.py
             child_env = {**os.environ, "PYTHONUTF8": "1"}
             log_file = open(TRAINING_LOG_PATH, "w", encoding="utf-8")
             self.training_process = subprocess.Popen(
@@ -510,7 +506,7 @@ class AutoencoderService:
                 creationflags=creation_flags,
                 env=child_env,
             )
-            # Записываем PID в статус — _normalize_training_status проверяет его
+            # Пишем PID, чтобы потом проверить процесс
             accepted_status["pid"] = self.training_process.pid
             self._set_training_status(accepted_status)
         except OSError as exc:
