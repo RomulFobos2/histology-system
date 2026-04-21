@@ -171,7 +171,7 @@
                             </div>
                         </form>
 
-                        <!-- Блок прогресса обучения (вынесен из формы, обновляется через AJAX) -->
+                        <!-- Прогресс обучения -->
                         <div id="trainingProgressBlock" class="alert alert-info mt-3 mb-0"
                              th:style="${trainingStatus['status'] == 'running'} ? '' : 'display:none'">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -386,10 +386,9 @@
     var processManaged = /*[[${processManaged}]]*/ false;
     var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
 
-    // Если сервис запускается — поллинг подхватит когда станет доступен
-    // (без перезагрузки страницы)
+    // Если сервис запускается, поллинг подхватит статус
 
-    // ===== AJAX-поллинг статуса обучения =====
+    // ===== Проверка статуса обучения =====
     var pollingInterval = null;
     var wasRunning = (initialStatus === 'running');
 
@@ -462,7 +461,7 @@
             if (progressBlock) progressBlock.style.display = 'none';
         }
 
-        // Обучение завершилось — обновить метрики, показать alert
+        // После обучения обновляем метрики
         if (wasRunning && !isRunning) {
             updateMetricsBlock(data.metrics || {});
             var alertDiv = document.createElement('div');
@@ -483,13 +482,13 @@
             .catch(function () {});
     }
 
-    // Поллинг активен когда сервис доступен или запускается
+    // Проверяем статус, пока сервис доступен или запускается
     if (serviceAvailable || processManaged) {
         pollingInterval = setInterval(pollTrainingStatus, 3000);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Отправка обучения через AJAX
+        // Запуск обучения без перезагрузки
         var form = document.getElementById('trainingForm');
         if (form) {
             form.addEventListener('submit', function (e) {
@@ -509,7 +508,7 @@
                         if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается...';
                         var progressBar = document.getElementById('trainingProgressBar');
                         if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
-                        // polling уже идёт, подхватит running
+                        // Проверка статуса уже идет
                     })
                     .catch(function () {
                         if (btn) {
@@ -521,12 +520,12 @@
             });
         }
 
-        // Тултипы Bootstrap
+        // Подсказки
         [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
             new bootstrap.Tooltip(el);
         });
 
-        // Пагинация таблицы в модалке
+        // Пагинация истории
         var historyModal = document.getElementById('historyModal');
         if (historyModal) {
             historyModal.addEventListener('shown.bs.modal', function () {

@@ -20,9 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Управление жизненным циклом Python-микросервиса автоэнкодера.
- * Сервис запускается отдельным detached-процессом через PowerShell Start-Process,
- * чтобы не получать консольные сигналы от Spring Boot / IDE во время долгого обучения.
+ * Запуск и остановка Python-сервиса автоэнкодера.
  */
 @Service
 @Slf4j
@@ -48,7 +46,7 @@ public class PythonServiceManager {
     private Long managedPid;
     private boolean externalServiceDetected;
     private RestTemplate healthCheckTemplate;
-    /** Абсолютный путь к PID-файлу (вычисляется из workdir в @PostConstruct). */
+    /** PID-файл в папке Python-сервиса. */
     private Path pidFile;
 
     @PostConstruct
@@ -58,18 +56,16 @@ public class PythonServiceManager {
         factory.setReadTimeout(3000);
         healthCheckTemplate = new RestTemplate(factory);
 
-        // Абсолютный путь — не зависит от рабочей директории JVM
+        // Берем полный путь к PID-файлу
         pidFile = new File(workdir).getAbsoluteFile().toPath().resolve("service.pid");
         log.info("PID-файл: {}", pidFile);
 
-        // Восстановить PID из файла (переживает DevTools restart и перезапуск Spring Boot)
+        // Подхватываем PID, если сервис уже был запущен
         restorePidFromFile();
     }
 
     /**
-     * Читает PID из файла autoencoder/service.pid.
-     * Если процесс жив — восстанавливает managedPid.
-     * Если процесс мёртв — удаляет устаревший PID-файл.
+     * Читаем PID из autoencoder/service.pid.
      */
     private void restorePidFromFile() {
         if (!Files.isRegularFile(pidFile)) {
@@ -80,20 +76,19 @@ public class PythonServiceManager {
             long pid = Long.parseLong(content);
             Optional<ProcessHandle> handle = ProcessHandle.of(pid).filter(ProcessHandle::isAlive);
             if (handle.isPresent()) {
-                // Защита от stale PID: после перезагрузки ОС PID может быть переиспользован
-                // другим процессом. Проверяем, что это действительно Python.
+                // Проверяем, что PID относится к Python
                 boolean isPython = handle.get().info().command()
                         .map(cmd -> cmd.toLowerCase().contains("python"))
                         .orElse(false);
                 if (!isPython) {
-                    log.info("PID={} жив, но не Python-процесс — удаляем stale PID-файл", pid);
+                    log.info("PID={} занят не Python-процессом, удаляем PID-файл", pid);
                     Files.deleteIfExists(pidFile);
                     return;
                 }
                 managedPid = pid;
-                log.info("PID={} восстановлен из файла {} — процесс жив (Python)", pid, pidFile);
+                log.info("PID={} восстановлен из файла {}", pid, pidFile);
             } else {
-                log.info("PID={} из файла {} уже не существует, удаляем устаревший файл", pid, pidFile);
+                log.info("PID={} уже не найден, удаляем PID-файл {}", pid, pidFile);
                 Files.deleteIfExists(pidFile);
             }
         } catch (NumberFormatException e) {
@@ -108,9 +103,9 @@ public class PythonServiceManager {
         try {
             Files.writeString(pidFile, String.valueOf(pid));
             boolean exists = Files.exists(pidFile);
-            log.info("writePidFile: PID={} записан в {}. Файл существует: {}", pid, pidFile, exists);
+            log.info("PID={} записан в {}, файл есть: {}", pid, pidFile, exists);
         } catch (IOException e) {
-            log.error("writePidFile: НЕ УДАЛОСЬ записать PID={} в {}: {}", pid, pidFile, e.getMessage());
+            log.error("Не удалось записать PID={} в {}: {}", pid, pidFile, e.getMessage());
         }
     }
 
@@ -123,57 +118,57 @@ public class PythonServiceManager {
     }
 
     public synchronized boolean start() {
-        log.info("start() вызван. managedPid={}, pidFile={}", managedPid, pidFile);
+        log.info("Запуск Python-сервиса, managedPid={}, pidFile={}", managedPid, pidFile);
 
         if (isServiceAvailable()) {
             externalServiceDetected = managedPid == null || !isManagedProcessAlive();
-            log.info("start() → ВЕТКА 1: Python-сервис уже доступен на {}:{}, externalServiceDetected={}",
+            log.info("Python-сервис уже доступен на {}:{}, внешний запуск: {}",
                     host, port, externalServiceDetected);
             return true;
         }
 
         if (isRunning()) {
-            log.info("start() → ВЕТКА 2: Python-сервис уже запущен этим менеджером (PID={})", managedPid);
+            log.info("Python-сервис уже запущен этим менеджером, PID={}", managedPid);
             return false;
         }
 
         try {
             File workDirectory = new File(workdir).getAbsoluteFile();
             if (!workDirectory.isDirectory()) {
-                log.error("start() → ВЕТКА 3: Рабочая директория не найдена: {}", workDirectory);
+                log.error("Рабочая директория Python-сервиса не найдена: {}", workDirectory);
                 return false;
             }
 
             String resolvedPythonExecutable = resolvePythonExecutable(workDirectory);
             if (resolvedPythonExecutable == null) {
-                log.error("start() → ВЕТКА 4: Python-интерпретатор не найден в {}", workDirectory);
+                log.error("Python-интерпретатор не найден в {}", workDirectory);
                 return false;
             }
 
-            log.info("start() → запуск detached-процесса: python={}, workdir={}", resolvedPythonExecutable, workDirectory);
+            log.info("Запускаем Python-сервис: python={}, workdir={}", resolvedPythonExecutable, workDirectory);
             Long startedPid = startDetachedPythonService(workDirectory, resolvedPythonExecutable);
             if (startedPid == null) {
-                log.error("start() → ВЕТКА 5: startDetachedPythonService вернул null (PID не получен)");
+                log.error("Python-сервис не запущен, PID не получен");
                 return false;
             }
 
             managedPid = startedPid;
             externalServiceDetected = false;
-            // PID-файл уже записан PowerShell-ом в startDetachedPythonService()
-            log.info("start() → УСПЕХ: Python-сервис запущен, PID={}, pidFile={}, существует: {}",
+            // PID-файл уже записан при запуске
+            log.info("Python-сервис запущен, PID={}, pidFile={}, файл есть: {}",
                     managedPid, pidFile, Files.exists(pidFile));
             return true;
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("start() → ВЕТКА 7 (ИСКЛЮЧЕНИЕ): {}", e.getMessage(), e);
+            log.error("Ошибка запуска Python-сервиса: {}", e.getMessage(), e);
             stopProcessSilently();
             return false;
         }
     }
 
     public synchronized boolean stop() {
-        // 1. Если знаем PID — убить напрямую
+        // Если PID известен, останавливаем процесс сразу
         Optional<ProcessHandle> handle = getManagedHandle();
         if (handle.isPresent()) {
             long pid = handle.get().pid();
@@ -186,7 +181,7 @@ public class PythonServiceManager {
             return true;
         }
 
-        // 2. PID неизвестен, но сервис доступен — найти PID по порту и убить
+        // Если PID потеряли, ищем процесс по порту
         if (isServiceAvailable()) {
             Long foundPid = findPidByPort(port);
             if (foundPid != null) {
@@ -213,7 +208,7 @@ public class PythonServiceManager {
     }
 
     /**
-     * Находит PID процесса, слушающего указанный порт, через PowerShell Get-NetTCPConnection.
+     * Ищем PID по порту.
      */
     private Long findPidByPort(int targetPort) {
         try {
@@ -265,8 +260,7 @@ public class PythonServiceManager {
         String workingDir = workDirectory.getAbsolutePath().replace("'", "''");
         String pidPath = pidFile.toAbsolutePath().toString().replace("'", "''");
 
-        // PowerShell сам пишет PID в файл — так мы избегаем deadlock
-        // Java Process pipes (stdout/stderr не читаются → не блокируются).
+        // PowerShell пишет PID сразу в файл
         String command = String.format(
                 "$p = Start-Process -FilePath '%s' -WorkingDirectory '%s'"
                         + " -ArgumentList 'run.py','--host','%s','--port','%s'"
@@ -282,7 +276,7 @@ public class PythonServiceManager {
                 pidPath
         );
 
-        log.info("PowerShell command: {}", command);
+        log.debug("Команда запуска Python-сервиса: {}", command);
 
         ProcessBuilder pb = new ProcessBuilder(
                 "powershell.exe",
@@ -290,8 +284,7 @@ public class PythonServiceManager {
                 "-Command",
                 command
         );
-        // Весь вывод PowerShell уходит в никуда — PID пишется в файл,
-        // stdout/stderr нам не нужны. Это предотвращает deadlock pipe.
+        // Вывод PowerShell не читаем, PID берем из файла
         pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         Process launcher = pb.start();
@@ -308,7 +301,7 @@ public class PythonServiceManager {
             return null;
         }
 
-        // PID записан PowerShell-ом напрямую в pidFile
+        // Проверяем, что PID-файл появился
         if (!Files.isRegularFile(pidFile)) {
             log.error("PowerShell не создал PID-файл {}", pidFile);
             return null;
