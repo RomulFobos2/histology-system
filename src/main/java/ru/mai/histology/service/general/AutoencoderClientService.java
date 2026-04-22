@@ -24,6 +24,7 @@ public class AutoencoderClientService {
 
     private final RestTemplate restTemplate;
     private final RestTemplate trainingRestTemplate;
+    private final RestTemplate enhanceRestTemplate;
 
     @Value("${autoencoder.service.url:http://127.0.0.1:8000}")
     private String autoencoderServiceUrl;
@@ -36,6 +37,11 @@ public class AutoencoderClientService {
         this.trainingRestTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(3))
                 .setReadTimeout(Duration.ofSeconds(10))
+                .build();
+        // U-Net на CPU может обрабатывать изображение 30–120 секунд
+        this.enhanceRestTemplate = restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(120))
                 .build();
     }
 
@@ -160,7 +166,7 @@ public class AutoencoderClientService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            ResponseEntity<byte[]> response = restTemplate.exchange(
+            ResponseEntity<byte[]> response = enhanceRestTemplate.exchange(
                     autoencoderServiceUrl + "/enhance",
                     HttpMethod.POST,
                     requestEntity,
