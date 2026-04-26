@@ -255,7 +255,12 @@ public class PythonServiceManager {
     private Long startDetachedPythonService(File workDirectory, String resolvedPythonExecutable)
             throws IOException, InterruptedException {
 
-        String logPath = new File(workDirectory, "service.log").getAbsolutePath().replace("'", "''");
+        String timestamp = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String logPath = new File(workDirectory, "service_" + timestamp + ".log")
+                .getAbsolutePath().replace("'", "''");
+        String errPath = new File(workDirectory, "service_" + timestamp + ".log.err")
+                .getAbsolutePath().replace("'", "''");
         String pythonPath = resolvedPythonExecutable.replace("'", "''");
         String workingDir = workDirectory.getAbsolutePath().replace("'", "''");
         String pidPath = pidFile.toAbsolutePath().toString().replace("'", "''");
@@ -272,7 +277,7 @@ public class PythonServiceManager {
                 host,
                 port,
                 logPath,
-                logPath + ".err",
+                errPath,
                 pidPath
         );
 
@@ -349,20 +354,30 @@ public class PythonServiceManager {
     }
 
     private void logServiceLogTail(Path workDirectory) {
-        Path logPath = workDirectory.resolve("service.log");
-        if (!Files.isRegularFile(logPath)) {
-            return;
-        }
-
         try {
+            // Ищем последний по имени service_YYYYMMDD_HHmmss.log
+            Path logPath = Files.list(workDirectory)
+                    .filter(p -> {
+                        String name = p.getFileName().toString();
+                        return name.startsWith("service_") && name.endsWith(".log")
+                                && !name.endsWith(".log.err");
+                    })
+                    .max(java.util.Comparator.comparing(p -> p.getFileName().toString()))
+                    .orElse(null);
+
+            if (logPath == null || !Files.isRegularFile(logPath)) {
+                return;
+            }
+
             List<String> lines = Files.readAllLines(logPath);
             int fromIndex = Math.max(lines.size() - 20, 0);
             List<String> tail = lines.subList(fromIndex, lines.size());
-            log.error("Последние строки service.log перед отказом запуска Python-сервиса:{}{}",
+            log.error("Последние строки {} перед отказом запуска Python-сервиса:{}{}",
+                    logPath.getFileName(),
                     System.lineSeparator(),
                     String.join(System.lineSeparator(), tail));
         } catch (IOException e) {
-            log.warn("Не удалось прочитать service.log: {}", e.getMessage());
+            log.warn("Не удалось прочитать лог Python-сервиса: {}", e.getMessage());
         }
     }
 

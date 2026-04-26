@@ -2,13 +2,16 @@
 
 import io
 import json
-import random
+import logging
 import os
+import random
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
+_log = logging.getLogger("uvicorn.error")
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps, UnidentifiedImageError
@@ -234,11 +237,10 @@ class AutoencoderService:
         self.model = self._load_model_if_available()
         self.metadata = self._load_metadata()
         self.training_history = self._load_history()
-        self.training_status = self._normalize_training_status(self._load_status())
         self.training_process: subprocess.Popen | None = None
+        self.training_status = self._normalize_training_status(self._load_status())
 
     def list_models(self) -> list[dict[str, object]]:
-        self.model = self._load_model_if_available()
         self.metadata = self._load_metadata()
         models = [
             self._to_dict(
@@ -298,13 +300,14 @@ class AutoencoderService:
         started_at = datetime.now()
         self._set_training_status(
             {
-            "status": "running",
+                "status": "running",
                 "message": "Идёт обучение модели",
-            "startedAt": self._format_datetime(started_at),
-            "epochs": epochs,
-            "batchSize": batch_size,
-            "learningRate": learning_rate,
-            "imageSize": image_size,
+                "pid": os.getpid(),
+                "startedAt": self._format_datetime(started_at),
+                "epochs": epochs,
+                "batchSize": batch_size,
+                "learningRate": learning_rate,
+                "imageSize": image_size,
                 "datasetSize": len(self._discover_training_images()),
             }
         )
@@ -416,7 +419,9 @@ class AutoencoderService:
                 "datasetSize": len(dataset),
             })
 
-        torch.save(model.state_dict(), WEIGHTS_PATH)
+        tmp_weights = WEIGHTS_PATH.with_suffix(".tmp")
+        torch.save(model.state_dict(), tmp_weights)
+        os.replace(str(tmp_weights), str(WEIGHTS_PATH))
         finished_at = datetime.now()
         duration_seconds = round((finished_at - started_at).total_seconds(), 2)
         metadata = {
@@ -457,7 +462,7 @@ class AutoencoderService:
         learning_rate: float,
         image_size: int = DEFAULT_IMAGE_SIZE,
     ) -> dict[str, object]:
-        current_status = self._load_status()
+        current_status = self._normalize_training_status(self._load_status())
         if current_status.get("status") == "running":
             return {
                 "status": "busy",
@@ -493,14 +498,20 @@ class AutoencoderService:
         ]
 
         try:
-            # На Windows отделяем обучение от консоли uvicorn
-            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+            # На Windows: CREATE_NEW_PROCESS_GROUP изолирует CTRL+C,
+            # CREATE_NO_WINDOW (0x08000000) отвязывает от консоли uvicorn —
+            # это предотвращает GenerateConsoleCtrlEvent от попадания в uvicorn
+            if sys.platform == "win32":
+                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | 0x08000000
+            else:
+                creation_flags = 0
             # Включаем UTF-8 для вывода train.py
             child_env = {**os.environ, "PYTHONUTF8": "1"}
             log_file = open(TRAINING_LOG_PATH, "w", encoding="utf-8")
             self.training_process = subprocess.Popen(
                 command,
                 cwd=str(ROOT_DIR),
+                stdin=subprocess.DEVNULL,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 creationflags=creation_flags,
@@ -557,7 +568,6 @@ class AutoencoderService:
         return {"status": "ok", "message": "История очищена"}
 
     def get_metrics(self) -> dict[str, object]:
-        self.model = self._load_model_if_available()
         self.metadata = self._load_metadata()
         if self.metadata is None:
             return {
@@ -746,18 +756,48 @@ class AutoencoderService:
         STATUS_PATH.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _is_process_alive(self, pid: int) -> bool:
-        try:
-            os.kill(pid, 0)
-            return True
-        except OSError:
-            return False
+        """
+        Диагностический метод — больше не используется в _normalize_training_status.
+        Оставлен для ручных проверок и логирования.
+        os.kill(pid, 0) на Windows == GenerateConsoleCtrlEvent → НЕ использовать!
+        """
+        if self.training_process is not None:
+            popen_pid = self.training_process.pid
+            poll_result = self.training_process.poll()
+            _log.info(
+                "[DIAG] _is_process_alive: asked_pid=%d popen_pid=%d pid_match=%s poll=%s",
+                pid, popen_pid, pid == popen_pid, poll_result,
+            )
+            if popen_pid == pid:
+                return poll_result is None
+        else:
+            _log.info("[DIAG] _is_process_alive: asked_pid=%d training_process=None → False", pid)
+        return False
 
     def _normalize_training_status(self, status: dict[str, object]) -> dict[str, object]:
+        """
+        Нормализует статус обучения.
+        Использует объект Popen как единственный источник истины:
+        не полагается на pid из файла, который может не совпадать в ряде
+        Windows-сценариев (CREATE_NO_WINDOW, разные экземпляры сервиса).
+        """
         if status.get("status") != "running":
             return status
-        pid = status.get("pid")
-        if pid is not None and self._is_process_alive(int(pid)):
-            return status
+        pid_in_file = status.get("pid")
+        if self.training_process is not None:
+            popen_pid = self.training_process.pid
+            poll_result = self.training_process.poll()
+            _log.info(
+                "[DIAG] normalize: pid_in_file=%s popen_pid=%d poll=%s pid_match=%s",
+                pid_in_file, popen_pid, poll_result,
+                pid_in_file == popen_pid if pid_in_file is not None else "n/a",
+            )
+            if poll_result is None:
+                return status  # процесс жив — статус running подтверждён
+            # Процесс завершился, но не успел записать финальный статус
+            _log.info("[DIAG] normalize: process exited (poll=%s) → idle", poll_result)
+        else:
+            _log.info("[DIAG] normalize: pid_in_file=%s training_process=None → idle", pid_in_file)
         return {"status": "idle", "message": "Обучение не выполняется (процесс завершён)."}
 
     def _finish_training(

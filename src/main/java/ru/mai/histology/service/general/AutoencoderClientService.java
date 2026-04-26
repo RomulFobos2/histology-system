@@ -32,7 +32,7 @@ public class AutoencoderClientService {
     public AutoencoderClientService(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(120))
                 .build();
         this.trainingRestTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(3))
