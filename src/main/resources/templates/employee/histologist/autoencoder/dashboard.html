@@ -461,8 +461,10 @@
             if (progressBlock) progressBlock.style.display = 'none';
         }
 
-        // После обучения обновляем метрики
-        if (wasRunning && !isRunning) {
+        // После обучения обновляем метрики — только при финальных статусах (ok/error),
+        // чтобы не срабатывало на ложный "idle" во время запуска подпроцесса
+        var isFinalStatus = (status === 'ok' || status === 'error');
+        if (wasRunning && !isRunning && isFinalStatus) {
             updateMetricsBlock(data.metrics || {});
             var alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show';
@@ -472,13 +474,21 @@
             if (main) main.insertBefore(alertDiv, main.children[2]);
         }
 
-        wasRunning = isRunning;
+        // Обновляем wasRunning только на финальных статусах или при running,
+        // игнорируем "idle" пока подпроцесс не записал pid в статус-файл
+        if (isRunning || isFinalStatus) {
+            wasRunning = isRunning;
+        }
     }
 
     function pollTrainingStatus() {
         fetch('/employee/histologist/autoencoder/api/training-status')
             .then(function (r) { return r.json(); })
-            .then(updateTrainingUI)
+            .then(function (data) {
+                var st = data.trainingStatus ? data.trainingStatus.status : 'n/a';
+                console.log('[DIAG] poll /api/training-status → status=' + st + ' wasRunning=' + wasRunning);
+                updateTrainingUI(data);
+            })
             .catch(function () {});
     }
 
@@ -500,8 +510,10 @@
                 }
 
                 var formData = new FormData(form);
+                console.log('[DIAG] fetch POST /train starting');
                 fetch(form.action, { method: 'POST', body: formData, redirect: 'manual' })
-                    .then(function () {
+                    .then(function (response) {
+                        console.log('[DIAG] fetch POST /train .then: type=' + response.type + ' status=' + response.status + ' url=' + response.url);
                         var progressBlock = document.getElementById('trainingProgressBlock');
                         if (progressBlock) progressBlock.style.display = 'block';
                         var progressText = document.getElementById('trainingProgressText');
@@ -510,7 +522,8 @@
                         if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
                         // Проверка статуса уже идет
                     })
-                    .catch(function () {
+                    .catch(function (err) {
+                        console.log('[DIAG] fetch POST /train .catch: ' + err);
                         if (btn) {
                             btn.disabled = false;
                             btn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
