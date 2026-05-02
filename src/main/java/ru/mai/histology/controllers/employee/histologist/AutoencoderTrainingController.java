@@ -1,5 +1,6 @@
 package ru.mai.histology.controllers.employee.histologist;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -30,8 +31,10 @@ public class AutoencoderTrainingController {
     }
 
     @GetMapping("/employee/histologist/autoencoder/dashboard")
-    public String dashboard(Model model) {
-        log.debug("Загрузка дашборда автоэнкодера...");
+    public String dashboard(Model model, HttpServletRequest request) {
+        String referer = request.getHeader("Referer");
+        String via = request.getHeader("X-Requested-With");
+        log.info("[DIAG] GET /dashboard  Referer='{}' X-Requested-With='{}'", referer, via);
         long t0 = System.currentTimeMillis();
 
         boolean serviceAvailable = autoencoderTrainingService.isServiceAvailable();
@@ -148,7 +151,11 @@ public class AutoencoderTrainingController {
                         @RequestParam int inputBatchSize,
                         @RequestParam double inputLearningRate,
                         @RequestParam int inputImageSize,
-                        RedirectAttributes redirectAttributes) {
+                        RedirectAttributes redirectAttributes,
+                        HttpServletRequest request) {
+        log.info("[DIAG] POST /train epochs={} batchSize={} lr={} imageSize={} | Referer='{}' X-Requested-With='{}'",
+                inputEpochs, inputBatchSize, inputLearningRate, inputImageSize,
+                request.getHeader("Referer"), request.getHeader("X-Requested-With"));
         Map<String, Object> result = autoencoderTrainingService.startTraining(
                 inputEpochs,
                 inputBatchSize,

@@ -136,16 +136,32 @@ public class AutoencoderTrainingService {
     public List<TrainingSessionDTO> getTrainingSessionsWithData(Map<String, Object> trainingStatus,
                                                                  List<Map<String, Object>> history) {
         TrainingSession runningSession = trainingSessionRepository.findFirstByStatusOrderByStartedAtDesc("RUNNING");
-        if (runningSession != null
-                && !"running".equalsIgnoreCase(readString(trainingStatus.get("status")))) {
+        String pythonStatus = readString(trainingStatus.get("status"));
+        log.info("[DIAG] getTrainingSessionsWithData: runningSession={}, pythonStatus='{}', historySize={}",
+                runningSession != null ? "id=" + runningSession.getId() + " startedAt=" + (runningSession.getStartedAt() != null ? runningSession.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER) : "null") : "null",
+                pythonStatus,
+                history == null ? "null" : history.size());
+        if (runningSession != null && !"running".equalsIgnoreCase(pythonStatus)) {
+            if (history != null) {
+                for (Map<String, Object> entry : history) {
+                    log.info("[DIAG]   history entry: startedAt='{}' status='{}'",
+                            entry.get("startedAt"), entry.get("status"));
+                }
+            }
             Map<String, Object> matchedResult = findMatchingHistoryEntry(runningSession, history);
             if (matchedResult != null) {
+                log.info("[DIAG]   MATCH FOUND → applyHistoryResult");
                 applyHistoryResult(runningSession, matchedResult);
-            } else {
+            } else if (history != null && !history.isEmpty()) {
+                log.warn("[DIAG]   NO MATCH → setting ERROR. sessionStart='{}', historySize={}",
+                        runningSession.getStartedAt() != null ? runningSession.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER) : "null",
+                        history.size());
                 runningSession.setStatus("ERROR");
                 runningSession.setFinishedAt(LocalDateTime.now());
                 runningSession.setMessage("Обучение завершилось без результата (процесс прервался)");
                 trainingSessionRepository.save(runningSession);
+            } else {
+                log.info("[DIAG]   history empty → keeping RUNNING (race condition guard)");
             }
         }
         return TrainingSessionMapper.INSTANCE.toDTOList(
@@ -163,8 +179,14 @@ public class AutoencoderTrainingService {
 
         Employee currentEmployee = employeeService.getAuthenticationEmployee();
 
+        Object rawStartedAt = response.get("startedAt");
+        LocalDateTime parsedStartedAt = readDateTime(rawStartedAt);
+        log.info("[DIAG] startTraining: response.startedAt='{}' → parsed='{}'",
+                rawStartedAt,
+                parsedStartedAt != null ? parsedStartedAt.format(PYTHON_DATE_TIME_FORMATTER) : "null");
+
         TrainingSession session = new TrainingSession();
-        session.setStartedAt(readDateTime(response.get("startedAt")));
+        session.setStartedAt(parsedStartedAt);
         session.setStatus("RUNNING");
         session.setEpochs(epochs);
         session.setBatchSize(batchSize);
@@ -174,6 +196,9 @@ public class AutoencoderTrainingService {
         session.setMessage(readString(response.get("message")));
         session.setTriggeredBy(currentEmployee);
         trainingSessionRepository.save(session);
+        log.info("[DIAG] startTraining: session saved id={} startedAt='{}'",
+                session.getId(),
+                session.getStartedAt() != null ? session.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER) : "null");
         return response;
     }
 
@@ -185,19 +210,36 @@ public class AutoencoderTrainingService {
         }
 
         Map<String, Object> pythonStatus = autoencoderClientService.getTrainingStatus();
-        if ("running".equalsIgnoreCase(readString(pythonStatus.get("status")))) {
+        String statusStr = readString(pythonStatus.get("status"));
+        log.info("[DIAG] refreshTrainingSessionsFromPython: runningSession startedAt={}, pythonStatus='{}'",
+                runningSession.getStartedAt() != null ? runningSession.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER) : "null",
+                statusStr);
+        if ("running".equalsIgnoreCase(statusStr)) {
             return;
         }
 
         List<Map<String, Object>> history = autoencoderClientService.getTrainingHistory();
+        log.info("[DIAG] refresh: historySize={}", history == null ? "null" : history.size());
+        if (history != null) {
+            for (Map<String, Object> entry : history) {
+                log.info("[DIAG]   history entry: startedAt='{}' status='{}'",
+                        entry.get("startedAt"), entry.get("status"));
+            }
+        }
         Map<String, Object> matchedResult = findMatchingHistoryEntry(runningSession, history);
         if (matchedResult != null) {
+            log.info("[DIAG] refresh: MATCH FOUND → applyHistoryResult");
             applyHistoryResult(runningSession, matchedResult);
-        } else {
+        } else if (history != null && !history.isEmpty()) {
+            log.warn("[DIAG] refresh: NO MATCH → setting ERROR. sessionStart='{}', historySize={}",
+                    runningSession.getStartedAt() != null ? runningSession.getStartedAt().format(PYTHON_DATE_TIME_FORMATTER) : "null",
+                    history.size());
             runningSession.setStatus("ERROR");
             runningSession.setFinishedAt(LocalDateTime.now());
             runningSession.setMessage("Обучение завершилось без результата (процесс прервался)");
             trainingSessionRepository.save(runningSession);
+        } else {
+            log.info("[DIAG] refresh: history empty → keeping RUNNING (race condition guard)");
         }
     }
 
