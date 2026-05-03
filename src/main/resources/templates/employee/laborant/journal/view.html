@@ -192,8 +192,10 @@
 
             if (show) {
                 row.classList.remove('filtered-out');
+                row.style.display = '';
             } else {
                 row.classList.add('filtered-out');
+                row.style.display = 'none';
             }
         });
 
