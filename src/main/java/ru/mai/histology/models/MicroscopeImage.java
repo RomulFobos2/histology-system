@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
+import ru.mai.histology.enumeration.EnhancementQuality;
 
 import java.time.LocalDate;
 
@@ -46,6 +47,10 @@ public class MicroscopeImage {
 
     @Column(nullable = false)
     private boolean isEnhanced = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private EnhancementQuality enhancementQuality;
 
     @Column(length = 50)
     private String magnification;

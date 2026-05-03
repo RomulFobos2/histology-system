@@ -54,11 +54,54 @@
                         <span th:text="${report.total}"></span>
                     </div>
                     <div class="col-md-4">
-                        <span class="fw-bold">Среднее вре��я (мс): </span>
+                        <span class="fw-bold">Среднее время (мс): </span>
                         <span th:text="${report.avgTimeMs}"></span>
                     </div>
+                    <div class="col-md-4">
+                        <span class="fw-bold">Оценено врачами: </span>
+                        <span th:text="${report.ratedTotal}"></span>
+                    </div>
                 </div>
-                <div class="table-responsive">
+
+                <h6 class="form-section-title mt-2">Оценка качества улучшения врачами</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="profile-card p-3 text-center" style="background-color:#f8d7da;">
+                            <div class="text-danger fw-bold" style="font-size:1.5rem;">
+                                <i class="bi bi-emoji-frown"></i> Плохо
+                            </div>
+                            <div style="font-size:2rem; font-weight:bold;" th:text="${report.badCount}"></div>
+                            <div class="text-muted">
+                                <span th:text="${report.badPercent}"></span>% от оценённых
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="profile-card p-3 text-center" style="background-color:#fff3cd;">
+                            <div class="text-warning fw-bold" style="font-size:1.5rem;">
+                                <i class="bi bi-emoji-neutral"></i> Хорошо
+                            </div>
+                            <div style="font-size:2rem; font-weight:bold;" th:text="${report.goodCount}"></div>
+                            <div class="text-muted">
+                                <span th:text="${report.goodPercent}"></span>% от оценённых
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="profile-card p-3 text-center" style="background-color:#d1e7dd;">
+                            <div class="text-success fw-bold" style="font-size:1.5rem;">
+                                <i class="bi bi-emoji-smile"></i> Отлично
+                            </div>
+                            <div style="font-size:2rem; font-weight:bold;" th:text="${report.excellentCount}"></div>
+                            <div class="text-muted">
+                                <span th:text="${report.excellentPercent}"></span>% от оценённых
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="form-section-title mt-4">Количество обработок по моделям</h6>
+                <div class="table-responsive mb-4">
                     <table class="table table-hover">
                         <thead>
                         <tr>
@@ -67,9 +110,39 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="row : ${report.rows}">
+                        <tr th:each="row : ${report.byModelRows}">
                             <td th:text="${row[0]}"></td>
                             <td th:text="${row[1]}"></td>
+                        </tr>
+                        <tr th:if="${report.byModelRows.isEmpty()}">
+                            <td colspan="2" class="text-center text-muted">Нет данных за период</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6 class="form-section-title mt-4">Сводная таблица: модель × оценка качества</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Модель</th>
+                            <th class="bg-danger text-white">Плохо</th>
+                            <th class="bg-warning">Хорошо</th>
+                            <th class="bg-success text-white">Отлично</th>
+                            <th>Всего оценено</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="row : ${report.qualityMatrixRows}">
+                            <td th:text="${row[0]}"></td>
+                            <td th:text="${row[1]}"></td>
+                            <td th:text="${row[2]}"></td>
+                            <td th:text="${row[3]}"></td>
+                            <td class="fw-bold" th:text="${row[4]}"></td>
+                        </tr>
+                        <tr th:if="${report.qualityMatrixRows.isEmpty()}">
+                            <td colspan="5" class="text-center text-muted">Нет оценённых улучшений за период</td>
                         </tr>
                         </tbody>
                     </table>

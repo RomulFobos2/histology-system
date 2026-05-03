@@ -30,8 +30,20 @@
                                 <h1 class="page-title mb-1" th:text="${imageDTO.originalFilename}"></h1>
                                 <p class="page-subtitle mb-0" th:text="'Образец № ' + ${imageDTO.sampleNumber} + ' — Дело № ' + ${imageDTO.caseNumber}"></p>
                             </div>
-                            <div>
-                                <span th:if="${imageDTO.enhanced}" class="badge-active">Улучшено</span>
+                            <div class="d-flex flex-column align-items-end gap-2">
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <span th:if="${imageDTO.enhanced}" class="badge-active">Улучшено</span>
+                                    <span th:if="${imageDTO.enhanced and imageDTO.enhancementQuality != null}"
+                                          id="qualityBadge"
+                                          th:classappend="${imageDTO.enhancementQuality.name() == 'BAD' ? 'bg-danger' : (imageDTO.enhancementQuality.name() == 'GOOD' ? 'bg-warning text-dark' : 'bg-success')}"
+                                          class="badge"
+                                          th:text="'Оценка: ' + ${imageDTO.enhancementQualityDisplayName}"></span>
+                                </div>
+                                <button th:if="${imageDTO.enhanced}" type="button"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#ratingModal">
+                                    <i class="bi bi-pencil-square"></i> Изменить оценку
+                                </button>
                             </div>
                         </div>
 
@@ -113,5 +125,108 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+
+<!-- Модальное окно оценки качества улучшения -->
+<div th:if="${imageDTO.enhanced}" class="modal fade" id="ratingModal" tabindex="-1" aria-labelledby="ratingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ratingModalLabel">
+                    <i class="bi bi-stars"></i> Оцените качество улучшения
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Ваша оценка поможет руководству оценить эффективность работы автоэнкодера. По умолчанию выставляется «Отлично».</p>
+                <div class="d-flex flex-column gap-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="ratingChoice" id="ratingBad" value="BAD"
+                               th:checked="${imageDTO.enhancementQuality != null and imageDTO.enhancementQuality.name() == 'BAD'}">
+                        <label class="form-check-label" for="ratingBad">
+                            <span class="badge bg-danger">Плохо</span> — заметные артефакты или потеря деталей
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="ratingChoice" id="ratingGood" value="GOOD"
+                               th:checked="${imageDTO.enhancementQuality != null and imageDTO.enhancementQuality.name() == 'GOOD'}">
+                        <label class="form-check-label" for="ratingGood">
+                            <span class="badge bg-warning text-dark">Хорошо</span> — приемлемое качество, мелкие недочёты
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="ratingChoice" id="ratingExcellent" value="EXCELLENT"
+                               th:checked="${imageDTO.enhancementQuality == null or imageDTO.enhancementQuality.name() == 'EXCELLENT'}">
+                        <label class="form-check-label" for="ratingExcellent">
+                            <span class="badge bg-success">Отлично</span> — заметное улучшение качества
+                        </label>
+                    </div>
+                </div>
+                <div id="ratingError" class="alert alert-danger mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="ratingSubmit">
+                    <i class="bi bi-check-lg"></i> Сохранить оценку
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:if="${imageDTO.enhanced}" th:inline="javascript">
+    (function () {
+        const imageId = /*[[${imageDTO.id}]]*/ 0;
+        const autoOpen = /*[[${showRatingModal}]]*/ false;
+        const modalEl = document.getElementById('ratingModal');
+        if (!modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+
+        if (autoOpen) {
+            document.addEventListener('DOMContentLoaded', () => modal.show());
+        }
+
+        document.getElementById('ratingSubmit').addEventListener('click', async () => {
+            const selected = document.querySelector('input[name="ratingChoice"]:checked');
+            const errBox = document.getElementById('ratingError');
+            errBox.classList.add('d-none');
+            if (!selected) {
+                errBox.textContent = 'Выберите оценку.';
+                errBox.classList.remove('d-none');
+                return;
+            }
+            try {
+                const params = new URLSearchParams();
+                params.append('quality', selected.value);
+                const resp = await fetch('/employee/histologist/images/rate/' + imageId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                });
+                const data = await resp.json();
+                if (!resp.ok || !data.ok) {
+                    errBox.textContent = data.error || 'Ошибка сохранения.';
+                    errBox.classList.remove('d-none');
+                    return;
+                }
+                // Обновляем бейдж без перезагрузки
+                let badge = document.getElementById('qualityBadge');
+                if (!badge) {
+                    const container = document.querySelector('.d-flex.flex-wrap.gap-2.align-items-center');
+                    badge = document.createElement('span');
+                    badge.id = 'qualityBadge';
+                    badge.className = 'badge';
+                    container.appendChild(badge);
+                }
+                badge.className = 'badge ' + data.cssClass;
+                badge.textContent = 'Оценка: ' + data.displayName;
+                modal.hide();
+            } catch (e) {
+                errBox.textContent = 'Сетевая ошибка: ' + e.message;
+                errBox.classList.remove('d-none');
+            }
+        });
+    })();
+</script>
+
 </body>
 </html>

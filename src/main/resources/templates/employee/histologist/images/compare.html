@@ -40,9 +40,15 @@
 
                     <div class="col-12 col-xl-6">
                         <div class="profile-card p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <h6 class="form-section-title mb-0">Улучшенная копия</h6>
-                                <span class="badge-active">Улучшено</span>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span class="badge-active">Улучшено</span>
+                                    <span th:if="${enhancedImageDTO.enhancementQuality != null}"
+                                          th:classappend="${enhancedImageDTO.enhancementQuality.name() == 'BAD' ? 'bg-danger' : (enhancedImageDTO.enhancementQuality.name() == 'GOOD' ? 'bg-warning text-dark' : 'bg-success')}"
+                                          class="badge"
+                                          th:text="'Оценка: ' + ${enhancedImageDTO.enhancementQualityDisplayName}"></span>
+                                </div>
                             </div>
                             <div class="text-center mb-3">
                                 <img th:src="@{/files/images/serve/{id}(id=${enhancedImageDTO.id})}"

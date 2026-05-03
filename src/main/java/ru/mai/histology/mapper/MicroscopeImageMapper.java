@@ -25,6 +25,8 @@ public interface MicroscopeImageMapper {
     @Mapping(source = "originalImage.id", target = "originalImageId")
     @Mapping(source = "image", target = "fileSizeFormatted", qualifiedByName = "formatFileSize")
     @Mapping(source = "enhanced", target = "enhanced")
+    @Mapping(source = "enhancementQuality", target = "enhancementQuality")
+    @Mapping(source = "enhancementQuality.displayName", target = "enhancementQualityDisplayName")
     MicroscopeImageDTO toDTO(MicroscopeImage image);
 
     List<MicroscopeImageDTO> toDTOList(List<MicroscopeImage> images);
