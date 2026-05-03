@@ -17,6 +17,11 @@
         var tbody = table.querySelector('tbody');
         if (!tbody) return;
 
+        // Если pagination уже инициализирована — destroy перед новой инициализацией
+        if (typeof table._paginationDestroy === 'function') {
+            table._paginationDestroy();
+        }
+
         var visibleRows = [];
         var currentPage = 1;
         var wrapper = null;
@@ -116,6 +121,23 @@
         table._paginationRefresh = function () {
             collectVisibleRows();
             showPage(1);
+        };
+
+        // Удалить wrapper и снять API — для последующего реинита (например, при смене perPage)
+        table._paginationDestroy = function () {
+            if (wrapper && wrapper.parentNode) {
+                wrapper.parentNode.removeChild(wrapper);
+            }
+            wrapper = null;
+            // Показать все строки (восстановить полный список)
+            var rows = tbody.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+                if (!rows[i].classList.contains('filtered-out')) {
+                    rows[i].style.display = '';
+                }
+            }
+            delete table._paginationRefresh;
+            delete table._paginationDestroy;
         };
 
         collectVisibleRows();

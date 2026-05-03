@@ -14,6 +14,7 @@ import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.service.employee.histologist.ImageEnhancementService;
 import ru.mai.histology.service.employee.histologist.ImageViewService;
+import ru.mai.histology.service.employee.histologist.SampleViewService;
 import ru.mai.histology.service.employee.laborant.SampleService;
 
 import java.util.Optional;
@@ -25,13 +26,23 @@ public class HistologistImageController {
     private final ImageViewService imageViewService;
     private final ImageEnhancementService imageEnhancementService;
     private final SampleService sampleService;
+    private final SampleViewService sampleViewService;
 
     public HistologistImageController(ImageViewService imageViewService,
                                       ImageEnhancementService imageEnhancementService,
-                                      SampleService sampleService) {
+                                      SampleService sampleService,
+                                      SampleViewService sampleViewService) {
         this.imageViewService = imageViewService;
         this.imageEnhancementService = imageEnhancementService;
         this.sampleService = sampleService;
+        this.sampleViewService = sampleViewService;
+    }
+
+    /** Назначен ли образец, к которому привязано изображение, текущему гистологу. */
+    private boolean isImageAccessible(Long imageId) {
+        return imageViewService.getImageById(imageId)
+                .map(img -> sampleViewService.isAssignedToCurrentUser(img.getSampleId()))
+                .orElse(false);
     }
 
     // ========== Галерея всех изображений в системе ==========
@@ -48,6 +59,9 @@ public class HistologistImageController {
 
     @GetMapping("/employee/histologist/images/allImages/{sampleId}")
     public String allImages(@PathVariable(value = "sampleId") long sampleId, Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
         Optional<SampleDTO> sampleOpt = sampleService.getSampleById(sampleId);
         if (sampleOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";
@@ -61,6 +75,9 @@ public class HistologistImageController {
 
     @GetMapping("/employee/histologist/images/detailsImage/{id}")
     public String detailsImage(@PathVariable(value = "id") long id, Model model) {
+        if (!isImageAccessible(id)) {
+            return "redirect:/employee/histologist/images/all";
+        }
         Optional<MicroscopeImageDTO> imageOpt = imageViewService.getImageById(id);
         if (imageOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";
@@ -85,6 +102,9 @@ public class HistologistImageController {
 
     @GetMapping("/employee/histologist/images/viewImage/{id}")
     public String viewImage(@PathVariable(value = "id") long id, Model model) {
+        if (!isImageAccessible(id)) {
+            return "redirect:/employee/histologist/images/all";
+        }
         Optional<MicroscopeImageDTO> imageOpt = imageViewService.getImageById(id);
         if (imageOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";
@@ -99,6 +119,9 @@ public class HistologistImageController {
     public String enhanceImage(@PathVariable(value = "id") long id,
                                @RequestParam(value = "mode", defaultValue = "auto") String mode,
                                RedirectAttributes redirectAttributes) {
+        if (!isImageAccessible(id)) {
+            return "redirect:/employee/histologist/images/all";
+        }
         Optional<Long> enhancedImageId = imageEnhancementService.enhanceImage(id, mode);
         if (enhancedImageId.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage",
@@ -115,6 +138,9 @@ public class HistologistImageController {
     public String compareImages(@PathVariable(value = "originalId") long originalId,
                                 @PathVariable(value = "enhancedId") long enhancedId,
                                 Model model) {
+        if (!isImageAccessible(originalId) || !isImageAccessible(enhancedId)) {
+            return "redirect:/employee/histologist/images/all";
+        }
         Optional<MicroscopeImageDTO> originalOpt = imageViewService.getImageById(originalId);
         Optional<MicroscopeImageDTO> enhancedOpt = imageViewService.getImageById(enhancedId);
 

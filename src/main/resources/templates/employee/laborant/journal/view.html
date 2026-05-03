@@ -23,7 +23,13 @@
             <div class="profile-card mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h1 class="page-title mb-0">Электронный журнал</h1>
-                    <form th:action="@{/employee/laborant/journal/export}" method="post" style="display:inline;">
+                    <form id="exportForm" th:action="@{/employee/laborant/journal/export}" method="post" style="display:inline;">
+                        <input type="hidden" name="tissue" id="hiddenTissue">
+                        <input type="hidden" name="staining" id="hiddenStaining">
+                        <input type="hidden" name="status" id="hiddenStatus">
+                        <input type="hidden" name="search" id="hiddenSearch">
+                        <input type="hidden" name="dateFrom" id="hiddenDateFrom">
+                        <input type="hidden" name="dateTo" id="hiddenDateTo">
                         <button type="submit" class="btn btn-success">
                             <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
                         </button>
@@ -46,23 +52,39 @@
                             <option value="">Все</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Статус</label>
                         <select id="filterStatus" class="form-select form-select-sm" onchange="applyJournalFilters()">
                             <option value="">Все</option>
                         </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата с</label>
+                        <input type="date" id="filterDateFrom" class="form-control form-control-sm" onchange="applyJournalFilters()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата по</label>
+                        <input type="date" id="filterDateTo" class="form-control form-control-sm" onchange="applyJournalFilters()">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Поиск</label>
                         <input type="text" id="filterSearch" class="form-control form-control-sm"
                                placeholder="По номеру дела или образца..." oninput="applyJournalFilters()">
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label">На странице</label>
+                        <select id="pageSizeSelect" class="form-select form-select-sm">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <div class="profile-card">
                 <div class="table-responsive">
-                    <table class="table table-hover" id="journalTable" data-sortable-table data-page-size="20">
+                    <table class="table table-hover" id="journalTable" data-sortable-table>
                         <thead>
                         <tr>
                             <th data-sortable data-sort-type="number">№</th>
@@ -80,7 +102,9 @@
                             <td class="row-number" th:text="${index.index + 1}"></td>
                             <td class="filter-case" th:text="${s.caseNumber}"></td>
                             <td class="filter-sample" th:text="${s.sampleNumber}"></td>
-                            <td th:text="${s.receiptDate} ? ${#temporals.format(s.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
+                            <td class="filter-date"
+                                th:attr="data-date-iso=${s.receiptDate != null ? #temporals.format(s.receiptDate, 'yyyy-MM-dd') : ''}"
+                                th:text="${s.receiptDate} ? ${#temporals.format(s.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
                             <td class="filter-tissue" th:text="${s.tissueTypeDisplayName}"></td>
                             <td class="filter-staining" th:text="${s.stainingMethodDisplayName}"></td>
                             <td th:text="${s.assignedHistologistFullName} ?: '—'"></td>
@@ -100,52 +124,102 @@
 </div>
 
 <script>
-    // Инициализация фильтров уникальными значениями из таблицы
+    var journalTable = document.getElementById('journalTable');
+    var pageSizeSelect = document.getElementById('pageSizeSelect');
+
     document.addEventListener('DOMContentLoaded', function() {
         populateFilter('filterTissue', '.filter-tissue');
         populateFilter('filterStaining', '.filter-staining');
         populateFilter('filterStatus', '.filter-status');
+        initJournalPagination();
+        if (typeof initSortable === 'function') {
+            initSortable('journalTable');
+        }
     });
 
     function populateFilter(selectId, cellSelector) {
-        const select = document.getElementById(selectId);
-        const cells = document.querySelectorAll('#journalTable tbody ' + cellSelector);
-        const values = new Set();
-        cells.forEach(c => {
-            const text = c.textContent.trim();
+        var select = document.getElementById(selectId);
+        var cells = document.querySelectorAll('#journalTable tbody ' + cellSelector);
+        var values = new Set();
+        cells.forEach(function (c) {
+            var text = c.textContent.trim();
             if (text) values.add(text);
         });
-        Array.from(values).sort().forEach(v => {
-            const opt = document.createElement('option');
+        Array.from(values).sort().forEach(function (v) {
+            var opt = document.createElement('option');
             opt.value = v;
             opt.textContent = v;
             select.appendChild(opt);
         });
     }
 
-    function applyJournalFilters() {
-        const tissue = document.getElementById('filterTissue').value;
-        const staining = document.getElementById('filterStaining').value;
-        const status = document.getElementById('filterStatus').value;
-        const search = document.getElementById('filterSearch').value.toLowerCase();
-
-        const rows = document.querySelectorAll('#journalTable tbody tr');
-        rows.forEach(row => {
-            const tTissue = row.querySelector('.filter-tissue')?.textContent.trim() || '';
-            const tStaining = row.querySelector('.filter-staining')?.textContent.trim() || '';
-            const tStatus = row.querySelector('.filter-status')?.textContent.trim() || '';
-            const tCase = row.querySelector('.filter-case')?.textContent.trim().toLowerCase() || '';
-            const tSample = row.querySelector('.filter-sample')?.textContent.trim().toLowerCase() || '';
-
-            let show = true;
-            if (tissue && tTissue !== tissue) show = false;
-            if (staining && tStaining !== staining) show = false;
-            if (status && tStatus !== status) show = false;
-            if (search && !tCase.includes(search) && !tSample.includes(search)) show = false;
-
-            row.style.display = show ? '' : 'none';
-        });
+    function initJournalPagination() {
+        var perPage = parseInt(pageSizeSelect.value, 10) || 20;
+        initPagination('journalTable', { perPage: perPage });
     }
+
+    pageSizeSelect.addEventListener('change', function () {
+        initJournalPagination();
+        // Заново применяем фильтры (initPagination сбрасывает display)
+        applyJournalFilters();
+    });
+
+    function applyJournalFilters() {
+        var tissue = document.getElementById('filterTissue').value;
+        var staining = document.getElementById('filterStaining').value;
+        var status = document.getElementById('filterStatus').value;
+        var search = document.getElementById('filterSearch').value.trim().toLowerCase();
+        var dateFrom = document.getElementById('filterDateFrom').value;
+        var dateTo = document.getElementById('filterDateTo').value;
+
+        var rows = document.querySelectorAll('#journalTable tbody tr');
+        rows.forEach(function (row) {
+            var tTissue = (row.querySelector('.filter-tissue') || {}).textContent || '';
+            var tStaining = (row.querySelector('.filter-staining') || {}).textContent || '';
+            var tStatus = (row.querySelector('.filter-status') || {}).textContent || '';
+            var tCase = ((row.querySelector('.filter-case') || {}).textContent || '').toLowerCase();
+            var tSample = ((row.querySelector('.filter-sample') || {}).textContent || '').toLowerCase();
+            var dateCell = row.querySelector('.filter-date');
+            var iso = dateCell ? (dateCell.getAttribute('data-date-iso') || '') : '';
+
+            var show = true;
+            if (tissue && tTissue.trim() !== tissue) show = false;
+            if (staining && tStaining.trim() !== staining) show = false;
+            if (status && tStatus.trim() !== status) show = false;
+            if (search && tCase.indexOf(search) === -1 && tSample.indexOf(search) === -1) show = false;
+            if (dateFrom && (!iso || iso < dateFrom)) show = false;
+            if (dateTo && (!iso || iso > dateTo)) show = false;
+
+            if (show) {
+                row.classList.remove('filtered-out');
+                row.style.display = '';
+            } else {
+                row.classList.add('filtered-out');
+                row.style.display = 'none';
+            }
+        });
+
+        // Перенумерация видимых строк
+        var visibleRows = Array.from(document.querySelectorAll('#journalTable tbody tr'))
+                .filter(function (r) { return !r.classList.contains('filtered-out'); });
+        visibleRows.forEach(function (r, i) {
+            var n = r.querySelector('.row-number');
+            if (n) n.textContent = i + 1;
+        });
+
+        if (journalTable._paginationRefresh) {
+            journalTable._paginationRefresh();
+        }
+    }
+
+    document.getElementById('exportForm').addEventListener('submit', function() {
+        document.getElementById('hiddenTissue').value = document.getElementById('filterTissue').value;
+        document.getElementById('hiddenStaining').value = document.getElementById('filterStaining').value;
+        document.getElementById('hiddenStatus').value = document.getElementById('filterStatus').value;
+        document.getElementById('hiddenSearch').value = document.getElementById('filterSearch').value;
+        document.getElementById('hiddenDateFrom').value = document.getElementById('filterDateFrom').value;
+        document.getElementById('hiddenDateTo').value = document.getElementById('filterDateTo').value;
+    });
 </script>
 </body>
 </html>

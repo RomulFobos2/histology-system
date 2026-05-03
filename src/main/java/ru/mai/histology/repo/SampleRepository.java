@@ -10,6 +10,8 @@ public interface SampleRepository extends JpaRepository<Sample, Long> {
 
     List<Sample> findAllByOrderByReceiptDateDesc();
 
+    List<Sample> findAllByAssignedHistologistIdOrderByReceiptDateDesc(Long histologistId);
+
     List<Sample> findAllByReceiptDateBetween(LocalDate from, LocalDate to);
 
     List<Sample> findAllByForensicCaseIdOrderBySampleNumberAsc(Long caseId);

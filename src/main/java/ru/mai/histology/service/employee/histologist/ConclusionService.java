@@ -184,6 +184,17 @@ public class ConclusionService {
         return conclusionRepository.existsBySampleId(sampleId);
     }
 
+    /** Создано ли заключение текущим гистологом. */
+    @Transactional(readOnly = true)
+    public boolean isAuthoredByCurrentUser(Long conclusionId) {
+        Employee currentUser = getCurrentUser();
+        if (currentUser == null) return false;
+        return conclusionRepository.findById(conclusionId)
+                .map(c -> c.getHistologist() != null
+                        && c.getHistologist().getId().equals(currentUser.getId()))
+                .orElse(false);
+    }
+
     // ========== Вспомогательные ==========
 
     private Employee getCurrentUser() {

@@ -23,6 +23,7 @@ public class MicroscopeImageDTO {
     private String caseNumber;
     private String tissueTypeDisplayName;
     private String stainingMethodDisplayName;
+    private Long assignedHistologistId;
     private String uploadedByFullName;
     private Long originalImageId;
 }

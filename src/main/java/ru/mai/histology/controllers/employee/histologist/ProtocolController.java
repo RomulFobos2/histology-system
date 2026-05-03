@@ -41,7 +41,7 @@ public class ProtocolController {
 
     @GetMapping("/employee/histologist/protocols/allProtocols")
     public String allProtocols(Model model) {
-        model.addAttribute("allProtocols", protocolService.getAllProtocols());
+        model.addAttribute("allProtocols", protocolService.getProtocolsByCurrentHistologist());
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
         return "employee/histologist/protocols/allProtocols";
@@ -51,6 +51,9 @@ public class ProtocolController {
 
     @GetMapping("/employee/histologist/protocols/generateProtocol/{sampleId}")
     public String generateProtocolForm(@PathVariable(value = "sampleId") long sampleId, Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
         Optional<SampleDTO> sampleOpt = sampleViewService.getSampleById(sampleId);
         if (sampleOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";
@@ -71,6 +74,10 @@ public class ProtocolController {
                                    @RequestParam String inputProtocolNumber,
                                    @RequestParam String inputProtocolText,
                                    Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
+
         Optional<Long> savedId = protocolService.generateProtocol(sampleId,
                 inputProtocolNumber, inputProtocolText);
 
@@ -88,6 +95,9 @@ public class ProtocolController {
 
     @GetMapping("/employee/histologist/protocols/detailsProtocol/{id}")
     public String detailsProtocol(@PathVariable(value = "id") long id, Model model) {
+        if (!protocolService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/protocols/allProtocols";
+        }
         Optional<ResearchProtocolDTO> protocolOpt = protocolService.getProtocolById(id);
         if (protocolOpt.isEmpty()) {
             return "redirect:/employee/histologist/protocols/allProtocols";
@@ -100,6 +110,9 @@ public class ProtocolController {
 
     @GetMapping("/employee/histologist/protocols/editProtocol/{id}")
     public String editProtocolForm(@PathVariable(value = "id") long id, Model model) {
+        if (!protocolService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/protocols/allProtocols";
+        }
         Optional<ResearchProtocolDTO> protocolOpt = protocolService.getProtocolById(id);
         if (protocolOpt.isEmpty()) {
             return "redirect:/employee/histologist/protocols/allProtocols";
@@ -113,6 +126,10 @@ public class ProtocolController {
                                @RequestParam String inputProtocolNumber,
                                @RequestParam String inputProtocolText,
                                Model model) {
+        if (!protocolService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/protocols/allProtocols";
+        }
+
         Optional<Long> editedId = protocolService.editProtocol(id,
                 inputProtocolNumber, inputProtocolText);
 
@@ -145,6 +162,9 @@ public class ProtocolController {
 
     @PostMapping("/employee/histologist/protocols/exportProtocol/{id}")
     public ResponseEntity<byte[]> exportProtocol(@PathVariable(value = "id") long id) {
+        if (!protocolService.isAuthoredByCurrentUser(id)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
+        }
         Optional<ResearchProtocolDTO> protocolOpt = protocolService.getProtocolById(id);
         if (protocolOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
