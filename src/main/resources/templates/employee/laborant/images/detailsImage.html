@@ -30,8 +30,12 @@
                                 <h1 class="page-title mb-1" th:text="${imageDTO.originalFilename}"></h1>
                                 <p class="page-subtitle mb-0" th:text="'Образец № ' + ${imageDTO.sampleNumber} + ' — Дело № ' + ${imageDTO.caseNumber}"></p>
                             </div>
-                            <div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
                                 <span th:if="${imageDTO.enhanced}" class="badge-active">Улучшено</span>
+                                <span th:if="${imageDTO.enhanced and imageDTO.enhancementQuality != null}"
+                                      th:classappend="${imageDTO.enhancementQuality.name() == 'BAD' ? 'bg-danger' : (imageDTO.enhancementQuality.name() == 'GOOD' ? 'bg-warning text-dark' : 'bg-success')}"
+                                      class="badge"
+                                      th:text="'Оценка: ' + ${imageDTO.enhancementQualityDisplayName}"></span>
                             </div>
                         </div>
 

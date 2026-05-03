@@ -1,6 +1,7 @@
 package ru.mai.histology.dto;
 
 import lombok.Data;
+import ru.mai.histology.enumeration.EnhancementQuality;
 
 import java.time.LocalDate;
 
@@ -16,6 +17,8 @@ public class MicroscopeImageDTO {
     private LocalDate uploadDate;
     private String description;
     private boolean enhanced;
+    private EnhancementQuality enhancementQuality;
+    private String enhancementQualityDisplayName;
     private String magnification;
     private Long sampleId;
     private String sampleNumber;

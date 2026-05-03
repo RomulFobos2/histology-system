@@ -43,6 +43,11 @@
                             <div class="image-card-meta">
                                 <span th:text="${img.fileSizeFormatted}"></span>
                                 <span th:if="${img.enhanced}" class="badge-active" style="font-size:0.7rem;">Улучшено</span>
+                                <span th:if="${img.enhanced and img.enhancementQuality != null}"
+                                      th:classappend="${img.enhancementQuality.name() == 'BAD' ? 'bg-danger' : (img.enhancementQuality.name() == 'GOOD' ? 'bg-warning text-dark' : 'bg-success')}"
+                                      class="badge"
+                                      style="font-size:0.7rem;"
+                                      th:text="${img.enhancementQualityDisplayName}"></span>
                             </div>
                         </div>
                     </div>

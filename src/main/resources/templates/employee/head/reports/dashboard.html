@@ -50,6 +50,37 @@
                 </div>
             </div>
 
+            <!-- Качество улучшений за последние 30 дней -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-12">
+                    <div class="profile-card"
+                         th:classappend="${goodEnhancementPercent >= 80 ? 'border-success' : (goodEnhancementPercent >= 50 ? 'border-warning' : 'border-danger')}"
+                         style="border-left:4px solid;">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="bi bi-stars"></i>
+                                    Качество улучшений за последние 30 дней
+                                </h5>
+                                <p class="text-muted mb-0">
+                                    Доля оценок «Хорошо» и «Отлично» от всех оценённых улучшений
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <div class="fs-1 fw-bold"
+                                     th:classappend="${goodEnhancementPercent >= 80 ? 'text-success' : (goodEnhancementPercent >= 50 ? 'text-warning' : 'text-danger')}">
+                                    <span th:text="${goodEnhancementPercent}">0</span>%
+                                </div>
+                                <div class="text-muted small">
+                                    Оценено <span th:text="${recentEnhancementsRated}">0</span>
+                                    из <span th:text="${recentEnhancementsTotal}">0</span> обработок
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Ссылки на отчёты -->
             <div class="row g-4">
                 <div class="col-md-6">

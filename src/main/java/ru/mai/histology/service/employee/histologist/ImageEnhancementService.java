@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import ru.mai.histology.enumeration.EnhancementQuality;
 import ru.mai.histology.models.AutoencoderModel;
 import ru.mai.histology.models.Employee;
 import ru.mai.histology.models.ImageProcessingLog;
@@ -101,6 +102,7 @@ public class ImageEnhancementService {
             enhancedImage.setDescription(buildEnhancedDescription(originalImage.getDescription(), response.modelName()));
             enhancedImage.setMagnification(originalImage.getMagnification());
             enhancedImage.setEnhanced(true);
+            enhancedImage.setEnhancementQuality(EnhancementQuality.EXCELLENT);
             enhancedImage.setSample(originalImage.getSample());
             enhancedImage.setUploadedBy(currentEmployee);
             enhancedImage.setOriginalImage(originalImage);
@@ -125,6 +127,32 @@ public class ImageEnhancementService {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Optional.empty();
         }
+    }
+
+    /**
+     * Сохраняет оценку качества улучшения для улучшенного изображения.
+     * Возвращает true, если оценка успешно сохранена.
+     */
+    @Transactional
+    public boolean rateEnhancement(Long enhancedImageId, EnhancementQuality quality) {
+        if (quality == null) {
+            log.warn("Попытка сохранить пустую оценку для изображения id={}", enhancedImageId);
+            return false;
+        }
+        Optional<MicroscopeImage> imageOpt = microscopeImageRepository.findById(enhancedImageId);
+        if (imageOpt.isEmpty()) {
+            log.warn("Изображение для оценки не найдено: id={}", enhancedImageId);
+            return false;
+        }
+        MicroscopeImage image = imageOpt.get();
+        if (!image.isEnhanced()) {
+            log.warn("Попытка оценить не улучшенное изображение: id={}", enhancedImageId);
+            return false;
+        }
+        image.setEnhancementQuality(quality);
+        microscopeImageRepository.save(image);
+        log.info("Оценка качества улучшения сохранена: id={}, quality={}", enhancedImageId, quality);
+        return true;
     }
 
     /**
