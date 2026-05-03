@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.ForensicCaseDTO;
+import ru.mai.histology.enumeration.CaseStatus;
 import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.service.employee.laborant.ForensicCaseService;
 import ru.mai.histology.service.employee.laborant.SampleService;
@@ -55,6 +56,7 @@ public class ForensicCaseController {
     @GetMapping("/employee/laborant/cases/allCases")
     public String allCases(Model model) {
         model.addAttribute("allCases", forensicCaseService.getAllCases());
+        model.addAttribute("caseStatuses", CaseStatus.values());
         return "employee/laborant/cases/allCases";
     }
 

@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.HistologistConclusionDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.StainingMethod;
+import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.service.employee.histologist.ConclusionService;
 import ru.mai.histology.service.employee.histologist.SampleViewService;
 
@@ -34,6 +36,8 @@ public class ConclusionController {
     @GetMapping("/employee/histologist/conclusions/allConclusions")
     public String allConclusions(Model model) {
         model.addAttribute("allConclusions", conclusionService.getAllConclusions());
+        model.addAttribute("tissueTypes", TissueType.values());
+        model.addAttribute("stainingMethods", StainingMethod.values());
         return "employee/histologist/conclusions/allConclusions";
     }
 

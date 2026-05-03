@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface MicroscopeImageRepository extends JpaRepository<MicroscopeImage, Long> {
 
+    List<MicroscopeImage> findAllByOrderByUploadDateDesc();
+
     List<MicroscopeImage> findAllBySampleIdOrderByUploadDateDesc(Long sampleId);
 
     long countBySampleId(Long sampleId);

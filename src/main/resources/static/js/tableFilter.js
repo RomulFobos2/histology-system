@@ -1,27 +1,43 @@
 /**
  * Универсальная клиентская фильтрация, поиск и пагинация таблиц.
- * Использование: initTableFilter('tableId', { filters: [...], searchPlaceholder: '...', perPage: 20 })
+ * Принимает УЖЕ ОТРЕНДЕРЕННЫЕ контролы (input/select/button) и привязывает к ним логику.
+ *
+ * Использование:
+ *   var tf = initTableFilter('tableId', {
+ *       perPage: 20,
+ *       searchInput: document.getElementById('filterSearch'),
+ *       selectFilters: [
+ *           { element: document.getElementById('filterTissue'),
+ *             cellSelector: '.filter-tissue', exact: true }
+ *       ],
+ *       resetButton: document.getElementById('filterReset')
+ *   });
+ *   tf.addCustomFilter(fn); // fn(row) -> boolean; опц. fn._isActive(), fn._reset()
  *
  * Опции:
- *   searchPlaceholder (string) — плейсхолдер для поля поиска, по умолчанию "Поиск..."
- *   filters (array)           — массив фильтров: { column: number, label: string, options: [{value, text}] }
- *   perPage (number)          — кол-во строк на странице, 0 = без встроенной пагинации
+ *   perPage         — кол-во строк на странице, 0 = без встроенной пагинации.
+ *   searchInput     — input[type=text] для полнотекстового поиска по всем td (debounce 200мс).
+ *   selectFilters   — массив { element, cellSelector?, column?, exact? }.
+ *                     element        — <select>, его value сравнивается с textContent ячейки.
+ *                     cellSelector   — CSS-селектор внутри <tr> для целевой ячейки.
+ *                     column         — индекс столбца (если не задан cellSelector).
+ *                     exact          — true: сравнение через ===; false: substring (default).
+ *   resetButton     — <button>, при клике сбрасывает все фильтры.
  *
  * Порядок работы:
  *   1. Фильтр помечает строки классом 'filtered-out' и скрывает их (display:none).
  *   2. Пагинация (tablePagination.js) работает только с НЕ-отфильтрованными строками.
  *   3. Сортировка (tableSort.js) сортирует все строки, потом вызывает _paginationRefresh.
- *
- * Возвращает объект с методом refresh() для принудительного пересчёта фильтров извне.
  */
 (function () {
     'use strict';
 
     window.initTableFilter = function (tableId, options) {
         var opts = Object.assign({
-            searchPlaceholder: 'Поиск...',
-            filters: [],
-            perPage: 20
+            perPage: 20,
+            searchInput: null,
+            selectFilters: [],
+            resetButton: null
         }, options || {});
 
         var table = document.getElementById(tableId);
@@ -30,69 +46,26 @@
         var tbody = table.querySelector('tbody');
         if (!tbody) return null;
 
-        // =====================================================================
-        // Состояние
-        // =====================================================================
-        var searchTerm = '';
-        var filterValues = {};   // column -> value
-        var customFilters = [];  // массив function(row) -> boolean
+        var searchTerm = opts.searchInput ? (opts.searchInput.value || '').trim() : '';
+        var filterDefs = [];
+        var filterValues = {};
+        var customFilters = [];
         var debounceTimer = null;
-        var emptyMessage = null; // элемент «ничего не найдено»
+        var emptyMessage = null;
 
-        // =====================================================================
-        // Построение панели фильтров
-        // =====================================================================
-        var bar = document.createElement('div');
-        bar.className = 'd-flex gap-2 mb-3 flex-wrap align-items-center';
-
-        // Поле поиска
-        var searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.className = 'form-control';
-        searchInput.placeholder = opts.searchPlaceholder;
-        searchInput.style.maxWidth = '300px';
-        bar.appendChild(searchInput);
-
-        // Выпадающие фильтры
-        for (var i = 0; i < opts.filters.length; i++) {
-            var f = opts.filters[i];
-            filterValues[f.column] = '';
-
-            var select = document.createElement('select');
-            select.className = 'form-select';
-            select.style.maxWidth = '220px';
-            select.setAttribute('data-filter-col', f.column);
-
-            // Первый пункт — «все»
-            var defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = f.label;
-            select.appendChild(defaultOpt);
-
-            for (var j = 0; j < f.options.length; j++) {
-                var opt = document.createElement('option');
-                opt.value = f.options[j].value;
-                opt.textContent = f.options[j].text;
-                select.appendChild(opt);
-            }
-
-            bar.appendChild(select);
+        for (var i = 0; i < opts.selectFilters.length; i++) {
+            var sf = opts.selectFilters[i];
+            var key = sf.cellSelector || ('col-' + sf.column) || ('idx-' + i);
+            filterDefs.push({
+                key: key,
+                element: sf.element || null,
+                exact: !!sf.exact,
+                cellSelector: sf.cellSelector || null,
+                column: typeof sf.column === 'number' ? sf.column : -1
+            });
+            filterValues[key] = sf.element ? sf.element.value : '';
         }
 
-        // Кнопка сброса
-        var resetBtn = document.createElement('button');
-        resetBtn.type = 'button';
-        resetBtn.className = 'btn btn-outline-secondary btn-sm';
-        resetBtn.innerHTML = '<i class="bi bi-x-lg"></i> Сброс';
-        resetBtn.style.display = 'none';
-        bar.appendChild(resetBtn);
-
-        // Вставляем панель перед таблицей внутри родительского контейнера
-        table.parentNode.insertBefore(bar, table);
-
-        // =====================================================================
-        // Элемент «ничего не найдено»
-        // =====================================================================
         function getEmptyMessage() {
             if (!emptyMessage) {
                 emptyMessage = document.createElement('div');
@@ -104,22 +77,27 @@
             return emptyMessage;
         }
 
-        // =====================================================================
-        // Основная логика фильтрации
-        // =====================================================================
         function applyFilters() {
-            var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr')).filter(function (tr) {
                 return !tr.classList.contains('pagination-empty-row');
             });
 
             var visibleCount = 0;
-            var term = searchTerm.toLowerCase();
+            var term = (searchTerm || '').toLowerCase();
             var hasActiveFilter = !!term;
 
-            for (var col in filterValues) {
-                if (filterValues.hasOwnProperty(col) && filterValues[col]) {
+            for (var k in filterValues) {
+                if (filterValues.hasOwnProperty(k) && filterValues[k]) {
                     hasActiveFilter = true;
                     break;
+                }
+            }
+            if (!hasActiveFilter) {
+                for (var ci = 0; ci < customFilters.length; ci++) {
+                    if (typeof customFilters[ci]._isActive === 'function' && customFilters[ci]._isActive()) {
+                        hasActiveFilter = true;
+                        break;
+                    }
                 }
             }
 
@@ -127,13 +105,11 @@
                 var row = rows[r];
                 var visible = true;
 
-                // --- Текстовый поиск: ANY ячейка содержит подстроку ---
                 if (term) {
                     var cells = row.querySelectorAll('td, th');
                     var matchSearch = false;
                     for (var c = 0; c < cells.length; c++) {
-                        var cellText = (cells[c].textContent || '').toLowerCase();
-                        if (cellText.indexOf(term) !== -1) {
+                        if ((cells[c].textContent || '').toLowerCase().indexOf(term) !== -1) {
                             matchSearch = true;
                             break;
                         }
@@ -141,23 +117,32 @@
                     if (!matchSearch) visible = false;
                 }
 
-                // --- Выпадающие фильтры: AND между всеми ---
                 if (visible) {
-                    for (var col in filterValues) {
-                        if (!filterValues.hasOwnProperty(col)) continue;
-                        var fv = filterValues[col];
-                        if (!fv) continue; // пустое значение = «все»
+                    for (var d = 0; d < filterDefs.length; d++) {
+                        var def = filterDefs[d];
+                        var fv = filterValues[def.key];
+                        if (!fv) continue;
 
-                        var cell = row.children[parseInt(col, 10)];
-                        var text = cell ? (cell.textContent || '').toLowerCase() : '';
-                        if (text.indexOf(fv.toLowerCase()) === -1) {
+                        var cell;
+                        if (def.cellSelector) {
+                            cell = row.querySelector(def.cellSelector);
+                        } else if (def.column >= 0) {
+                            cell = row.children[def.column];
+                        } else {
+                            cell = null;
+                        }
+                        var text = cell ? (cell.textContent || '').trim() : '';
+
+                        var matched = def.exact
+                            ? text === fv
+                            : text.toLowerCase().indexOf(fv.toLowerCase()) !== -1;
+                        if (!matched) {
                             visible = false;
                             break;
                         }
                     }
                 }
 
-                // --- Пользовательские фильтры ---
                 if (visible) {
                     for (var cf = 0; cf < customFilters.length; cf++) {
                         if (!customFilters[cf](row)) {
@@ -167,7 +152,6 @@
                     }
                 }
 
-                // --- Помечаем строку ---
                 if (visible) {
                     row.classList.remove('filtered-out');
                     row.style.display = '';
@@ -178,100 +162,82 @@
                 }
             }
 
-            // Перенумерация видимых строк
             renumberRows();
 
-            // Кнопка сброса
-            resetBtn.style.display = hasActiveFilter ? '' : 'none';
+            if (opts.resetButton) {
+                opts.resetButton.style.display = hasActiveFilter ? '' : 'none';
+            }
 
-            // Сообщение «ничего не найдено»
             var msg = getEmptyMessage();
             msg.style.display = visibleCount === 0 ? '' : 'none';
             table.style.display = visibleCount === 0 ? 'none' : '';
 
-            // Интеграция с пагинацией — пересчитать после фильтрации
             if (table._paginationRefresh) {
                 table._paginationRefresh();
             }
         }
 
-        // =====================================================================
-        // Перенумерация видимых строк (ячейки с классом row-number)
-        // =====================================================================
         function renumberRows() {
-            var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr')).filter(function (tr) {
                 return !tr.classList.contains('pagination-empty-row') &&
                        !tr.classList.contains('filtered-out');
             });
             for (var i = 0; i < rows.length; i++) {
-                var numCell = rows[i].querySelector('.row-number');
-                if (numCell) numCell.textContent = i + 1;
+                var n = rows[i].querySelector('.row-number');
+                if (n) n.textContent = i + 1;
             }
         }
 
-        // =====================================================================
-        // Сброс фильтров
-        // =====================================================================
         function resetFilters() {
-            searchInput.value = '';
+            if (opts.searchInput) opts.searchInput.value = '';
             searchTerm = '';
-            var selects = bar.querySelectorAll('select[data-filter-col]');
-            for (var s = 0; s < selects.length; s++) {
-                selects[s].selectedIndex = 0;
-                var col = selects[s].getAttribute('data-filter-col');
-                filterValues[col] = '';
+            for (var d = 0; d < filterDefs.length; d++) {
+                if (filterDefs[d].element) filterDefs[d].element.value = '';
+                filterValues[filterDefs[d].key] = '';
+            }
+            for (var cf = 0; cf < customFilters.length; cf++) {
+                if (typeof customFilters[cf]._reset === 'function') {
+                    customFilters[cf]._reset();
+                }
             }
             applyFilters();
         }
 
-        // =====================================================================
-        // Обработчики событий
-        // =====================================================================
-
-        // Поиск с debounce 200 мс
-        searchInput.addEventListener('input', function () {
-            var self = this;
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(function () {
-                searchTerm = self.value.trim();
-                applyFilters();
-            }, 200);
-        });
-
-        // Выпадающие фильтры — немедленная реакция
-        var selects = bar.querySelectorAll('select[data-filter-col]');
-        for (var s = 0; s < selects.length; s++) {
-            selects[s].addEventListener('change', function () {
-                var col = this.getAttribute('data-filter-col');
-                filterValues[col] = this.value;
-                applyFilters();
+        if (opts.searchInput) {
+            opts.searchInput.addEventListener('input', function () {
+                var self = this;
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function () {
+                    searchTerm = self.value.trim();
+                    applyFilters();
+                }, 200);
             });
         }
 
-        // Кнопка сброса
-        resetBtn.addEventListener('click', resetFilters);
+        for (var d = 0; d < filterDefs.length; d++) {
+            (function (def) {
+                if (!def.element) return;
+                def.element.addEventListener('change', function () {
+                    filterValues[def.key] = this.value;
+                    applyFilters();
+                });
+            })(filterDefs[d]);
+        }
 
-        // =====================================================================
-        // Встроенная пагинация (если perPage > 0 и нет внешней)
-        // =====================================================================
+        if (opts.resetButton) {
+            opts.resetButton.addEventListener('click', resetFilters);
+            opts.resetButton.style.display = 'none';
+        }
+
         if (opts.perPage > 0 && !table._paginationRefresh) {
             if (typeof window.initPagination === 'function') {
                 window.initPagination(tableId, { perPage: opts.perPage });
             }
         }
 
-        // =====================================================================
-        // Публичный API
-        // =====================================================================
         return {
-            /** Принудительно пересчитать фильтры (например, после добавления строк) */
-            refresh: function () {
-                applyFilters();
-            },
-            /** Добавить пользовательский фильтр: fn(row) -> boolean (true = показать) */
-            addCustomFilter: function (fn) {
-                customFilters.push(fn);
-            }
+            refresh: function () { applyFilters(); },
+            addCustomFilter: function (fn) { customFilters.push(fn); }
         };
     };
 })();

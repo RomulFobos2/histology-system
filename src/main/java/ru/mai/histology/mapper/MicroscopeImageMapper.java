@@ -18,6 +18,8 @@ public interface MicroscopeImageMapper {
     @Mapping(source = "sample.sampleNumber", target = "sampleNumber")
     @Mapping(source = "sample.forensicCase.id", target = "caseId")
     @Mapping(source = "sample.forensicCase.caseNumber", target = "caseNumber")
+    @Mapping(source = "sample.tissueType.displayName", target = "tissueTypeDisplayName")
+    @Mapping(source = "sample.stainingMethod.displayName", target = "stainingMethodDisplayName")
     @Mapping(source = "uploadedBy", target = "uploadedByFullName", qualifiedByName = "employeeFullName")
     @Mapping(source = "originalImage.id", target = "originalImageId")
     @Mapping(source = "image", target = "fileSizeFormatted", qualifiedByName = "formatFileSize")

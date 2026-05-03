@@ -28,6 +28,12 @@ public class ImageViewService {
     }
 
     @Transactional(readOnly = true)
+    public List<MicroscopeImageDTO> getAllImages() {
+        List<MicroscopeImage> images = imageRepository.findAllByOrderByUploadDateDesc();
+        return MicroscopeImageMapper.INSTANCE.toDTOList(images);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<MicroscopeImageDTO> getImageById(Long id) {
         return imageRepository.findById(id)
                 .map(MicroscopeImageMapper.INSTANCE::toDTO);

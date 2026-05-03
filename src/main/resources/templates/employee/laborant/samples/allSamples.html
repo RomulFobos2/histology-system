@@ -11,6 +11,7 @@
     <script src="/js/javascript.js"></script>
     <script src="/js/tablePagination.js"></script>
     <script src="/js/tableSort.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -29,25 +30,57 @@
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-            <!-- Фильтры -->
-            <div class="profile-card mb-4 p-3">
+            <div class="profile-card mb-4 p-3" th:if="${not #lists.isEmpty(allSamples)}">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
+                        <label class="form-label small">Поиск</label>
+                        <input type="text" id="filterSearch" class="form-control form-control-sm" placeholder="Поиск по таблице...">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label small">Тип ткани</label>
-                        <select id="filterTissueType" class="form-select form-select-sm">
+                        <select id="filterTissue" class="form-select form-select-sm">
                             <option value="">Все</option>
                             <option th:each="tt : ${tissueTypes}" th:value="${tt.displayName}" th:text="${tt.displayName}"></option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small">Метод окрашивания</label>
-                        <select id="filterStainingMethod" class="form-select form-select-sm">
+                    <div class="col-md-2">
+                        <label class="form-label small">Метод</label>
+                        <select id="filterStaining" class="form-select form-select-sm">
                             <option value="">Все</option>
                             <option th:each="sm : ${stainingMethods}" th:value="${sm.displayName}" th:text="${sm.displayName}"></option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Сбросить</button>
+                        <label class="form-label small">Статус</label>
+                        <select id="filterStatus" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="ss : ${sampleStatuses}" th:value="${ss.displayName}" th:text="${ss.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Дата с</label>
+                        <input type="date" id="filterDateFrom" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Дата по</label>
+                        <input type="date" id="filterDateTo" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Номер дела</label>
+                        <input type="text" id="filterCaseNumber" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Номер образца</label>
+                        <input type="text" id="filterSampleNumber" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">ФИО эксперта</label>
+                        <input type="text" id="filterExpertName" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" id="filterReset" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-x-lg"></i> Сброс
+                        </button>
                     </div>
                 </div>
             </div>
@@ -59,27 +92,33 @@
                         <th>#</th>
                         <th data-sortable data-sort-type="text">Номер</th>
                         <th data-sortable data-sort-type="text">Дело</th>
+                        <th data-sortable data-sort-type="date">Дата поступления</th>
                         <th data-sortable data-sort-type="text">Тип ткани</th>
                         <th data-sortable data-sort-type="text">Метод</th>
-                        <th>Статус</th>
+                        <th data-sortable data-sort-type="text">Статус</th>
+                        <th data-sortable data-sort-type="text">Эксперт</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="s, index : ${allSamples}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
-                        <td>
+                        <td class="filter-sample">
                             <a th:href="@{/employee/laborant/samples/detailsSample/{id}(id=${s.id})}"
                                th:text="${s.sampleNumber}"></a>
                         </td>
-                        <td>
+                        <td class="filter-case">
                             <a th:href="@{/employee/laborant/cases/detailsCase/{id}(id=${s.caseId})}"
                                th:text="${s.caseNumber}"></a>
                         </td>
+                        <td class="filter-date"
+                            th:attr="data-date-iso=${s.receiptDate != null ? #temporals.format(s.receiptDate, 'yyyy-MM-dd') : ''}"
+                            th:text="${s.receiptDate} ? ${#temporals.format(s.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
                         <td class="filter-tissue" th:text="${s.tissueTypeDisplayName}"></td>
                         <td class="filter-staining" th:text="${s.stainingMethodDisplayName}"></td>
-                        <td>
+                        <td class="filter-status">
                             <span class="badge-active" th:text="${s.statusDisplayName}"></span>
                         </td>
+                        <td class="filter-expert" th:text="${s.registeredByFullName} ?: '—'"></td>
                     </tr>
                     </tbody>
                 </table>
@@ -89,34 +128,58 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-<script>
-    initPagination('samplesTable', { perPage: 20 });
+<script th:if="${not #lists.isEmpty(allSamples)}">
+(function () {
     initSortable('samplesTable');
 
-    var filterTissue = document.getElementById('filterTissueType');
-    var filterStaining = document.getElementById('filterStainingMethod');
+    var dateFrom = document.getElementById('filterDateFrom');
+    var dateTo = document.getElementById('filterDateTo');
+    var caseInp = document.getElementById('filterCaseNumber');
+    var sampleInp = document.getElementById('filterSampleNumber');
+    var expertInp = document.getElementById('filterExpertName');
 
-    function applyFilters() {
-        var tissueVal = filterTissue.value;
-        var stainingVal = filterStaining.value;
-        var rows = document.querySelectorAll('#samplesTable tbody tr');
-        rows.forEach(function (row) {
-            var tissue = row.querySelector('.filter-tissue');
-            var staining = row.querySelector('.filter-staining');
-            var showTissue = !tissueVal || (tissue && tissue.textContent === tissueVal);
-            var showStaining = !stainingVal || (staining && staining.textContent === stainingVal);
-            row.style.display = (showTissue && showStaining) ? '' : 'none';
-        });
+    var tf = initTableFilter('samplesTable', {
+        perPage: 20,
+        searchInput: document.getElementById('filterSearch'),
+        selectFilters: [
+            { element: document.getElementById('filterTissue'),   cellSelector: '.filter-tissue',   exact: true },
+            { element: document.getElementById('filterStaining'), cellSelector: '.filter-staining', exact: true },
+            { element: document.getElementById('filterStatus'),   cellSelector: '.filter-status',   exact: true }
+        ],
+        resetButton: document.getElementById('filterReset')
+    });
+
+    function dateRangeFilter(row) {
+        var cell = row.querySelector('.filter-date');
+        var iso = cell ? cell.getAttribute('data-date-iso') : '';
+        if (!iso) return !dateFrom.value && !dateTo.value;
+        if (dateFrom.value && iso < dateFrom.value) return false;
+        if (dateTo.value && iso > dateTo.value) return false;
+        return true;
+    }
+    dateRangeFilter._isActive = function () { return !!(dateFrom.value || dateTo.value); };
+    dateRangeFilter._reset = function () { dateFrom.value = ''; dateTo.value = ''; };
+
+    function fieldContains(input, selector) {
+        var fn = function (row) {
+            var v = input.value.trim().toLowerCase();
+            if (!v) return true;
+            var cell = row.querySelector(selector);
+            return cell && (cell.textContent || '').toLowerCase().indexOf(v) !== -1;
+        };
+        fn._isActive = function () { return input.value.trim() !== ''; };
+        fn._reset = function () { input.value = ''; };
+        return fn;
     }
 
-    function clearFilters() {
-        filterTissue.value = '';
-        filterStaining.value = '';
-        applyFilters();
-    }
+    tf.addCustomFilter(dateRangeFilter);
+    tf.addCustomFilter(fieldContains(caseInp, '.filter-case'));
+    tf.addCustomFilter(fieldContains(sampleInp, '.filter-sample'));
+    tf.addCustomFilter(fieldContains(expertInp, '.filter-expert'));
 
-    filterTissue.addEventListener('change', applyFilters);
-    filterStaining.addEventListener('change', applyFilters);
+    [dateFrom, dateTo].forEach(function (el) { el.addEventListener('change', tf.refresh); });
+    [caseInp, sampleInp, expertInp].forEach(function (el) { el.addEventListener('input', tf.refresh); });
+})();
 </script>
 </body>
 </html>

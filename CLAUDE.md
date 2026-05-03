@@ -93,7 +93,7 @@ autoencoder/                      — Python-микросервис (Flask/FastA
 | Блок | Сущности |
 |---|---|
 | Пользователи | `Employee`, `Role` (JPA-сущность, GrantedAuthority), `Department` |
-| Дела и образцы | `ForensicCase`, `Sample`, `TissueType` (enum), `StainingMethod` (enum), `ResearchStage` (enum), `SampleStatus` (enum), `CaseStatus` (enum) |
+| Дела и образцы | `ForensicCase`, `Sample`, `TissueType` (enum), `StainingMethod` (enum), `SampleStatus` (enum), `CaseStatus` (enum) |
 | Изображения | `MicroscopeImage` |
 | Заключения | `HistologistConclusion`, `ForensicConclusion` |
 | Протоколы | `ResearchProtocol` |
@@ -109,7 +109,7 @@ autoencoder/                      — Python-микросервис (Flask/FastA
 
 **ForensicCase** `t_forensicCase` — caseNumber *(unique)*, receiptDate, description, status *(CaseStatus)* → ManyToOne Employee (responsibleExpert) → OneToMany Sample
 
-**Sample** `t_sample` — sampleNumber, receiptDate, tissueType *(TissueType)*, stainingMethod *(StainingMethod)*, researchStage *(ResearchStage)*, status *(SampleStatus)*, notes → ManyToOne ForensicCase, ManyToOne Employee (registeredBy), ManyToOne Employee (assignedHistologist) → OneToMany MicroscopeImage. Unique constraint: (forensicCase + sampleNumber)
+**Sample** `t_sample` — sampleNumber, receiptDate, tissueType *(TissueType)*, stainingMethod *(StainingMethod)*, status *(SampleStatus)*, notes → ManyToOne ForensicCase, ManyToOne Employee (registeredBy), ManyToOne Employee (assignedHistologist) → OneToMany MicroscopeImage. Unique constraint: (forensicCase + sampleNumber)
 
 **MicroscopeImage** `t_microscopeImage` — originalFilename, storedFilename, filePath, fileSize, contentType, uploadDate, description, isEnhanced, magnification → ManyToOne Sample, ManyToOne Employee (uploadedBy), ManyToOne MicroscopeImage (originalImage, nullable — ссылка на оригинал для улучшенных копий)
 
@@ -128,8 +128,6 @@ autoencoder/                      — Python-микросервис (Flask/FastA
 **TissueType** — `LIVER("Печень")`, `KIDNEY("Почка")`, `HEART("Сердце")`, `LUNG("Лёгкое")`, `BRAIN("Головной мозг")`, `SKIN("Кожа")`, `MUSCLE("Мышечная ткань")`, `BONE("Костная ткань")`, `SPLEEN("Селезёнка")`, `INTESTINE("Кишечник")`, `STOMACH("Желудок")`, `OTHER("Другое")`
 
 **StainingMethod** — `HEMATOXYLIN_EOSIN("Гематоксилин-эозин")`, `VAN_GIESON("Ван Гизон")`, `PAS("ШИК-реакция")`, `MASSON_TRICHROME("Трихром Массона")`, `SUDAN("Судан III/IV")`, `NISSL("Ниссль")`, `GRAM("Грам")`, `ZIEHL_NEELSEN("Циль-Нильсен")`, `IMMUNOHISTOCHEMISTRY("Иммуногистохимия")`, `OTHER("Другое")`
-
-**ResearchStage** — `RECEIVED("Принят")`, `FIXATION("Фиксация")`, `EMBEDDING("Заливка")`, `SECTIONING("Микротомия")`, `STAINING("Окрашивание")`, `MICROSCOPY("Микроскопия")`, `ANALYSIS("Анализ")`, `COMPLETED("Завершён")`
 
 **SampleStatus** — `NEW("Новый")`, `IN_PROGRESS("В работе")`, `AWAITING_ANALYSIS("Ожидает анализа")`, `ANALYZED("Проанализирован")`, `CONCLUDED("Заключение выдано")`, `ARCHIVED("Архивирован")`
 
@@ -163,7 +161,6 @@ GET/POST /employee/laborant/samples/addSample/{caseId}
 GET      /employee/laborant/samples/detailsSample/{id}
 GET/POST /employee/laborant/samples/editSample/{id}
 GET      /employee/laborant/samples/deleteSample/{id}
-POST     /employee/laborant/samples/advanceStage/{id}
 
 # Laborant — изображения
 GET      /employee/laborant/images/allImages/{sampleId}
@@ -247,11 +244,9 @@ GET/POST /employee/general/change-password
 - Каждая операция логируется в `ImageProcessingLog`
 - Режим сравнения: side-by-side оригинал vs улучшенное (vanilla JS)
 
-### Workflow стадий исследования
-- Образец проходит стадии последовательно: RECEIVED → FIXATION → EMBEDDING → SECTIONING → STAINING → MICROSCOPY → ANALYSIS → COMPLETED
-- Кнопка «Продвинуть стадию» у лаборанта: переводит на следующую стадию
-- При переходе на MICROSCOPY → статус образца меняется на AWAITING_ANALYSIS
-- При создании заключения гистологом → статус ANALYZED → CONCLUDED
+### Workflow жизненного цикла образца
+- Образец движется по статусам `SampleStatus`: NEW → IN_PROGRESS → AWAITING_ANALYSIS → ANALYZED → CONCLUDED → ARCHIVED.
+- При создании заключения гистологом → статус ANALYZED → CONCLUDED.
 
 ### Заключения с разграничением доступа
 - **Заключение гистолога** (`HistologistConclusion`): создаёт врач-гистолог, привязано к образцу. Содержит микроскопическое описание, диагноз, текст заключения

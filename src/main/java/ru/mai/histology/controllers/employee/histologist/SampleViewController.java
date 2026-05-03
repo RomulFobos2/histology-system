@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.service.employee.histologist.ConclusionService;
@@ -36,6 +37,7 @@ public class SampleViewController {
         model.addAttribute("allSamples", sampleViewService.getAllSamples());
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
+        model.addAttribute("sampleStatuses", SampleStatus.values());
         return "employee/histologist/samples/allSamples";
     }
 

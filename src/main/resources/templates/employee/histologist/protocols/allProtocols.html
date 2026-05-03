@@ -11,6 +11,7 @@
     <script src="/js/javascript.js"></script>
     <script src="/js/tablePagination.js"></script>
     <script src="/js/tableSort.js"></script>
+    <script src="/js/tableFilter.js"></script>
 </head>
 <body>
 <div id="wrapper">
@@ -29,7 +30,59 @@
             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-            <div class="table-container">
+            <div class="profile-card mb-4 p-3" th:if="${not #lists.isEmpty(allProtocols)}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small">Поиск</label>
+                        <input type="text" id="filterSearch" class="form-control form-control-sm" placeholder="Поиск по таблице...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Тип ткани</label>
+                        <select id="filterTissue" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="tt : ${tissueTypes}" th:value="${tt.displayName}" th:text="${tt.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Метод</label>
+                        <select id="filterStaining" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="sm : ${stainingMethods}" th:value="${sm.displayName}" th:text="${sm.displayName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Дата с</label>
+                        <input type="date" id="filterDateFrom" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Дата по</label>
+                        <input type="date" id="filterDateTo" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Номер протокола</label>
+                        <input type="text" id="filterProtocolNumber" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Номер дела</label>
+                        <input type="text" id="filterCaseNumber" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Номер образца</label>
+                        <input type="text" id="filterSampleNumber" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">ФИО автора</label>
+                        <input type="text" id="filterAuthorName" class="form-control form-control-sm" placeholder="...">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" id="filterReset" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-x-lg"></i> Сброс
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" th:if="${not #lists.isEmpty(allProtocols)}">
                 <table id="protocolsTable" class="table table-modern">
                     <thead>
                     <tr>
@@ -38,25 +91,29 @@
                         <th data-sortable data-sort-type="text">Образец</th>
                         <th data-sortable data-sort-type="text">Дело</th>
                         <th data-sortable data-sort-type="text">Тип ткани</th>
-                        <th data-sortable data-sort-type="text">Дата</th>
-                        <th>Автор</th>
+                        <th data-sortable data-sort-type="text">Метод</th>
+                        <th data-sortable data-sort-type="date">Дата</th>
+                        <th data-sortable data-sort-type="text">Автор</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="p, index : ${allProtocols}">
                         <td class="row-number" th:text="${index.index + 1}"></td>
-                        <td>
+                        <td class="filter-protocol">
                             <a th:href="@{/employee/histologist/protocols/detailsProtocol/{id}(id=${p.id})}"
                                th:text="${p.protocolNumber}"></a>
                         </td>
-                        <td>
+                        <td class="filter-sample">
                             <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${p.sampleId})}"
                                th:text="${p.sampleNumber}"></a>
                         </td>
-                        <td th:text="${p.caseNumber}"></td>
-                        <td th:text="${p.tissueTypeDisplayName}"></td>
-                        <td th:text="${p.createdDate} ? ${#temporals.format(p.createdDate, 'dd.MM.yyyy')} : '—'"></td>
-                        <td th:text="${p.createdByFullName}"></td>
+                        <td class="filter-case" th:text="${p.caseNumber}"></td>
+                        <td class="filter-tissue" th:text="${p.tissueTypeDisplayName}"></td>
+                        <td class="filter-staining" th:text="${p.stainingMethodDisplayName}"></td>
+                        <td class="filter-date"
+                            th:attr="data-date-iso=${p.createdDate != null ? #temporals.format(p.createdDate, 'yyyy-MM-dd') : ''}"
+                            th:text="${p.createdDate} ? ${#temporals.format(p.createdDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td class="filter-author" th:text="${p.createdByFullName}"></td>
                     </tr>
                     </tbody>
                 </table>
@@ -74,9 +131,59 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-<script>
-    initPagination('protocolsTable', { perPage: 20 });
+<script th:if="${not #lists.isEmpty(allProtocols)}">
+(function () {
     initSortable('protocolsTable');
+
+    var dateFrom = document.getElementById('filterDateFrom');
+    var dateTo = document.getElementById('filterDateTo');
+    var protoInp = document.getElementById('filterProtocolNumber');
+    var caseInp = document.getElementById('filterCaseNumber');
+    var sampleInp = document.getElementById('filterSampleNumber');
+    var authorInp = document.getElementById('filterAuthorName');
+
+    var tf = initTableFilter('protocolsTable', {
+        perPage: 20,
+        searchInput: document.getElementById('filterSearch'),
+        selectFilters: [
+            { element: document.getElementById('filterTissue'),   cellSelector: '.filter-tissue',   exact: true },
+            { element: document.getElementById('filterStaining'), cellSelector: '.filter-staining', exact: true }
+        ],
+        resetButton: document.getElementById('filterReset')
+    });
+
+    function dateRangeFilter(row) {
+        var cell = row.querySelector('.filter-date');
+        var iso = cell ? cell.getAttribute('data-date-iso') : '';
+        if (!iso) return !dateFrom.value && !dateTo.value;
+        if (dateFrom.value && iso < dateFrom.value) return false;
+        if (dateTo.value && iso > dateTo.value) return false;
+        return true;
+    }
+    dateRangeFilter._isActive = function () { return !!(dateFrom.value || dateTo.value); };
+    dateRangeFilter._reset = function () { dateFrom.value = ''; dateTo.value = ''; };
+
+    function fieldContains(input, selector) {
+        var fn = function (row) {
+            var v = input.value.trim().toLowerCase();
+            if (!v) return true;
+            var cell = row.querySelector(selector);
+            return cell && (cell.textContent || '').toLowerCase().indexOf(v) !== -1;
+        };
+        fn._isActive = function () { return input.value.trim() !== ''; };
+        fn._reset = function () { input.value = ''; };
+        return fn;
+    }
+
+    tf.addCustomFilter(dateRangeFilter);
+    tf.addCustomFilter(fieldContains(protoInp, '.filter-protocol'));
+    tf.addCustomFilter(fieldContains(caseInp, '.filter-case'));
+    tf.addCustomFilter(fieldContains(sampleInp, '.filter-sample'));
+    tf.addCustomFilter(fieldContains(authorInp, '.filter-author'));
+
+    [dateFrom, dateTo].forEach(function (el) { el.addEventListener('change', tf.refresh); });
+    [protoInp, caseInp, sampleInp, authorInp].forEach(function (el) { el.addEventListener('input', tf.refresh); });
+})();
 </script>
 </body>
 </html>
