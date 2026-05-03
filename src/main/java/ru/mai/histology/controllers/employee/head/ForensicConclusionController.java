@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.mai.histology.dto.ForensicConclusionDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.SampleStatus;
+import ru.mai.histology.enumeration.StainingMethod;
+import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.repo.HistologistConclusionRepository;
 import ru.mai.histology.service.employee.head.ForensicConclusionService;
 import ru.mai.histology.service.employee.head.OversightService;
@@ -44,6 +47,9 @@ public class ForensicConclusionController {
     @GetMapping("/employee/head/conclusions/allConclusions")
     public String allConclusions(Model model) {
         model.addAttribute("allConclusions", conclusionService.getAllConclusions());
+        model.addAttribute("tissueTypes", TissueType.values());
+        model.addAttribute("stainingMethods", StainingMethod.values());
+        model.addAttribute("sampleStatuses", SampleStatus.values());
         return "employee/head/conclusions/allConclusions";
     }
 

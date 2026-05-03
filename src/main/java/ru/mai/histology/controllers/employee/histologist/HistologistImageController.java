@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.MicroscopeImageDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.StainingMethod;
+import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.service.employee.histologist.ImageEnhancementService;
 import ru.mai.histology.service.employee.histologist.ImageViewService;
 import ru.mai.histology.service.employee.laborant.SampleService;
@@ -30,6 +32,16 @@ public class HistologistImageController {
         this.imageViewService = imageViewService;
         this.imageEnhancementService = imageEnhancementService;
         this.sampleService = sampleService;
+    }
+
+    // ========== Галерея всех изображений в системе ==========
+
+    @GetMapping("/employee/histologist/images/all")
+    public String allImagesGlobal(Model model) {
+        model.addAttribute("allImages", imageViewService.getAllImages());
+        model.addAttribute("tissueTypes", TissueType.values());
+        model.addAttribute("stainingMethods", StainingMethod.values());
+        return "employee/histologist/images/allImagesGlobal";
     }
 
     // ========== Галерея изображений ==========

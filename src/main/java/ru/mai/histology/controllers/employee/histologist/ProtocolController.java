@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.ResearchProtocolDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.StainingMethod;
+import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.service.employee.histologist.ProtocolService;
 import ru.mai.histology.service.employee.histologist.SampleViewService;
 import ru.mai.histology.service.general.WordExportService;
@@ -40,6 +42,8 @@ public class ProtocolController {
     @GetMapping("/employee/histologist/protocols/allProtocols")
     public String allProtocols(Model model) {
         model.addAttribute("allProtocols", protocolService.getAllProtocols());
+        model.addAttribute("tissueTypes", TissueType.values());
+        model.addAttribute("stainingMethods", StainingMethod.values());
         return "employee/histologist/protocols/allProtocols";
     }
 

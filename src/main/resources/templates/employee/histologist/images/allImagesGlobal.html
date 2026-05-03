@@ -1,0 +1,287 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Все изображения | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div>
+                    <h1 class="page-title mb-0">Все изображения</h1>
+                    <p class="page-subtitle mb-0">Архив микроскопических изображений по всем образцам системы</p>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(allImages)}" class="profile-card p-4 text-center">
+                <i class="bi bi-images text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">В системе ещё нет загруженных изображений</p>
+            </div>
+
+            <div th:unless="${#lists.isEmpty(allImages)}">
+
+                <!-- Панель фильтров -->
+                <div class="profile-card mb-4 p-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small">Поиск</label>
+                            <input type="text" id="searchAll" class="form-control form-control-sm"
+                                   placeholder="по имени файла, образцу, делу, гистологу...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Тип ткани</label>
+                            <select id="filterTissue" class="form-select form-select-sm">
+                                <option value="">Все</option>
+                                <option th:each="tt : ${tissueTypes}" th:value="${tt.displayName}" th:text="${tt.displayName}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Метод</label>
+                            <select id="filterStaining" class="form-select form-select-sm">
+                                <option value="">Все</option>
+                                <option th:each="sm : ${stainingMethods}" th:value="${sm.displayName}" th:text="${sm.displayName}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Улучшено</label>
+                            <select id="filterEnhanced" class="form-select form-select-sm">
+                                <option value="">Все</option>
+                                <option value="true">Да</option>
+                                <option value="false">Нет</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Сортировка</label>
+                            <select id="sortMode" class="form-select form-select-sm">
+                                <option value="date_desc">Дата ↓ (новые первыми)</option>
+                                <option value="date_asc">Дата ↑</option>
+                                <option value="name_asc">Имя файла A→Я</option>
+                                <option value="name_desc">Имя файла Я→A</option>
+                                <option value="size_desc">Размер ↓</option>
+                                <option value="size_asc">Размер ↑</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 align-items-end mt-2">
+                        <div class="col-md-2">
+                            <label class="form-label small">Дата с</label>
+                            <input type="date" id="filterDateFrom" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Дата по</label>
+                            <input type="date" id="filterDateTo" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Номер дела</label>
+                            <input type="text" id="filterCaseNumber" class="form-control form-control-sm" placeholder="...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Номер образца</label>
+                            <input type="text" id="filterSampleNumber" class="form-control form-control-sm" placeholder="...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">ФИО загрузчика</label>
+                            <input type="text" id="filterUploader" class="form-control form-control-sm" placeholder="...">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-x-lg"></i> Сброс
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Счётчик -->
+                <div class="mb-2 text-muted small" id="imagesCounter"></div>
+
+                <!-- Сетка карточек -->
+                <div id="imagesGrid" class="row g-3">
+                    <div class="col-6 col-md-4 col-lg-3 image-card-wrapper"
+                         th:each="img : ${allImages}"
+                         th:attr="
+                            data-tissue=${img.tissueTypeDisplayName} ?: '',
+                            data-staining=${img.stainingMethodDisplayName} ?: '',
+                            data-enhanced=${img.enhanced},
+                            data-case=${img.caseNumber} ?: '',
+                            data-sample=${img.sampleNumber} ?: '',
+                            data-uploader=${img.uploadedByFullName} ?: '',
+                            data-filename=${img.originalFilename} ?: '',
+                            data-size=${img.fileSize} ?: '0',
+                            data-date-iso=${img.uploadDate != null ? #temporals.format(img.uploadDate, 'yyyy-MM-dd') : ''}">
+                        <div class="image-card">
+                            <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${img.id})}">
+                                <img th:src="@{/files/images/thumb/{id}(id=${img.id})}"
+                                     th:alt="${img.originalFilename}"
+                                     class="image-thumb">
+                            </a>
+                            <div class="image-card-body">
+                                <div class="image-card-title" th:text="${img.originalFilename}"></div>
+                                <div class="image-card-meta">
+                                    <small class="text-muted">
+                                        <span th:text="${img.uploadDate} ? ${#temporals.format(img.uploadDate, 'dd.MM.yyyy')} : '—'"></span>
+                                        · <span th:text="${img.fileSizeFormatted}"></span>
+                                    </small>
+                                    <span th:if="${img.enhanced}" class="badge-active" style="font-size:0.7rem;">Улучшено</span>
+                                </div>
+                                <div class="image-card-meta mt-1">
+                                    <small>
+                                        <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${img.sampleId})}"
+                                           th:text="'Образец №' + ${img.sampleNumber}"></a>
+                                        <span th:if="${img.caseNumber}" th:text="' · Дело №' + ${img.caseNumber}"></span>
+                                    </small>
+                                </div>
+                                <div class="image-card-meta mt-1">
+                                    <small class="text-muted">
+                                        <span th:text="${img.tissueTypeDisplayName} ?: '—'"></span>
+                                        · <span th:text="${img.stainingMethodDisplayName} ?: '—'"></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Сообщение «ничего не найдено» -->
+                <div id="emptyResults" class="text-center text-muted py-5" style="display:none;">
+                    <i class="bi bi-search" style="font-size: 3rem;"></i>
+                    <p class="mt-2">Ничего не найдено</p>
+                </div>
+
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+<script th:if="${not #lists.isEmpty(allImages)}">
+(function () {
+    var grid = document.getElementById('imagesGrid');
+    var counter = document.getElementById('imagesCounter');
+    var emptyMsg = document.getElementById('emptyResults');
+    var allCards = Array.prototype.slice.call(grid.querySelectorAll('.image-card-wrapper'));
+
+    var searchInp = document.getElementById('searchAll');
+    var tissueSel = document.getElementById('filterTissue');
+    var stainingSel = document.getElementById('filterStaining');
+    var enhancedSel = document.getElementById('filterEnhanced');
+    var sortSel = document.getElementById('sortMode');
+    var dateFrom = document.getElementById('filterDateFrom');
+    var dateTo = document.getElementById('filterDateTo');
+    var caseInp = document.getElementById('filterCaseNumber');
+    var sampleInp = document.getElementById('filterSampleNumber');
+    var uploaderInp = document.getElementById('filterUploader');
+    var resetBtn = document.getElementById('resetFiltersBtn');
+
+    var debounceTimer = null;
+
+    function getCardText(card) {
+        return (card.textContent || '').toLowerCase();
+    }
+
+    function matchSearch(card) {
+        var v = searchInp.value.trim().toLowerCase();
+        if (!v) return true;
+        return getCardText(card).indexOf(v) !== -1;
+    }
+    function matchExactAttr(card, attr, val) {
+        if (!val) return true;
+        return (card.getAttribute(attr) || '') === val;
+    }
+    function matchSubstrAttr(card, attr, val) {
+        var v = (val || '').trim().toLowerCase();
+        if (!v) return true;
+        return (card.getAttribute(attr) || '').toLowerCase().indexOf(v) !== -1;
+    }
+    function matchDate(card) {
+        var iso = card.getAttribute('data-date-iso') || '';
+        if (!iso) return !dateFrom.value && !dateTo.value;
+        if (dateFrom.value && iso < dateFrom.value) return false;
+        if (dateTo.value && iso > dateTo.value) return false;
+        return true;
+    }
+
+    function applyFiltersAndSort() {
+        // Сортировка
+        var mode = sortSel.value;
+        var sorted = allCards.slice().sort(function (a, b) {
+            switch (mode) {
+                case 'date_asc':
+                    return (a.getAttribute('data-date-iso') || '').localeCompare(b.getAttribute('data-date-iso') || '');
+                case 'date_desc':
+                    return (b.getAttribute('data-date-iso') || '').localeCompare(a.getAttribute('data-date-iso') || '');
+                case 'name_asc':
+                    return (a.getAttribute('data-filename') || '').localeCompare(b.getAttribute('data-filename') || '', 'ru');
+                case 'name_desc':
+                    return (b.getAttribute('data-filename') || '').localeCompare(a.getAttribute('data-filename') || '', 'ru');
+                case 'size_asc':
+                    return parseInt(a.getAttribute('data-size') || '0', 10) - parseInt(b.getAttribute('data-size') || '0', 10);
+                case 'size_desc':
+                    return parseInt(b.getAttribute('data-size') || '0', 10) - parseInt(a.getAttribute('data-size') || '0', 10);
+            }
+            return 0;
+        });
+        sorted.forEach(function (card) { grid.appendChild(card); });
+
+        // Фильтрация
+        var visible = 0;
+        allCards.forEach(function (card) {
+            var ok = matchSearch(card)
+                && matchExactAttr(card, 'data-tissue', tissueSel.value)
+                && matchExactAttr(card, 'data-staining', stainingSel.value)
+                && matchExactAttr(card, 'data-enhanced', enhancedSel.value)
+                && matchDate(card)
+                && matchSubstrAttr(card, 'data-case', caseInp.value)
+                && matchSubstrAttr(card, 'data-sample', sampleInp.value)
+                && matchSubstrAttr(card, 'data-uploader', uploaderInp.value);
+            card.style.display = ok ? '' : 'none';
+            if (ok) visible++;
+        });
+        counter.textContent = 'Показано ' + visible + ' из ' + allCards.length;
+        emptyMsg.style.display = visible === 0 ? '' : 'none';
+        grid.style.display = visible === 0 ? 'none' : '';
+    }
+
+    function debounced() {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(applyFiltersAndSort, 200);
+    }
+
+    function reset() {
+        searchInp.value = '';
+        tissueSel.value = '';
+        stainingSel.value = '';
+        enhancedSel.value = '';
+        dateFrom.value = '';
+        dateTo.value = '';
+        caseInp.value = '';
+        sampleInp.value = '';
+        uploaderInp.value = '';
+        sortSel.value = 'date_desc';
+        applyFiltersAndSort();
+    }
+
+    [tissueSel, stainingSel, enhancedSel, sortSel, dateFrom, dateTo].forEach(function (el) {
+        el.addEventListener('change', applyFiltersAndSort);
+    });
+    [searchInp, caseInp, sampleInp, uploaderInp].forEach(function (el) {
+        el.addEventListener('input', debounced);
+    });
+    resetBtn.addEventListener('click', reset);
+
+    applyFiltersAndSort();
+})();
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.ForensicCaseDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
 import ru.mai.histology.enumeration.TissueType;
 import ru.mai.histology.repo.EmployeeRepository;
@@ -59,6 +60,7 @@ public class SampleController {
         model.addAttribute("allSamples", sampleService.getAllSamples());
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
+        model.addAttribute("sampleStatuses", SampleStatus.values());
         return "employee/laborant/samples/allSamples";
     }
 
