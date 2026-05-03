@@ -35,7 +35,7 @@ public class ConclusionController {
 
     @GetMapping("/employee/histologist/conclusions/allConclusions")
     public String allConclusions(Model model) {
-        model.addAttribute("allConclusions", conclusionService.getAllConclusions());
+        model.addAttribute("allConclusions", conclusionService.getConclusionsByCurrentHistologist());
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
         return "employee/histologist/conclusions/allConclusions";
@@ -45,6 +45,9 @@ public class ConclusionController {
 
     @GetMapping("/employee/histologist/conclusions/addConclusion/{sampleId}")
     public String addConclusionForm(@PathVariable(value = "sampleId") long sampleId, Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
         Optional<SampleDTO> sampleOpt = sampleViewService.getSampleById(sampleId);
         if (sampleOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";
@@ -65,6 +68,10 @@ public class ConclusionController {
                                 @RequestParam String inputDiagnosis,
                                 @RequestParam String inputConclusionText,
                                 Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
+
         Optional<Long> savedId = conclusionService.saveConclusion(sampleId,
                 inputMicroscopicDescription, inputDiagnosis, inputConclusionText);
 
@@ -81,6 +88,9 @@ public class ConclusionController {
 
     @GetMapping("/employee/histologist/conclusions/detailsConclusion/{id}")
     public String detailsConclusion(@PathVariable(value = "id") long id, Model model) {
+        if (!conclusionService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/conclusions/allConclusions";
+        }
         Optional<HistologistConclusionDTO> conclusionOpt = conclusionService.getConclusionById(id);
         if (conclusionOpt.isEmpty()) {
             return "redirect:/employee/histologist/conclusions/allConclusions";
@@ -93,6 +103,9 @@ public class ConclusionController {
 
     @GetMapping("/employee/histologist/conclusions/editConclusion/{id}")
     public String editConclusionForm(@PathVariable(value = "id") long id, Model model) {
+        if (!conclusionService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/conclusions/allConclusions";
+        }
         Optional<HistologistConclusionDTO> conclusionOpt = conclusionService.getConclusionById(id);
         if (conclusionOpt.isEmpty()) {
             return "redirect:/employee/histologist/conclusions/allConclusions";
@@ -107,6 +120,10 @@ public class ConclusionController {
                                  @RequestParam String inputDiagnosis,
                                  @RequestParam String inputConclusionText,
                                  Model model) {
+        if (!conclusionService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/conclusions/allConclusions";
+        }
+
         Optional<Long> editedId = conclusionService.editConclusion(id,
                 inputMicroscopicDescription, inputDiagnosis, inputConclusionText);
 
@@ -123,6 +140,9 @@ public class ConclusionController {
 
     @GetMapping("/employee/histologist/conclusions/deleteConclusion/{id}")
     public String deleteConclusion(@PathVariable(value = "id") long id, RedirectAttributes attrs) {
+        if (!conclusionService.isAuthoredByCurrentUser(id)) {
+            return "redirect:/employee/histologist/conclusions/allConclusions";
+        }
         if (!conclusionService.deleteConclusion(id)) {
             attrs.addFlashAttribute("errorMessage", "Не удалось удалить заключение.");
             return "redirect:/employee/histologist/conclusions/detailsConclusion/" + id;

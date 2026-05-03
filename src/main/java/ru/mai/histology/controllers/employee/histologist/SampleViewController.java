@@ -34,7 +34,7 @@ public class SampleViewController {
 
     @GetMapping("/employee/histologist/samples/allSamples")
     public String allSamples(Model model) {
-        model.addAttribute("allSamples", sampleViewService.getAllSamples());
+        model.addAttribute("allSamples", sampleViewService.getMySamples());
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
         model.addAttribute("sampleStatuses", SampleStatus.values());
@@ -43,6 +43,9 @@ public class SampleViewController {
 
     @GetMapping("/employee/histologist/samples/detailsSample/{id}")
     public String detailsSample(@PathVariable(value = "id") long id, Model model) {
+        if (!sampleViewService.isAssignedToCurrentUser(id)) {
+            return "redirect:/employee/histologist/samples/allSamples";
+        }
         Optional<SampleDTO> sampleOpt = sampleViewService.getSampleById(id);
         if (sampleOpt.isEmpty()) {
             return "redirect:/employee/histologist/samples/allSamples";

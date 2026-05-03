@@ -47,6 +47,27 @@ public class ProtocolService {
         return ResearchProtocolMapper.INSTANCE.toDTOList(protocols);
     }
 
+    /** Протоколы, созданные текущим гистологом. */
+    @Transactional(readOnly = true)
+    public List<ResearchProtocolDTO> getProtocolsByCurrentHistologist() {
+        Employee currentUser = getCurrentUser();
+        if (currentUser == null) return List.of();
+        List<ResearchProtocol> protocols =
+                protocolRepository.findAllByCreatedByIdOrderByCreatedDateDesc(currentUser.getId());
+        return ResearchProtocolMapper.INSTANCE.toDTOList(protocols);
+    }
+
+    /** Создан ли протокол текущим гистологом. */
+    @Transactional(readOnly = true)
+    public boolean isAuthoredByCurrentUser(Long protocolId) {
+        Employee currentUser = getCurrentUser();
+        if (currentUser == null) return false;
+        return protocolRepository.findById(protocolId)
+                .map(p -> p.getCreatedBy() != null
+                        && p.getCreatedBy().getId().equals(currentUser.getId()))
+                .orElse(false);
+    }
+
     @Transactional(readOnly = true)
     public Optional<ResearchProtocolDTO> getProtocolById(Long id) {
         return protocolRepository.findById(id)

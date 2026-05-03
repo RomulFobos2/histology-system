@@ -121,11 +121,16 @@
                             data-size=${img.fileSize} ?: '0',
                             data-date-iso=${img.uploadDate != null ? #temporals.format(img.uploadDate, 'yyyy-MM-dd') : ''}">
                         <div class="image-card">
-                            <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${img.id})}">
+                            <a th:if="${img.assignedHistologistId != null and img.assignedHistologistId == #authentication.principal.id}"
+                               th:href="@{/employee/histologist/images/detailsImage/{id}(id=${img.id})}">
                                 <img th:src="@{/files/images/thumb/{id}(id=${img.id})}"
                                      th:alt="${img.originalFilename}"
                                      class="image-thumb">
                             </a>
+                            <img th:unless="${img.assignedHistologistId != null and img.assignedHistologistId == #authentication.principal.id}"
+                                 th:src="@{/files/images/thumb/{id}(id=${img.id})}"
+                                 th:alt="${img.originalFilename}"
+                                 class="image-thumb">
                             <div class="image-card-body">
                                 <div class="image-card-title" th:text="${img.originalFilename}"></div>
                                 <div class="image-card-meta">
@@ -137,8 +142,11 @@
                                 </div>
                                 <div class="image-card-meta mt-1">
                                     <small>
-                                        <a th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${img.sampleId})}"
+                                        <a th:if="${img.assignedHistologistId != null and img.assignedHistologistId == #authentication.principal.id}"
+                                           th:href="@{/employee/histologist/samples/detailsSample/{id}(id=${img.sampleId})}"
                                            th:text="'Образец №' + ${img.sampleNumber}"></a>
+                                        <span th:unless="${img.assignedHistologistId != null and img.assignedHistologistId == #authentication.principal.id}"
+                                              th:text="'Образец №' + ${img.sampleNumber}"></span>
                                         <span th:if="${img.caseNumber}" th:text="' · Дело №' + ${img.caseNumber}"></span>
                                     </small>
                                 </div>
