@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -30,18 +31,22 @@ public class AutoencoderClientService {
     private String autoencoderServiceUrl;
 
     public AutoencoderClientService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(120))
-                .build();
-        this.trainingRestTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(10))
-                .build();
+        this.restTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(120));
+        this.trainingRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(10));
         // U-Net на CPU может обрабатывать изображение 30–120 секунд
-        this.enhanceRestTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(120))
+        this.enhanceRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(120));
+        log.info("Autoencoder HTTP transport forced to {} to avoid h2c upgrade issues with Uvicorn",
+                SimpleClientHttpRequestFactory.class.getSimpleName());
+    }
+
+    private RestTemplate buildHttp11RestTemplate(RestTemplateBuilder restTemplateBuilder,
+                                                 Duration connectTimeout,
+                                                 Duration readTimeout) {
+        // JDK HttpClient tries h2c upgrade on plain HTTP, which Uvicorn rejects for multipart POST /enhance.
+        return restTemplateBuilder
+                .requestFactory(SimpleClientHttpRequestFactory::new)
+                .setConnectTimeout(connectTimeout)
+                .setReadTimeout(readTimeout)
                 .build();
     }
 
