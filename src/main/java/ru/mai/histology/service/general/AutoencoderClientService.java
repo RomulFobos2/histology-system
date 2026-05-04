@@ -168,9 +168,11 @@ public class AutoencoderClientService {
             body.add("file", filePart);
             body.add("mode", mode != null ? mode : "auto");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            // Не задаём Content-Type вручную: FormHttpMessageConverter сам определит
+            // multipart по наличию ByteArrayResource в body и добавит правильный
+            // Content-Type с boundary. Явная установка MULTIPART_FORM_DATA без boundary
+            // в некоторых версиях Spring приводила к 422 на стороне FastAPI/uvicorn.
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body);
             ResponseEntity<byte[]> response = enhanceRestTemplate.exchange(
                     autoencoderServiceUrl + "/enhance",
                     HttpMethod.POST,
