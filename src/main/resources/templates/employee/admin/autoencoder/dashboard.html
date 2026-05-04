@@ -1,0 +1,655 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Автоэнкодер | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/tablePagination.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <!-- Заголовок + управление сервисом -->
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <h1 class="page-title mb-1">Нейросетевое улучшение изображений</h1>
+                        <p class="page-subtitle mb-0">Управление обучением автоэнкодера, метрики модели и история запусков</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span id="serviceBadgeActive" th:if="${serviceAvailable}" class="badge-active">Python-сервис доступен</span>
+                        <span id="serviceBadgeInactive" th:unless="${serviceAvailable}" class="badge-inactive">Python-сервис недоступен</span>
+
+                        <form th:if="${!serviceAvailable and !processManaged}"
+                              th:action="@{/employee/admin/autoencoder/startService}" method="post" style="margin:0">
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-play-circle"></i> Запустить сервис
+                            </button>
+                        </form>
+                        <form th:if="${serviceAvailable or processManaged}"
+                              th:action="@{/employee/admin/autoencoder/stopService}" method="post" style="margin:0">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-stop-circle"></i> Остановить сервис
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+            <div th:if="${processManaged and !serviceAvailable}" class="alert alert-info">
+                <i class="bi bi-hourglass-split"></i> Python-сервис запускается, подождите...
+            </div>
+
+            <div class="row g-4 mb-4">
+                <!-- Параметры обучения -->
+                <div class="col-12 col-xl-5">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">Параметры обучения</h6>
+
+                        <!-- Предустановки -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Предустановки</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="applyPreset('fast')"
+                                        data-bs-toggle="tooltip" title="5 эпох, батч 8, LR 0.001, 128px — быстрый результат за несколько минут, подходит для первичной проверки">
+                                    <i class="bi bi-lightning"></i> Быстрый
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyPreset('medium')"
+                                        data-bs-toggle="tooltip" title="15 эпох, батч 4, LR 0.0005, 256px — оптимальный баланс качества и времени, рекомендуется для большинства задач">
+                                    <i class="bi bi-speedometer2"></i> Средний
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="applyPreset('thorough')"
+                                        data-bs-toggle="tooltip" title="40 эпох, батч 2, LR 0.0002, 384px — длительное обучение (30–60 мин), максимальное качество модели">
+                                    <i class="bi bi-hourglass-split"></i> Тщательный
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="applyPreset('max')"
+                                        data-bs-toggle="tooltip" title="80 эпох, батч 1, LR 0.0001, 512px — максимально глубокое обучение (1–3 часа), для финальной модели">
+                                    <i class="bi bi-fire"></i> Максимальный
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Справка по предустановкам -->
+                        <div class="mb-3">
+                            <a class="text-muted small text-decoration-none" data-bs-toggle="collapse" href="#presetHelp" role="button">
+                                <i class="bi bi-question-circle"></i> Что означают предустановки?
+                            </a>
+                            <div class="collapse mt-2" id="presetHelp">
+                                <div class="card card-body small">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <thead>
+                                        <tr class="text-muted">
+                                            <th>Режим</th>
+                                            <th>Epochs</th>
+                                            <th>Batch</th>
+                                            <th>LR</th>
+                                            <th>Image</th>
+                                            <th>Время*</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr>
+                                            <td><i class="bi bi-lightning text-success"></i> Быстрый</td>
+                                            <td>5</td><td>8</td><td>0.001</td><td>128</td><td>2–5 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-speedometer2 text-primary"></i> Средний</td>
+                                            <td>15</td><td>4</td><td>0.0005</td><td>256</td><td>10–20 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-hourglass-split text-warning"></i> Тщательный</td>
+                                            <td>40</td><td>2</td><td>0.0002</td><td>384</td><td>30–60 мин</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="bi bi-fire text-danger"></i> Максимальный</td>
+                                            <td>80</td><td>1</td><td>0.0001</td><td>512</td><td>1–3 ч</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                    <div class="text-muted mt-2">* Примерное время на CPU для датасета ~100 изображений. На GPU обучение значительно быстрее.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="trainingForm" th:action="@{/employee/admin/autoencoder/train}" method="post" class="auth-form">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Epochs</label>
+                                    <input type="number" class="form-control" id="inputEpochs" name="inputEpochs" value="15" min="1" max="200" required>
+                                    <div class="text-muted small mt-1">
+                                        Полных проходов по датасету. Больше — лучше качество, но дольше обучение.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Batch Size</label>
+                                    <input type="number" class="form-control" id="inputBatchSize" name="inputBatchSize" value="4" min="1" max="32" required>
+                                    <div class="text-muted small mt-1">
+                                        Изображений за один шаг. Меньше — меньше нагрузка на память.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Learning Rate</label>
+                                    <input type="number" class="form-control" id="inputLearningRate" name="inputLearningRate" value="0.0005" min="0.00001" max="1" step="0.00001" required>
+                                    <div class="text-muted small mt-1">
+                                        Скорость обновления весов. Меньше — стабильнее, но дольше.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Image Size</label>
+                                    <select class="form-select" id="inputImageSize" name="inputImageSize" required>
+                                        <option value="128">128</option>
+                                        <option value="224">224</option>
+                                        <option value="256" selected>256</option>
+                                        <option value="384">384</option>
+                                        <option value="512">512</option>
+                                        <option value="1024">1024</option>
+                                    </select>
+                                    <div class="text-muted small mt-1">
+                                        Размер фрагмента. Больше — больше деталей, но дольше.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-actions mt-4">
+                                <button type="submit" id="trainButton"
+                                        class="btn btn-warning btn-profile"
+                                        th:disabled="${!serviceAvailable or trainingStatus['status'] == 'running'}">
+                                    <i class="bi bi-cpu"></i> Запустить обучение
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Прогресс обучения -->
+                        <div id="trainingProgressBlock" class="alert alert-info mt-3 mb-0"
+                             th:style="${trainingStatus['status'] == 'running'} ? '' : 'display:none'">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                <span id="trainingProgressText">
+                                    <i class="bi bi-hourglass-split"></i> Обучение выполняется.
+                                    <span th:if="${trainingStatus['currentEpoch'] != null}"
+                                          th:text="'Эпоха ' + ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']}"></span>
+                                    <span th:if="${trainingStatus['currentLoss'] != null}"
+                                          th:text="' | Loss: ' + ${trainingStatus['currentLoss']}"></span>
+                                    <span th:if="${trainingStatus['currentValLoss'] != null}"
+                                          th:text="' | Val Loss: ' + ${trainingStatus['currentValLoss']}"></span>
+                                </span>
+                                <form th:action="@{/employee/admin/autoencoder/resetTrainingStatus}" method="post" style="margin:0">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                            onclick="return confirm('Сбросить статус обучения? Нажмите «ОК» только если обучение зависло или завершилось с ошибкой.')">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Сбросить статус
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div id="trainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                     role="progressbar"
+                                     th:style="${trainingStatus['currentEpoch'] != null and trainingStatus['epochs'] != null} ? 'width:' + ${(trainingStatus['currentEpoch'] * 100) / trainingStatus['epochs']} + '%' : 'width:0%'"
+                                     th:text="${trainingStatus['currentEpoch'] != null} ? ${trainingStatus['currentEpoch']} + ' / ' + ${trainingStatus['epochs']} : ''">
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-1">Статус обновляется автоматически каждые 3 секунды.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Метрики -->
+                <div class="col-12 col-xl-7">
+                    <div class="profile-card p-4 h-100">
+                        <h6 class="form-section-title">Текущий статус и метрики</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="text-muted small">Статус обучения</div>
+                                <div id="metricStatus" th:text="${trainingStatus['status']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Режим улучшения</div>
+                                <div th:text="${metrics['mode'] == 'neural' ? 'Нейросеть (U-Net)' : 'Базовый (Pillow)'}"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Epochs</div>
+                                <div id="metricEpochs" th:text="${metrics['epochs']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Train Loss</div>
+                                <div id="metricLoss" th:text="${metrics['loss']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Validation Loss</div>
+                                <div id="metricValLoss" th:text="${metrics['validationLoss']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">PSNR</div>
+                                <div id="metricPsnr" th:text="${metrics['psnr']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">SSIM</div>
+                                <div id="metricSsim" th:text="${metrics['ssim']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Размер датасета</div>
+                                <div id="metricDatasetSize" th:text="${metrics['datasetSize']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Размер изображения</div>
+                                <div id="metricImageSize" th:text="${metrics['imageSize']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Дата обучения</div>
+                                <div id="metricTrainedDate" th:text="${metrics['trainedDate']} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Время обучения</div>
+                                <div id="metricDuration" th:text="${metrics['trainingDurationSeconds'] != null ? metrics['trainingDurationSeconds'] + ' сек' : '—'}"></div>
+                            </div>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle"></i> Python-сервис автоматически применяет последнюю обученную нейросеть.
+                            Если нейросеть не обучена — используется базовый пайплайн улучшения (Pillow).
+                            Выбор модели осуществляется при улучшении конкретного изображения.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Качество улучшаемых изображений (для принятия решения о переобучении) -->
+            <div class="row g-4 mb-4" th:if="${qualityReport != null}">
+                <div class="col-12">
+                    <div class="profile-card p-4">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                            <div>
+                                <h6 class="form-section-title mb-1">Качество улучшаемых изображений</h6>
+                                <p class="text-muted small mb-0">
+                                    Оценки врачей-гистологов по результатам улучшения изображений автоэнкодером.
+                                    Используйте эти данные для принятия решения о переобучении модели.
+                                </p>
+                            </div>
+                            <div class="text-muted small">
+                                Всего обработано: <span class="fw-bold" th:text="${qualityReport.total}">0</span>
+                                · Оценено: <span class="fw-bold" th:text="${qualityReport.ratedTotal}">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Карточки счётчиков -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="profile-card p-3 text-center" style="background-color:#f8d7da;">
+                                    <div class="text-danger fw-bold" style="font-size:1.2rem;">
+                                        <i class="bi bi-emoji-frown"></i> Плохо
+                                    </div>
+                                    <div style="font-size:1.8rem; font-weight:bold;" th:text="${qualityReport.badCount}">0</div>
+                                    <div class="text-muted small">
+                                        <span th:text="${qualityReport.badPercent}">0</span>% от оценённых
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="profile-card p-3 text-center" style="background-color:#fff3cd;">
+                                    <div class="text-warning fw-bold" style="font-size:1.2rem;">
+                                        <i class="bi bi-emoji-neutral"></i> Хорошо
+                                    </div>
+                                    <div style="font-size:1.8rem; font-weight:bold;" th:text="${qualityReport.goodCount}">0</div>
+                                    <div class="text-muted small">
+                                        <span th:text="${qualityReport.goodPercent}">0</span>% от оценённых
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="profile-card p-3 text-center" style="background-color:#d1e7dd;">
+                                    <div class="text-success fw-bold" style="font-size:1.2rem;">
+                                        <i class="bi bi-emoji-smile"></i> Отлично
+                                    </div>
+                                    <div style="font-size:1.8rem; font-weight:bold;" th:text="${qualityReport.excellentCount}">0</div>
+                                    <div class="text-muted small">
+                                        <span th:text="${qualityReport.excellentPercent}">0</span>% от оценённых
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Подсказка для принятия решения -->
+                        <div th:if="${qualityReport.ratedTotal > 0}" class="alert"
+                             th:classappend="${qualityReport.badPercent >= 30 ? 'alert-danger' : (qualityReport.badPercent >= 15 ? 'alert-warning' : 'alert-success')}">
+                            <i class="bi bi-info-circle"></i>
+                            <strong th:if="${qualityReport.badPercent >= 30}">Рекомендуется переобучение модели:</strong>
+                            <strong th:if="${qualityReport.badPercent >= 15 and qualityReport.badPercent < 30}">Стоит обратить внимание на качество модели:</strong>
+                            <strong th:if="${qualityReport.badPercent < 15}">Модель работает стабильно:</strong>
+                            доля оценок «Плохо» составляет <span th:text="${qualityReport.badPercent}"></span>%.
+                        </div>
+
+                        <!-- Сводная таблица «модель × оценка» -->
+                        <h6 class="form-section-title mt-4">Качество по моделям автоэнкодера</h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Модель</th>
+                                    <th class="bg-danger text-white">Плохо</th>
+                                    <th class="bg-warning">Хорошо</th>
+                                    <th class="bg-success text-white">Отлично</th>
+                                    <th>Всего оценено</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="row : ${qualityReport.qualityMatrixRows}">
+                                    <td th:text="${row[0]}"></td>
+                                    <td th:text="${row[1]}"></td>
+                                    <td th:text="${row[2]}"></td>
+                                    <td th:text="${row[3]}"></td>
+                                    <td class="fw-bold" th:text="${row[4]}"></td>
+                                </tr>
+                                <tr th:if="${qualityReport.qualityMatrixRows.isEmpty()}">
+                                    <td colspan="5" class="text-center text-muted">
+                                        Нет оценённых улучшений. После того как врачи начнут оценивать улучшения, здесь появится статистика по моделям.
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопка открытия модального окна истории -->
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="profile-card p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <h6 class="form-section-title">История обучения</h6>
+                            <p class="text-muted small mb-3">Запуски обучения модели, зарегистрированные в системе.</p>
+                        </div>
+                        <div>
+                            <span class="text-muted me-2" th:text="'Записей: ' + (${trainingSessions != null} ? ${trainingSessions.size()} : 0)"></span>
+                            <button type="button" class="btn btn-outline-primary btn-sm"
+                                    data-bs-toggle="modal" data-bs-target="#historyModal"
+                                    th:disabled="${trainingSessions == null or trainingSessions.isEmpty()}">
+                                <i class="bi bi-clock-history"></i> Открыть историю
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+
+<!-- ========== Модальное окно: История обучения ========== -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="historyModalLabel">
+                    <i class="bi bi-clock-history"></i> История обучения
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div th:if="${trainingSessions != null and !trainingSessions.isEmpty()}">
+                    <table id="historyTable" class="table table-modern" style="font-size: 0.8rem;">
+                        <thead>
+                        <tr>
+                            <th data-bs-toggle="tooltip" title="Порядковый номер">#</th>
+                            <th data-bs-toggle="tooltip" title="Дата и время начала обучения">Старт</th>
+                            <th data-bs-toggle="tooltip" title="Результат: OK, RUNNING, ERROR">Статус</th>
+                            <th data-bs-toggle="tooltip" title="Инициатор обучения">Кто</th>
+                            <th data-bs-toggle="tooltip" title="Epochs — кол-во проходов по датасету">Ep</th>
+                            <th data-bs-toggle="tooltip" title="Batch size — изображений за один шаг">Bat</th>
+                            <th data-bs-toggle="tooltip" title="Learning rate — скорость обучения">LR</th>
+                            <th data-bs-toggle="tooltip" title="Размер изображения (px)">Img</th>
+                            <th data-bs-toggle="tooltip" title="Train loss — функция потерь на обучении">Loss</th>
+                            <th data-bs-toggle="tooltip" title="Validation loss — потери на валидации">VLoss</th>
+                            <th data-bs-toggle="tooltip" title="Peak Signal-to-Noise Ratio — качество восстановления">PSNR</th>
+                            <th data-bs-toggle="tooltip" title="Structural Similarity — структурное сходство с оригиналом">SSIM</th>
+                            <th data-bs-toggle="tooltip" title="Сообщение Python-сервиса о результате">Сообщ.</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="ts, iter : ${trainingSessions}">
+                            <td th:text="${iter.count}">1</td>
+                            <td style="white-space:nowrap" th:text="${ts.startedAt != null ? #temporals.format(ts.startedAt, 'dd.MM HH:mm') : '—'}"></td>
+                            <td>
+                                <span th:if="${ts.status == 'OK'}" class="badge-active">OK</span>
+                                <span th:if="${ts.status == 'RUNNING'}" class="badge bg-warning text-dark">RUN</span>
+                                <span th:if="${ts.status != 'OK' and ts.status != 'RUNNING'}" class="badge-inactive" th:text="${ts.status}"></span>
+                            </td>
+                            <td style="max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                th:text="${ts.triggeredByFullName != null ? ts.triggeredByFullName : '—'}"
+                                th:title="${ts.triggeredByFullName}"></td>
+                            <td th:text="${ts.epochs}"></td>
+                            <td th:text="${ts.batchSize}"></td>
+                            <td th:text="${ts.learningRate}"></td>
+                            <td th:text="${ts.imageSize}"></td>
+                            <td th:text="${ts.loss != null ? ts.loss : '—'}"></td>
+                            <td th:text="${ts.validationLoss != null ? ts.validationLoss : '—'}"></td>
+                            <td th:text="${ts.psnr != null ? ts.psnr : '—'}"></td>
+                            <td th:text="${ts.ssim != null ? ts.ssim : '—'}"></td>
+                            <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                th:text="${ts.message != null ? ts.message : '—'}"
+                                th:title="${ts.message}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${trainingSessions == null or trainingSessions.isEmpty()}" class="text-center text-muted py-4">
+                    История обучения пока пуста
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form th:if="${trainingSessions != null and !trainingSessions.isEmpty()}"
+                      th:action="@{/employee/admin/autoencoder/clearSystemHistory}" method="post" style="margin:0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Удалить все записи истории из базы данных? Это действие необратимо.')">
+                        <i class="bi bi-trash"></i> Очистить историю
+                    </button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== Предустановки =====
+    var PRESETS = {
+        fast:     { epochs: 5,  batchSize: 8, learningRate: 0.001,   imageSize: '128' },
+        medium:   { epochs: 15, batchSize: 4, learningRate: 0.0005,  imageSize: '256' },
+        thorough: { epochs: 40, batchSize: 2, learningRate: 0.0002,  imageSize: '384' },
+        max:      { epochs: 80, batchSize: 1, learningRate: 0.0001,  imageSize: '512' }
+    };
+
+    function applyPreset(name) {
+        var p = PRESETS[name];
+        if (!p) return;
+        document.getElementById('inputEpochs').value = p.epochs;
+        document.getElementById('inputBatchSize').value = p.batchSize;
+        document.getElementById('inputLearningRate').value = p.learningRate;
+        document.getElementById('inputImageSize').value = p.imageSize;
+    }
+</script>
+
+<script th:inline="javascript">
+    var initialStatus = String(/*[[${trainingStatus['status']}]]*/ 'idle');
+    var processManaged = /*[[${processManaged}]]*/ false;
+    var serviceAvailable = /*[[${serviceAvailable}]]*/ false;
+
+    // Если сервис запускается, поллинг подхватит статус
+
+    // ===== Проверка статуса обучения =====
+    var pollingInterval = null;
+    var wasRunning = (initialStatus === 'running');
+
+    function updateMetricsBlock(metrics) {
+        if (!metrics) return;
+        var map = {
+            'metricEpochs': metrics.epochs,
+            'metricLoss': metrics.loss,
+            'metricValLoss': metrics.validationLoss,
+            'metricPsnr': metrics.psnr,
+            'metricSsim': metrics.ssim,
+            'metricDatasetSize': metrics.datasetSize,
+            'metricImageSize': metrics.imageSize,
+            'metricTrainedDate': metrics.trainedDate,
+            'metricDuration': metrics.trainingDurationSeconds != null ? metrics.trainingDurationSeconds + ' сек' : null
+        };
+        for (var id in map) {
+            var el = document.getElementById(id);
+            if (el && map[id] != null) el.textContent = map[id];
+        }
+    }
+
+    function updateTrainingUI(data) {
+        var ts = data.trainingStatus || {};
+        var status = String(ts.status || 'idle');
+        var isRunning = (status === 'running');
+
+        // Статус в метриках
+        var metricStatus = document.getElementById('metricStatus');
+        if (metricStatus) metricStatus.textContent = status;
+
+        // Бейдж доступности сервиса
+        var badgeActive = document.getElementById('serviceBadgeActive');
+        var badgeInactive = document.getElementById('serviceBadgeInactive');
+        if (badgeActive) badgeActive.style.display = data.serviceAvailable ? '' : 'none';
+        if (badgeInactive) badgeInactive.style.display = data.serviceAvailable ? 'none' : '';
+
+        // Кнопка
+        var trainBtn = document.getElementById('trainButton');
+        if (trainBtn) {
+            trainBtn.disabled = !data.serviceAvailable || isRunning;
+            if (!isRunning && data.serviceAvailable) {
+                trainBtn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+            }
+        }
+
+        // Прогресс-блок
+        var progressBlock = document.getElementById('trainingProgressBlock');
+        if (isRunning) {
+            var currentEpoch = ts.currentEpoch || 0;
+            var totalEpochs = ts.epochs || 1;
+            var pct = Math.round((currentEpoch / totalEpochs) * 100);
+
+            if (progressBlock) progressBlock.style.display = 'block';
+
+            var text = '<i class="bi bi-hourglass-split"></i> Обучение выполняется.';
+            if (currentEpoch > 0) text += ' Эпоха ' + currentEpoch + ' / ' + totalEpochs;
+            if (ts.currentLoss != null) text += ' | Loss: ' + ts.currentLoss;
+            if (ts.currentValLoss != null) text += ' | Val Loss: ' + ts.currentValLoss;
+
+            var progressText = document.getElementById('trainingProgressText');
+            if (progressText) progressText.innerHTML = text;
+
+            var progressBar = document.getElementById('trainingProgressBar');
+            if (progressBar) {
+                progressBar.style.width = pct + '%';
+                progressBar.textContent = currentEpoch + ' / ' + totalEpochs;
+            }
+        } else {
+            if (progressBlock) progressBlock.style.display = 'none';
+        }
+
+        // После обучения обновляем метрики — только при финальных статусах (ok/error),
+        // чтобы не срабатывало на ложный "idle" во время запуска подпроцесса
+        var isFinalStatus = (status === 'ok' || status === 'error');
+        if (wasRunning && !isRunning && isFinalStatus) {
+            updateMetricsBlock(data.metrics || {});
+            var alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = '<i class="bi bi-check-circle"></i> Обучение завершено. Метрики обновлены.' +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            var main = document.querySelector('main.container-fluid');
+            if (main) main.insertBefore(alertDiv, main.children[2]);
+        }
+
+        // Обновляем wasRunning только на финальных статусах или при running,
+        // игнорируем "idle" пока подпроцесс не записал pid в статус-файл
+        if (isRunning || isFinalStatus) {
+            wasRunning = isRunning;
+        }
+    }
+
+    function pollTrainingStatus() {
+        fetch('/employee/admin/autoencoder/api/training-status')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var st = data.trainingStatus ? data.trainingStatus.status : 'n/a';
+                console.log('[DIAG] poll /api/training-status → status=' + st + ' wasRunning=' + wasRunning);
+                updateTrainingUI(data);
+            })
+            .catch(function () {});
+    }
+
+    // Проверяем статус, пока сервис доступен или запускается
+    if (serviceAvailable || processManaged) {
+        pollingInterval = setInterval(pollTrainingStatus, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Запуск обучения без перезагрузки
+        var form = document.getElementById('trainingForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var btn = document.getElementById('trainButton');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Отправка...';
+                }
+
+                var formData = new FormData(form);
+                console.log('[DIAG] fetch POST /train starting');
+                fetch(form.action, { method: 'POST', body: formData, redirect: 'manual' })
+                    .then(function (response) {
+                        console.log('[DIAG] fetch POST /train .then: type=' + response.type + ' status=' + response.status + ' url=' + response.url);
+                        var progressBlock = document.getElementById('trainingProgressBlock');
+                        if (progressBlock) progressBlock.style.display = 'block';
+                        var progressText = document.getElementById('trainingProgressText');
+                        if (progressText) progressText.innerHTML = '<i class="bi bi-hourglass-split"></i> Обучение запускается...';
+                        var progressBar = document.getElementById('trainingProgressBar');
+                        if (progressBar) { progressBar.style.width = '0%'; progressBar.textContent = ''; }
+                        // Проверка статуса уже идет
+                    })
+                    .catch(function (err) {
+                        console.log('[DIAG] fetch POST /train .catch: ' + err);
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="bi bi-cpu"></i> Запустить обучение';
+                        }
+                        alert('Ошибка при отправке запроса на обучение.');
+                    });
+            });
+        }
+
+        // Подсказки
+        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
+
+        // Пагинация истории
+        var historyModal = document.getElementById('historyModal');
+        if (historyModal) {
+            historyModal.addEventListener('shown.bs.modal', function () {
+                if (!historyModal._paginationInit && typeof initPagination === 'function') {
+                    initPagination('historyTable', { perPage: 10 });
+                    historyModal._paginationInit = true;
+                }
+                [].slice.call(historyModal.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
+                    new bootstrap.Tooltip(el);
+                });
+            });
+        }
+    });
+</script>
+</body>
+</html>
