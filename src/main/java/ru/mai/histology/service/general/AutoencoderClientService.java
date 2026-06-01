@@ -33,8 +33,11 @@ public class AutoencoderClientService {
     public AutoencoderClientService(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(120));
         this.trainingRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(10));
-        // U-Net на CPU может обрабатывать изображение 30–120 секунд
-        this.enhanceRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofSeconds(120));
+        // Real-ESRGAN x4plus на CPU при tile-инференсе для больших микроскопических
+        // снимков (несколько мегапикселей) может занимать существенно больше времени,
+        // чем U-Net. Ставим 20 минут — это покрывает любые реалистичные размеры
+        // снимков на CPU без GPU и оставляет запас.
+        this.enhanceRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofMinutes(20));
         log.info("Autoencoder HTTP transport forced to {} to avoid h2c upgrade issues with Uvicorn",
                 SimpleClientHttpRequestFactory.class.getSimpleName());
     }

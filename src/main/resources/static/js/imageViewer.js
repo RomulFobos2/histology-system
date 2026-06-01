@@ -28,6 +28,16 @@
         if (zoomInfo) {
             zoomInfo.textContent = Math.round(scale * 100) + '%';
         }
+        // Подсветка пресет-кнопки, точно совпадающей с текущим масштабом
+        var presets = document.querySelectorAll('.btn-preset[data-zoom]');
+        for (var i = 0; i < presets.length; i++) {
+            var target = parseFloat(presets[i].getAttribute('data-zoom'));
+            if (Math.abs(target - scale) < 0.01) {
+                presets[i].classList.add('active');
+            } else {
+                presets[i].classList.remove('active');
+            }
+        }
     }
 
     // ===== Zoom (mouse wheel) =====
@@ -137,6 +147,16 @@
 
     window.resetView = function () {
         scale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+    };
+
+    // Установить произвольный масштаб (0.5 = 50%, 1 = 100%, 2 = 200%, 4 = 400%).
+    // Центр изображения остаётся в центре экрана: панорама сбрасывается.
+    window.zoomPreset = function (newScale) {
+        newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+        scale = newScale;
         translateX = 0;
         translateY = 0;
         updateTransform();

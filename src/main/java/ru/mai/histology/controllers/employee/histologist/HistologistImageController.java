@@ -120,6 +120,13 @@ public class HistologistImageController {
 
     // ========== Улучшение ==========
 
+    // Допустимые значения mode для /enhance. esrgan — Real-ESRGAN x4plus,
+    // unet — наша обученная denoising-модель, baseline — Pillow-пайплайн,
+    // auto — выбор лучшего доступного на Python-стороне.
+    // neural оставлен для обратной совместимости (отображается на esrgan/unet).
+    private static final java.util.Set<String> ALLOWED_ENHANCE_MODES =
+            java.util.Set.of("auto", "esrgan", "unet", "neural", "baseline");
+
     @PostMapping("/employee/histologist/images/enhance/{id}")
     public String enhanceImage(@PathVariable(value = "id") long id,
                                @RequestParam(value = "mode", defaultValue = "auto") String mode,
@@ -127,7 +134,13 @@ public class HistologistImageController {
         if (!isImageAccessible(id)) {
             return "redirect:/employee/histologist/images/all";
         }
-        Optional<Long> enhancedImageId = imageEnhancementService.enhanceImage(id, mode);
+        String normalizedMode = mode == null ? "auto" : mode.toLowerCase().trim();
+        if (!ALLOWED_ENHANCE_MODES.contains(normalizedMode)) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Недопустимый режим улучшения: " + mode);
+            return "redirect:/employee/histologist/images/detailsImage/" + id;
+        }
+        Optional<Long> enhancedImageId = imageEnhancementService.enhanceImage(id, normalizedMode);
         if (enhancedImageId.isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Не удалось улучшить изображение. Проверьте, что Python-сервис автоэнкодера запущен.");

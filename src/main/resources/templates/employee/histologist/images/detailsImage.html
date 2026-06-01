@@ -98,8 +98,11 @@
                             </a>
                             <form th:action="@{/employee/histologist/images/enhance/{id}(id=${imageDTO.id})}"
                                   method="post" style="display:inline;" class="d-inline-flex align-items-center gap-2">
-                                <select name="mode" class="form-select form-select-sm" style="width:auto;">
-                                    <option value="neural">Нейросеть (U-Net)</option>
+                                <select name="mode" class="form-select form-select-sm" style="width:auto;"
+                                        title="Выберите модель улучшения изображения">
+                                    <option value="auto" selected>Авто (рекомендуется)</option>
+                                    <option value="esrgan">Real-ESRGAN — SOTA, 4× апскейл</option>
+                                    <option value="unet">Наш U-Net (denoising)</option>
                                     <option value="baseline">Базовый (Pillow)</option>
                                 </select>
                                 <button type="submit" class="btn btn-warning btn-profile">

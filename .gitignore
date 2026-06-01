@@ -37,7 +37,10 @@ __pycache__/
 *.pyc
 uploads/
 autoencoder/data/
-autoencoder/weights/
+autoencoder/weights/*
+# Веса Real-ESRGAN коммитим в репозиторий, чтобы сервис работал офлайн
+!autoencoder/weights/pretrained/
+!autoencoder/weights/.gitkeep
 autoencoder/service.pid
 autoencoder/service.log
 autoencoder/service.log.err

@@ -157,15 +157,29 @@ public class ImageEnhancementService {
 
     /**
      * Определяет режим улучшения по активной модели в БД.
-     * Если активна baseline → "baseline", если neural → "neural", иначе "auto".
+     * RealESRGAN_x4plus      → "esrgan" (промышленная SOTA-модель с 4× апскейлом);
+     * histology-denoising-unet → "unet"  (наша обученная denoising-модель);
+     * baseline-pillow-enhancer → "baseline" (Pillow fallback);
+     * по умолчанию → "auto" (Python-сервис сам выберет лучшее доступное).
      */
     private String resolveActiveMode() {
         return autoencoderModelRepository.findFirstByIsActiveTrue()
                 .map(model -> {
                     String name = model.getModelName();
-                    if (name != null && name.toLowerCase().contains("baseline")) {
+                    if (name == null) {
+                        return "auto";
+                    }
+                    String lower = name.toLowerCase();
+                    if (lower.contains("baseline")) {
                         return "baseline";
                     }
+                    if (lower.contains("esrgan")) {
+                        return "esrgan";
+                    }
+                    if (lower.contains("unet") || lower.contains("denoising")) {
+                        return "unet";
+                    }
+                    // Старое имя из первой версии — поддерживаем для совместимости
                     return "neural";
                 })
                 .orElse("auto");
@@ -198,6 +212,8 @@ public class ImageEnhancementService {
         String modelLabel;
         if (modelName != null && modelName.toLowerCase().contains("baseline")) {
             modelLabel = "Улучшено базовым пайплайном (" + modelName + ")";
+        } else if (modelName != null && modelName.toLowerCase().contains("esrgan")) {
+            modelLabel = "Улучшено Real-ESRGAN с 4× апскейлом (" + modelName + ")";
         } else if (modelName != null && !modelName.isBlank()) {
             modelLabel = "Улучшено нейросетью (" + modelName + ")";
         } else {

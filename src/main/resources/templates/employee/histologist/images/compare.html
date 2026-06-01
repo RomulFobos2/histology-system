@@ -9,6 +9,69 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <style>
+        /* Контейнер изображения: фиксированная высота, прокрутка при зуме > 100% */
+        .compare-canvas {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #1a1a1a;
+            overflow: auto;
+        }
+        .compare-canvas img {
+            display: block;
+            width: 100%;
+            height: auto;
+            margin: 0 auto;
+            /* Плавная интерполяция вместо «лесенки» при апскейле до 200–400% */
+            image-rendering: auto;
+            -ms-interpolation-mode: bicubic;
+            transition: width 0.18s ease-out;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .compare-toolbar {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .compare-toolbar .preset-group {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+        .compare-toolbar .btn-preset {
+            font-size: 0.85rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            cursor: pointer;
+            color: var(--text, inherit);
+        }
+        .compare-toolbar .btn-preset:hover { background: rgba(13, 110, 253, 0.1); }
+        .compare-toolbar .btn-preset.active {
+            background: rgba(13, 110, 253, 0.85);
+            color: #fff;
+            border-color: rgba(13, 110, 253, 1);
+        }
+        .compare-toolbar .zoom-label {
+            font-size: 0.85rem;
+            color: var(--text-muted, #6c757d);
+            margin-left: auto;
+        }
+        .compare-toolbar input[type="range"] { width: 160px; }
+        .sync-scroll-hint {
+            font-size: 0.78rem;
+            color: var(--text-muted, #6c757d);
+        }
+    </style>
 </head>
 <body>
 <div id="wrapper">
@@ -20,7 +83,23 @@
 
             <div class="profile-card p-4">
                 <h1 class="page-title mb-1">Сравнение изображений</h1>
-                <p class="page-subtitle mb-4">Слева оригинал, справа улучшенная копия из Python-сервиса</p>
+                <p class="page-subtitle mb-3">Слева оригинал, справа улучшенная копия. Зум и прокрутка синхронизированы.</p>
+
+                <!-- Тулбар зума: общий для обеих картинок -->
+                <div class="compare-toolbar mb-3">
+                    <span class="preset-group" role="group" aria-label="Пресеты масштаба">
+                        <button type="button" class="btn-preset" data-zoom="50">50%</button>
+                        <button type="button" class="btn-preset active" data-zoom="100">100%</button>
+                        <button type="button" class="btn-preset" data-zoom="200">200%</button>
+                        <button type="button" class="btn-preset" data-zoom="400">400%</button>
+                    </span>
+                    <input type="range" id="zoomSlider" min="50" max="400" step="10" value="100"
+                           class="form-range" aria-label="Произвольный масштаб">
+                    <span class="zoom-label">Масштаб: <strong id="zoomValue">100%</strong></span>
+                    <span class="sync-scroll-hint d-none d-md-inline">
+                        <i class="bi bi-arrow-left-right"></i> Прокрутка синхронизирована
+                    </span>
+                </div>
 
                 <div class="row g-4">
                     <div class="col-12 col-xl-6">
@@ -29,12 +108,18 @@
                                 <h6 class="form-section-title mb-0">Оригинал</h6>
                                 <span class="text-muted small" th:text="${originalImageDTO.fileSizeFormatted}"></span>
                             </div>
-                            <div class="text-center mb-3">
-                                <img th:src="@{/files/images/serve/{id}(id=${originalImageDTO.id})}"
-                                     th:alt="${originalImageDTO.originalFilename}"
-                                     style="max-width:100%; max-height:420px; border-radius:8px; border:1px solid var(--border);">
+                            <div id="canvasOriginal" class="compare-canvas mb-3">
+                                <img id="imgOriginal"
+                                     th:src="@{/files/images/serve/{id}(id=${originalImageDTO.id})}"
+                                     th:alt="${originalImageDTO.originalFilename}">
                             </div>
-                            <div class="small text-muted" th:text="${originalImageDTO.originalFilename}"></div>
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <div class="small text-muted" th:text="${originalImageDTO.originalFilename}"></div>
+                                <a th:href="@{/employee/histologist/images/viewImage/{id}(id=${originalImageDTO.id})}"
+                                   class="small">
+                                    <i class="bi bi-arrows-fullscreen"></i> Открыть в полноэкранном просмотрщике
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -42,20 +127,36 @@
                         <div class="profile-card p-3 h-100">
                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <h6 class="form-section-title mb-0">Улучшенная копия</h6>
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="d-flex gap-2 align-items-center flex-wrap">
                                     <span class="badge-active">Улучшено</span>
+                                    <span th:if="${enhancedImageDTO.description != null and #strings.containsIgnoreCase(enhancedImageDTO.description, 'esrgan')}"
+                                          class="badge bg-info text-dark"
+                                          title="Real-ESRGAN увеличивает разрешение в 4 раза и восстанавливает мелкие детали">
+                                        4× апскейл
+                                    </span>
+                                    <span class="text-muted small" th:text="${enhancedImageDTO.fileSizeFormatted}"></span>
                                     <span th:if="${enhancedImageDTO.enhancementQuality != null}"
                                           th:classappend="${enhancedImageDTO.enhancementQuality.name() == 'BAD' ? 'bg-danger' : (enhancedImageDTO.enhancementQuality.name() == 'GOOD' ? 'bg-warning text-dark' : 'bg-success')}"
                                           class="badge"
                                           th:text="'Оценка: ' + ${enhancedImageDTO.enhancementQualityDisplayName}"></span>
                                 </div>
                             </div>
-                            <div class="text-center mb-3">
-                                <img th:src="@{/files/images/serve/{id}(id=${enhancedImageDTO.id})}"
-                                     th:alt="${enhancedImageDTO.originalFilename}"
-                                     style="max-width:100%; max-height:420px; border-radius:8px; border:1px solid var(--border);">
+                            <div id="canvasEnhanced" class="compare-canvas mb-3">
+                                <img id="imgEnhanced"
+                                     th:src="@{/files/images/serve/{id}(id=${enhancedImageDTO.id})}"
+                                     th:alt="${enhancedImageDTO.originalFilename}">
                             </div>
-                            <div class="small text-muted" th:text="${enhancedImageDTO.originalFilename}"></div>
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <div class="small text-muted">
+                                    <span th:text="${enhancedImageDTO.originalFilename}"></span>
+                                    <span th:if="${enhancedImageDTO.description != null}"
+                                          th:text="' — ' + ${enhancedImageDTO.description}"></span>
+                                </div>
+                                <a th:href="@{/employee/histologist/images/viewImage/{id}(id=${enhancedImageDTO.id})}"
+                                   class="small">
+                                    <i class="bi bi-arrows-fullscreen"></i> Открыть в полноэкранном просмотрщике
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -76,5 +177,94 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
+
+<script>
+    // ===== Синхронный зум + синхронный скролл двух изображений =====
+    (function () {
+        var canvasL = document.getElementById('canvasOriginal');
+        var canvasR = document.getElementById('canvasEnhanced');
+        var imgL = document.getElementById('imgOriginal');
+        var imgR = document.getElementById('imgEnhanced');
+        var slider = document.getElementById('zoomSlider');
+        var zoomValue = document.getElementById('zoomValue');
+        var presetButtons = document.querySelectorAll('.btn-preset[data-zoom]');
+
+        if (!canvasL || !canvasR || !imgL || !imgR) return;
+
+        function applyZoom(percent) {
+            percent = Math.max(50, Math.min(400, percent));
+            // width = N% от ширины контейнера; height: auto держит пропорции
+            imgL.style.width = percent + '%';
+            imgR.style.width = percent + '%';
+            slider.value = percent;
+            zoomValue.textContent = percent + '%';
+            // Подсветка кнопки, если значение точно совпадает с пресетом
+            for (var i = 0; i < presetButtons.length; i++) {
+                var v = parseInt(presetButtons[i].getAttribute('data-zoom'), 10);
+                if (v === percent) {
+                    presetButtons[i].classList.add('active');
+                } else {
+                    presetButtons[i].classList.remove('active');
+                }
+            }
+        }
+
+        for (var i = 0; i < presetButtons.length; i++) {
+            presetButtons[i].addEventListener('click', function () {
+                applyZoom(parseInt(this.getAttribute('data-zoom'), 10));
+            });
+        }
+
+        slider.addEventListener('input', function () {
+            applyZoom(parseInt(slider.value, 10));
+        });
+
+        // Колесо мыши = зум +/− 10% (без необходимости с Ctrl)
+        function wheelZoom(e) {
+            if (e.ctrlKey) return; // даём пользователю обычный браузерный zoom на Ctrl+wheel
+            // Прокручиваем картинку обычным способом, только если зум > 100
+            // На 100% или меньше — wheel меняет масштаб
+            if (parseInt(slider.value, 10) > 100) return;
+            e.preventDefault();
+            var delta = e.deltaY < 0 ? 10 : -10;
+            applyZoom(parseInt(slider.value, 10) + delta);
+        }
+        canvasL.addEventListener('wheel', wheelZoom, { passive: false });
+        canvasR.addEventListener('wheel', wheelZoom, { passive: false });
+
+        // ===== Синхронный скролл =====
+        // Когда пользователь скроллит один canvas, второй копирует позицию
+        // в относительных координатах (доля от прокручиваемой области).
+        var syncing = false;
+        function mirrorScroll(source, target) {
+            return function () {
+                if (syncing) return;
+                syncing = true;
+                var sX = source.scrollWidth - source.clientWidth;
+                var sY = source.scrollHeight - source.clientHeight;
+                var tX = target.scrollWidth - target.clientWidth;
+                var tY = target.scrollHeight - target.clientHeight;
+                target.scrollLeft = sX > 0 ? (source.scrollLeft / sX) * tX : 0;
+                target.scrollTop  = sY > 0 ? (source.scrollTop  / sY) * tY : 0;
+                requestAnimationFrame(function () { syncing = false; });
+            };
+        }
+        canvasL.addEventListener('scroll', mirrorScroll(canvasL, canvasR));
+        canvasR.addEventListener('scroll', mirrorScroll(canvasR, canvasL));
+
+        // ===== Keyboard =====
+        document.addEventListener('keydown', function (e) {
+            // Не реагируем на ввод в полях формы
+            var tag = (e.target && e.target.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (e.key === '+' || e.key === '=') { applyZoom(parseInt(slider.value, 10) + 10); e.preventDefault(); }
+            else if (e.key === '-') { applyZoom(parseInt(slider.value, 10) - 10); e.preventDefault(); }
+            else if (e.key === '0') { applyZoom(100); e.preventDefault(); }
+        });
+
+        // Стартовый зум
+        applyZoom(100);
+    })();
+</script>
 </body>
 </html>
