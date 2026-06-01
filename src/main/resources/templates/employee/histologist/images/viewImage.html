@@ -72,6 +72,33 @@
             -webkit-user-drag: none;
             max-width: none;
             max-height: none;
+            /* Браузерное сглаживание при апскейле — даёт мягкую,
+               не пикселизированную картинку даже на 200–400% зуме. */
+            image-rendering: auto;
+            -ms-interpolation-mode: bicubic;
+        }
+
+        .viewer-toolbar .btn-preset {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 0.3rem 0.55rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.15s;
+        }
+        .viewer-toolbar .btn-preset:hover { background: rgba(255,255,255,0.18); }
+        .viewer-toolbar .btn-preset.active {
+            background: rgba(13, 110, 253, 0.6);
+            border-color: rgba(13, 110, 253, 0.8);
+        }
+        .viewer-toolbar .preset-group {
+            display: inline-flex;
+            gap: 0.25rem;
+            padding-left: 0.5rem;
+            margin-left: 0.5rem;
+            border-left: 1px solid rgba(255,255,255,0.15);
         }
     </style>
 </head>
@@ -81,9 +108,15 @@
     <a th:href="@{/employee/histologist/images/detailsImage/{id}(id=${imageDTO.id})}" class="btn-viewer">
         <i class="bi bi-arrow-left"></i> Назад
     </a>
-    <button class="btn-viewer" onclick="zoomIn()"><i class="bi bi-zoom-in"></i></button>
-    <button class="btn-viewer" onclick="zoomOut()"><i class="bi bi-zoom-out"></i></button>
-    <button class="btn-viewer" onclick="resetView()"><i class="bi bi-arrows-angle-contract"></i> Сброс</button>
+    <button class="btn-viewer" onclick="zoomIn()" title="Приблизить (+)"><i class="bi bi-zoom-in"></i></button>
+    <button class="btn-viewer" onclick="zoomOut()" title="Отдалить (−)"><i class="bi bi-zoom-out"></i></button>
+    <button class="btn-viewer" onclick="resetView()" title="Сбросить (0)"><i class="bi bi-arrows-angle-contract"></i> Сброс</button>
+    <span class="preset-group">
+        <button class="btn-preset" data-zoom="0.5" onclick="zoomPreset(0.5)" title="50%">50%</button>
+        <button class="btn-preset" data-zoom="1" onclick="zoomPreset(1)" title="100%">100%</button>
+        <button class="btn-preset" data-zoom="2" onclick="zoomPreset(2)" title="200%">200%</button>
+        <button class="btn-preset" data-zoom="4" onclick="zoomPreset(4)" title="400%">400%</button>
+    </span>
     <span id="zoomInfo" class="viewer-zoom-info">100%</span>
     <span class="viewer-title" th:text="${imageDTO.originalFilename}"></span>
 </div>
