@@ -214,7 +214,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Режим улучшения</div>
-                                <div th:text="${metrics['mode'] == 'neural' ? 'Нейросеть (U-Net)' : 'Базовый (Pillow)'}"></div>
+                                <div th:text="${metrics['mode'] == 'esrgan' ? 'U-Net(max)' : (metrics['mode'] == 'neural' or metrics['mode'] == 'unet' ? 'U-Net(fast)' : 'Pillow')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <div class="text-muted small">Epochs</div>
@@ -254,8 +254,8 @@
                             </div>
                         </div>
                         <div class="text-muted small">
-                            <i class="bi bi-info-circle"></i> Python-сервис автоматически применяет последнюю обученную нейросеть.
-                            Если нейросеть не обучена — используется базовый пайплайн улучшения (Pillow).
+                            <i class="bi bi-info-circle"></i> По умолчанию активна U-Net(max). Если она недоступна,
+                            используется U-Net(fast); если и она недоступна — Pillow.
                             Выбор модели осуществляется при улучшении конкретного изображения.
                         </div>
                     </div>

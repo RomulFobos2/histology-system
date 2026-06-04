@@ -209,13 +209,16 @@ public class ImageEnhancementService {
     }
 
     private String buildEnhancedDescription(String originalDescription, String modelName) {
+        // Пользовательские названия моделей. Внутреннее имя modelName
+        // (RealESRGAN_x4plus, histology-denoising-unet, baseline-pillow-enhancer)
+        // не отображается — оно нужно только для логов/БД.
         String modelLabel;
         if (modelName != null && modelName.toLowerCase().contains("baseline")) {
-            modelLabel = "Улучшено базовым пайплайном (" + modelName + ")";
+            modelLabel = "Улучшено Pillow";
         } else if (modelName != null && modelName.toLowerCase().contains("esrgan")) {
-            modelLabel = "Улучшено Real-ESRGAN с 4× апскейлом (" + modelName + ")";
+            modelLabel = "Улучшено U-Net(max) с 4× апскейлом";
         } else if (modelName != null && !modelName.isBlank()) {
-            modelLabel = "Улучшено нейросетью (" + modelName + ")";
+            modelLabel = "Улучшено U-Net(fast)";
         } else {
             modelLabel = "Улучшенная копия, созданная Python-сервисом";
         }

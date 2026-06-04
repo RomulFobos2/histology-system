@@ -9,6 +9,65 @@
     <link href="/css/style.css" rel="stylesheet">
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/javascript.js"></script>
+    <style>
+        /* ===== Состояние «идёт улучшение» на кнопке submit ===== */
+        /* Когда форма enhance отправлена, кнопка переключается в .is-loading.
+           Внутри прозрачный shimmer-блок, который бесконечно скользит слева
+           направо. Никаких процентов и оставшегося времени — только визуальный
+           сигнал, что обработка идёт. */
+        #enhanceButton.is-loading {
+            position: relative;
+            overflow: hidden;
+            pointer-events: none;
+            cursor: progress;
+            min-width: 200px;
+        }
+        #enhanceButton.is-loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -40%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.55) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: enhanceShimmer 1.4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        #enhanceButton.is-loading .enhance-btn-label {
+            position: relative;
+            z-index: 1;
+        }
+        #enhanceButton.is-loading .enhance-btn-label .spinner-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: enhanceDot 1.2s ease-in-out infinite both;
+            vertical-align: middle;
+        }
+        #enhanceButton.is-loading .enhance-btn-label .spinner-dot:nth-child(2) { animation-delay: 0.15s; }
+        #enhanceButton.is-loading .enhance-btn-label .spinner-dot:nth-child(3) { animation-delay: 0.30s; }
+        @keyframes enhanceShimmer {
+            0%   { left: -40%; }
+            100% { left: 100%; }
+        }
+        @keyframes enhanceDot {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40%           { transform: scale(1.0); opacity: 1.0; }
+        }
+        /* Заблокированный селектор модели во время обработки */
+        #enhanceMode:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
 <div id="wrapper">
@@ -96,17 +155,20 @@
                                class="btn btn-outline-secondary btn-profile">
                                 <i class="bi bi-cpu"></i> Панель автоэнкодера
                             </a>
-                            <form th:action="@{/employee/histologist/images/enhance/{id}(id=${imageDTO.id})}"
+                            <form id="enhanceForm"
+                                  th:action="@{/employee/histologist/images/enhance/{id}(id=${imageDTO.id})}"
                                   method="post" style="display:inline;" class="d-inline-flex align-items-center gap-2">
-                                <select name="mode" class="form-select form-select-sm" style="width:auto;"
+                                <select id="enhanceMode" name="mode" class="form-select form-select-sm" style="width:auto;"
                                         title="Выберите модель улучшения изображения">
                                     <option value="auto" selected>Авто (рекомендуется)</option>
-                                    <option value="esrgan">Real-ESRGAN — SOTA, 4× апскейл</option>
-                                    <option value="unet">Наш U-Net (denoising)</option>
-                                    <option value="baseline">Базовый (Pillow)</option>
+                                    <option value="esrgan">U-Net(max)</option>
+                                    <option value="unet">U-Net(fast)</option>
+                                    <option value="baseline">Pillow</option>
                                 </select>
-                                <button type="submit" class="btn btn-warning btn-profile">
-                                    <i class="bi bi-stars"></i> Улучшить
+                                <button id="enhanceButton" type="submit" class="btn btn-warning btn-profile">
+                                    <span class="enhance-btn-label">
+                                        <i class="bi bi-stars"></i> Улучшить
+                                    </span>
                                 </button>
                             </form>
                             <a th:if="${compareOriginalId != null and compareEnhancedId != null}"
@@ -225,6 +287,63 @@
             } catch (e) {
                 errBox.textContent = 'Сетевая ошибка: ' + e.message;
                 errBox.classList.remove('d-none');
+            }
+        });
+    })();
+</script>
+
+<!-- Анимация прогресса на кнопке «Улучшить» во время длительной обработки.
+     U-Net(max) на CPU может занимать несколько минут — пользователю нужен
+     визуальный сигнал, что POST реально идёт, а не «зависло». -->
+<script>
+    (function () {
+        var form = document.getElementById('enhanceForm');
+        var button = document.getElementById('enhanceButton');
+        var modeSelect = document.getElementById('enhanceMode');
+        if (!form || !button) return;
+
+        form.addEventListener('submit', function () {
+            // Защита от двойного клика: при повторной отправке ничего не делаем.
+            if (button.classList.contains('is-loading')) return;
+
+            var modeLabel = 'обработка';
+            if (modeSelect) {
+                var selected = modeSelect.options[modeSelect.selectedIndex];
+                if (selected) {
+                    var v = selected.value;
+                    if (v === 'esrgan') modeLabel = 'U-Net(max) обработка';
+                    else if (v === 'unet') modeLabel = 'U-Net(fast) обработка';
+                    else if (v === 'baseline') modeLabel = 'Pillow обработка';
+                    else modeLabel = 'Улучшение';
+                }
+                modeSelect.disabled = true;
+            }
+
+            button.classList.add('is-loading');
+            // Не делаем button.disabled = true — это в некоторых браузерах
+            // отменяет уже идущую отправку формы. Вместо этого блокируем
+            // повторный клик через CSS pointer-events: none.
+            button.setAttribute('aria-busy', 'true');
+            button.innerHTML =
+                '<span class="enhance-btn-label">' +
+                '  <i class="bi bi-cpu"></i> ' + modeLabel +
+                '  <span class="spinner-dot"></span>' +
+                '  <span class="spinner-dot"></span>' +
+                '  <span class="spinner-dot"></span>' +
+                '</span>';
+
+            // Подсказка в title — для слабовидящих и просто любопытных.
+            button.title = 'Идёт обработка изображения на Python-сервисе. Это может занять до 20 минут на CPU.';
+        });
+
+        // На случай навигации «Назад» из браузерного кеша (bfcache):
+        // если страница вернулась с активным loading-состоянием, сбрасываем.
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted && button.classList.contains('is-loading')) {
+                button.classList.remove('is-loading');
+                button.removeAttribute('aria-busy');
+                if (modeSelect) modeSelect.disabled = false;
+                button.innerHTML = '<span class="enhance-btn-label"><i class="bi bi-stars"></i> Улучшить</span>';
             }
         });
     })();

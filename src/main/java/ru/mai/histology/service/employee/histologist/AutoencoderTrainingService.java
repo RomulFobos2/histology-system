@@ -98,9 +98,16 @@ public class AutoencoderTrainingService {
                 .orElseGet(() -> {
                     AutoencoderModel newModel = new AutoencoderModel();
                     newModel.setModelName(modelName);
-                    newModel.setDescription(modelName.contains("baseline")
-                            ? "Базовый пайплайн улучшения на Pillow"
-                            : "Нейросетевая модель улучшения");
+                    // Дефолтные описания используют пользовательские названия моделей.
+                    String desc;
+                    if (modelName.contains("baseline")) {
+                        desc = "Pillow — базовый пайплайн улучшения";
+                    } else if (modelName.toLowerCase().contains("esrgan")) {
+                        desc = "U-Net(max) — модель супер-разрешения с 4× апскейлом";
+                    } else {
+                        desc = "U-Net(fast) — наш denoising-автоэнкодер";
+                    }
+                    newModel.setDescription(desc);
                     newModel.setTrainedDate(java.time.LocalDate.now());
                     newModel.setEpochs(0);
                     newModel.setLoss(0.0);
