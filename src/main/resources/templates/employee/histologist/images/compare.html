@@ -131,7 +131,7 @@
                                     <span class="badge-active">Улучшено</span>
                                     <span th:if="${enhancedImageDTO.description != null and #strings.containsIgnoreCase(enhancedImageDTO.description, 'esrgan')}"
                                           class="badge bg-info text-dark"
-                                          title="Real-ESRGAN увеличивает разрешение в 4 раза и восстанавливает мелкие детали">
+                                          title="U-Net(max) увеличивает разрешение в 4 раза и восстанавливает мелкие детали">
                                         4× апскейл
                                     </span>
                                     <span class="text-muted small" th:text="${enhancedImageDTO.fileSizeFormatted}"></span>
