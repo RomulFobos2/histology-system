@@ -62,10 +62,14 @@
             0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
             40%           { transform: scale(1.0); opacity: 1.0; }
         }
-        /* Заблокированный селектор модели во время обработки */
-        #enhanceMode:disabled {
+        /* Визуально «заблокированный» селектор модели во время обработки.
+           ВАЖНО: не используем атрибут disabled — он исключает поле из form data
+           и сервер получает пустой mode → подставляется defaultValue="auto".
+           Вместо этого блокируем взаимодействие через pointer-events. */
+        #enhanceMode.is-locked {
             opacity: 0.55;
             cursor: not-allowed;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -120,7 +124,8 @@
                                 <div>
                                     <i class="bi bi-cpu"></i>
                                     <strong>Модель:</strong>
-                                    <span th:text="${enhancementModel.modelName}"></span>
+                                    <span th:text="${enhancementModel.displayName}"
+                                          th:title="${enhancementModel.modelName}"></span>
                                 </div>
                                 <div title="Peak Signal-to-Noise Ratio — пиковое отношение сигнал/шум. Чем больше, тем лучше.">
                                     <span class="text-muted">PSNR:</span>
@@ -343,7 +348,10 @@
                     else if (v === 'baseline') modeLabel = 'Pillow обработка';
                     else modeLabel = 'Улучшение';
                 }
-                modeSelect.disabled = true;
+                // НЕ устанавливаем modeSelect.disabled = true:
+                // браузер исключит disabled-поле из form data, и сервер
+                // получит пустой mode. Блокируем визуально через CSS-класс.
+                modeSelect.classList.add('is-locked');
             }
 
             button.classList.add('is-loading');
@@ -369,7 +377,7 @@
             if (e.persisted && button.classList.contains('is-loading')) {
                 button.classList.remove('is-loading');
                 button.removeAttribute('aria-busy');
-                if (modeSelect) modeSelect.disabled = false;
+                if (modeSelect) modeSelect.classList.remove('is-locked');
                 button.innerHTML = '<span class="enhance-btn-label"><i class="bi bi-stars"></i> Улучшить</span>';
             }
         });
