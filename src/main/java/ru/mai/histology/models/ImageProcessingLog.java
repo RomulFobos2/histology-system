@@ -34,12 +34,12 @@ public class ImageProcessingLog {
     private MicroscopeImage enhancedImage;
 
     @ManyToOne
-    @JoinColumn(name = "autoencoder_model_id")
+    @JoinColumn(name = "autoencoder_model_id", nullable = false)
     @ToString.Exclude
     private AutoencoderModel autoencoderModel;
 
     @ManyToOne
-    @JoinColumn(name = "processed_by_id")
+    @JoinColumn(name = "processed_by_id", nullable = false)
     @ToString.Exclude
     private Employee processedBy;
 }

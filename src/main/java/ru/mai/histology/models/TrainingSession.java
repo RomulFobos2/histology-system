@@ -51,7 +51,7 @@ public class TrainingSession {
     private String message;
 
     @ManyToOne
-    @JoinColumn(name = "triggered_by_id")
+    @JoinColumn(name = "triggered_by_id", nullable = false)
     @ToString.Exclude
     private Employee triggeredBy;
 }
