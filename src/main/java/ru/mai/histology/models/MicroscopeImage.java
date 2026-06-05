@@ -61,7 +61,7 @@ public class MicroscopeImage {
     private Sample sample;
 
     @ManyToOne
-    @JoinColumn(name = "uploaded_by_id")
+    @JoinColumn(name = "uploaded_by_id", nullable = false)
     @ToString.Exclude
     private Employee uploadedBy;
 

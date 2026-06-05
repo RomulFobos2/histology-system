@@ -55,7 +55,7 @@ public class Sample {
     private ForensicCase forensicCase;
 
     @ManyToOne
-    @JoinColumn(name = "registered_by_id")
+    @JoinColumn(name = "registered_by_id", nullable = false)
     @ToString.Exclude
     private Employee registeredBy;
 

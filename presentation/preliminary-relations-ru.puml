@@ -1,0 +1,196 @@
+@startuml
+left to right direction
+hide circle
+
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam linetype ortho
+skinparam roundcorner 0
+skinparam dpi 180
+skinparam defaultFontName "Times New Roman"
+skinparam nodesep 45
+skinparam ranksep 65
+skinparam entity {
+  BackgroundColor white
+  BorderColor black
+  FontColor black
+}
+
+entity "Роль" as Role {
+  ID роли*
+  --
+  Наименование роли
+  Описание роли
+}
+
+entity "Сотрудник" as Employee {
+  ID сотрудника*
+  --
+  Фамилия
+  Имя
+  Отчество
+  Дата рождения
+  Должность
+  Логин
+  Пароль
+  Активен
+  Требуется смена пароля
+  --
+  ID роли
+}
+
+entity "Судебное дело" as ForensicCase {
+  ID дела*
+  --
+  Номер дела
+  Дата поступления
+  Описание дела
+  Статус дела
+  --
+  ID ответственного эксперта
+}
+
+entity "Образец" as Sample {
+  ID образца*
+  --
+  Номер образца
+  Дата поступления
+  Тип ткани
+  Метод окрашивания
+  Статус образца
+  Примечание
+  --
+  ID дела
+  ID регистратора
+  ID назначенного гистолога
+}
+
+entity "Микроскопическое изображение" as MicroscopeImage {
+  ID изображения*
+  --
+  Исходное имя файла
+  Имя файла в хранилище
+  Путь к файлу
+  Размер файла
+  MIME-тип
+  Дата загрузки
+  Описание изображения
+  Признак улучшения
+  Качество улучшения
+  Увеличение
+  --
+  ID образца
+  ID сотрудника-загрузчика
+  ID исходного изображения
+}
+
+entity "Заключение гистолога" as HistologistConclusion {
+  ID заключения гистолога*
+  --
+  Микроскопическое описание
+  Диагноз
+  Текст заключения
+  Дата заключения
+  --
+  ID образца
+  ID гистолога
+}
+
+entity "Судебно-медицинское заключение" as ForensicConclusion {
+  ID судмедзаключения*
+  --
+  Текст заключения
+  Дата заключения
+  Признак окончательного заключения
+  --
+  ID образца
+  ID руководителя
+}
+
+entity "Протокол исследования" as ResearchProtocol {
+  ID протокола*
+  --
+  Номер протокола
+  Дата создания
+  Текст протокола
+  --
+  ID образца
+  ID автора протокола
+}
+
+entity "Модель автоэнкодера" as AutoencoderModel {
+  ID модели*
+  --
+  Название модели
+  Описание модели
+  Дата обучения
+  Количество эпох
+  Ошибка обучения
+  Ошибка валидации
+  PSNR
+  SSIM
+  Активность модели
+}
+
+entity "Журнал обработки изображений" as ImageProcessingLog {
+  ID записи журнала*
+  --
+  Дата обработки
+  Время обработки (мс)
+  --
+  ID исходного изображения
+  ID улучшенного изображения
+  ID модели
+  ID сотрудника-оператора
+}
+
+entity "Журнал сеансов обучения" as TrainingSession {
+  ID сеанса обучения*
+  --
+  Время начала
+  Время окончания
+  Статус
+  Количество эпох
+  Размер пакета
+  Скорость обучения
+  Размер изображения
+  Размер набора данных
+  Ошибка обучения
+  Ошибка валидации
+  PSNR
+  SSIM
+  Название модели
+  Служебное сообщение
+  --
+  ID инициатора обучения
+}
+
+Role "1" -- "M" Employee
+Employee "1" -- "M" ForensicCase
+ForensicCase "1" -- "M" Sample
+Employee "1" -- "M" Sample : "регистратор / гистолог"
+Sample "1" -- "M" MicroscopeImage
+Employee "1" -- "M" MicroscopeImage
+MicroscopeImage "1" -- "M" MicroscopeImage
+Sample "1" -- "M" HistologistConclusion
+Employee "1" -- "M" HistologistConclusion
+Sample "1" -- "M" ForensicConclusion
+Employee "1" -- "M" ForensicConclusion
+Sample "1" -- "M" ResearchProtocol
+Employee "1" -- "M" ResearchProtocol
+MicroscopeImage "1" -- "M" ImageProcessingLog : "исходное / улучшенное"
+AutoencoderModel "1" -- "M" ImageProcessingLog
+Employee "1" -- "M" ImageProcessingLog
+Employee "1" -- "M" TrainingSession
+
+Role -[hidden]- Employee
+Employee -[hidden]- ForensicCase
+ForensicCase -[hidden]- Sample
+Sample -[hidden]- MicroscopeImage
+MicroscopeImage -[hidden]- AutoencoderModel
+HistologistConclusion -[hidden]- ForensicConclusion
+ForensicConclusion -[hidden]- ResearchProtocol
+TrainingSession -[hidden]- HistologistConclusion
+ResearchProtocol -[hidden]- ImageProcessingLog
+
+@enduml
