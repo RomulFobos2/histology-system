@@ -19,6 +19,7 @@ public class TrainingSessionDTO {
     private Double validationLoss;
     private Double psnr;
     private Double ssim;
+    private Double mse;
     private String modelName;
     private String message;
     private Long triggeredById;

@@ -100,6 +100,13 @@ public class HistologistImageController {
             });
         }
 
+        // Для улучшенной копии — достаём модель автоэнкодера, которая её произвела,
+        // чтобы в шаблоне вывести её метрики (PSNR, MSE, SSIM) рядом с изображением.
+        if (imageDTO.isEnhanced()) {
+            imageViewService.getEnhancementModelForImage(imageDTO.getId())
+                    .ifPresent(modelDTO -> model.addAttribute("enhancementModel", modelDTO));
+        }
+
         return "employee/histologist/images/detailsImage";
     }
 

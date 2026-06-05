@@ -259,6 +259,7 @@ class AutoencoderService:
         final_validation_loss = 0.0
         final_psnr = 0.0
         final_ssim = 0.0
+        final_mse = 0.0
 
         for epoch_idx in range(epochs):
             model.train()
@@ -295,15 +296,17 @@ class AutoencoderService:
                     )
                     loss = content_loss + (0.15 * edge_loss)
                     validation_losses.append(float(loss.item()))
-                    batch_psnr, batch_ssim = self._calculate_metrics(restored, clean_batch)
+                    batch_psnr, batch_ssim, batch_mse = self._calculate_metrics(restored, clean_batch)
                     final_psnr += batch_psnr
                     final_ssim += batch_ssim
+                    final_mse += batch_mse
 
             final_train_loss = sum(train_losses) / max(1, len(train_losses))
             final_validation_loss = sum(validation_losses) / max(1, len(validation_losses))
             validation_batches = max(1, len(validation_losses))
             final_psnr = final_psnr / validation_batches
             final_ssim = final_ssim / validation_batches
+            final_mse = final_mse / validation_batches
 
             self._set_training_status({
                 "status": "running",
@@ -334,6 +337,7 @@ class AutoencoderService:
             "validationLoss": round(final_validation_loss, 6),
             "psnr": round(final_psnr, 4),
             "ssim": round(final_ssim, 6),
+            "mse": round(final_mse, 8),
             "device": self.device,
             "datasetSize": len(dataset),
             "imageSize": image_size,
@@ -490,6 +494,7 @@ class AutoencoderService:
             "validationLoss": self.metadata.get("validationLoss"),
             "psnr": self.metadata.get("psnr"),
             "ssim": self.metadata.get("ssim"),
+            "mse": self.metadata.get("mse"),
             "datasetSize": self.metadata.get("datasetSize"),
             "imageSize": self.metadata.get("imageSize"),
             "trainingDurationSeconds": self.metadata.get("trainingDurationSeconds"),
@@ -867,11 +872,17 @@ class AutoencoderService:
     def _format_datetime(self, value: datetime) -> str:
         return value.strftime("%d.%m.%Y %H:%M")
 
-    def _calculate_metrics(self, restored: torch.Tensor, clean: torch.Tensor) -> tuple[float, float]:
+    def _calculate_metrics(self, restored: torch.Tensor, clean: torch.Tensor) -> tuple[float, float, float]:
+        """Возвращает кортеж (PSNR, SSIM, MSE).
+
+        MSE — среднеквадратичная ошибка между восстановленным и эталонным
+        тензорами в диапазоне [0, 1]. Используется как промежуточное звено
+        для расчёта PSNR и отдельно сохраняется как самостоятельная метрика.
+        """
         mse = torch.mean((restored - clean) ** 2).item()
         psnr = 100.0 if mse == 0 else float(20.0 * np.log10(1.0 / np.sqrt(mse)))
         ssim = self._simple_ssim(restored, clean)
-        return psnr, ssim
+        return psnr, ssim, float(mse)
 
     def _simple_ssim(self, restored: torch.Tensor, clean: torch.Tensor) -> float:
         x = restored.detach().cpu().numpy().astype(np.float64)

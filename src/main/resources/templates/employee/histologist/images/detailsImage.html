@@ -114,6 +114,33 @@
                                  th:onclick="'window.location.href=\'/employee/histologist/images/viewImage/' + ${imageDTO.id} + '\''">
                         </div>
 
+                        <!-- Метрики модели, которой выполнено улучшение -->
+                        <div th:if="${enhancementModel != null}" class="alert alert-light border mb-4" style="font-size: 0.9rem;">
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <div>
+                                    <i class="bi bi-cpu"></i>
+                                    <strong>Модель:</strong>
+                                    <span th:text="${enhancementModel.modelName}"></span>
+                                </div>
+                                <div title="Peak Signal-to-Noise Ratio — пиковое отношение сигнал/шум. Чем больше, тем лучше.">
+                                    <span class="text-muted">PSNR:</span>
+                                    <strong th:text="${enhancementModel.psnr != null and enhancementModel.psnr != 0.0 ? enhancementModel.psnr + ' дБ' : '—'}"></strong>
+                                </div>
+                                <div title="Mean Squared Error — среднеквадратичная ошибка. Чем меньше, тем лучше.">
+                                    <span class="text-muted">MSE:</span>
+                                    <strong th:text="${enhancementModel.mse != null and enhancementModel.mse != 0.0 ? enhancementModel.mse : '—'}"></strong>
+                                </div>
+                                <div title="Structural Similarity Index — структурное сходство. Чем ближе к 1, тем лучше.">
+                                    <span class="text-muted">SSIM:</span>
+                                    <strong th:text="${enhancementModel.ssim != null and enhancementModel.ssim != 0.0 ? enhancementModel.ssim : '—'}"></strong>
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-2">
+                                Метрики характеризуют качество модели на валидационной выборке обучения и не зависят от конкретного снимка.
+                                Прочерки — модель не предоставляет численных метрик (например, базовый Pillow-пайплайн).
+                            </div>
+                        </div>
+
                         <h6 class="form-section-title">Метаданные</h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">

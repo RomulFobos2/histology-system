@@ -15,5 +15,6 @@ public class AutoencoderModelDTO {
     private Double validationLoss;
     private Double psnr;
     private Double ssim;
+    private Double mse;
     private boolean active;
 }

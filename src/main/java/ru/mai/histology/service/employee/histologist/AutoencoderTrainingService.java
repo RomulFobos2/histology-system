@@ -273,6 +273,7 @@ public class AutoencoderTrainingService {
         session.setValidationLoss(readDouble(result.get("validationLoss")));
         session.setPsnr(readDouble(result.get("psnr")));
         session.setSsim(readDouble(result.get("ssim")));
+        session.setMse(readDouble(result.get("mse")));
         session.setModelName(readString(result.get("modelName")));
         trainingSessionRepository.save(session);
         if ("OK".equalsIgnoreCase(session.getStatus())) {
@@ -297,6 +298,7 @@ public class AutoencoderTrainingService {
         autoencoderModel.setValidationLoss(readDouble(response.get("validationLoss")));
         autoencoderModel.setPsnr(readDouble(response.get("psnr")));
         autoencoderModel.setSsim(readDouble(response.get("ssim")));
+        autoencoderModel.setMse(readDouble(response.get("mse")));
         autoencoderModel.setActive(true);
         autoencoderModelRepository.save(autoencoderModel);
     }
