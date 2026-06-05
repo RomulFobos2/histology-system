@@ -36,6 +36,8 @@ public class AutoencoderModel {
 
     private Double ssim;
 
+    private Double mse;
+
     @Column(nullable = false)
     private boolean isActive = false;
 }

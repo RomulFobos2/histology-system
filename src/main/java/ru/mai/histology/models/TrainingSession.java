@@ -44,6 +44,8 @@ public class TrainingSession {
 
     private Double ssim;
 
+    private Double mse;
+
     @Column(length = 255)
     private String modelName;
 

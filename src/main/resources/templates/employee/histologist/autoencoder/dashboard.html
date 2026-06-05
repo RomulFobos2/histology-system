@@ -104,6 +104,7 @@
                             <th data-bs-toggle="tooltip" title="Validation loss — потери на валидации">VLoss</th>
                             <th data-bs-toggle="tooltip" title="Peak Signal-to-Noise Ratio — качество восстановления">PSNR</th>
                             <th data-bs-toggle="tooltip" title="Structural Similarity — структурное сходство с оригиналом">SSIM</th>
+                            <th data-bs-toggle="tooltip" title="Mean Squared Error — среднеквадратичная ошибка (чем меньше, тем лучше)">MSE</th>
                             <th data-bs-toggle="tooltip" title="Сообщение Python-сервиса о результате">Сообщ.</th>
                         </tr>
                         </thead>
@@ -127,6 +128,7 @@
                             <td th:text="${ts.validationLoss != null ? ts.validationLoss : '—'}"></td>
                             <td th:text="${ts.psnr != null ? ts.psnr : '—'}"></td>
                             <td th:text="${ts.ssim != null ? ts.ssim : '—'}"></td>
+                            <td th:text="${ts.mse != null ? ts.mse : '—'}"></td>
                             <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
                                 th:text="${ts.message != null ? ts.message : '—'}"
                                 th:title="${ts.message}"></td>
@@ -190,6 +192,7 @@
             'metricValLoss': metrics.validationLoss,
             'metricPsnr': metrics.psnr,
             'metricSsim': metrics.ssim,
+            'metricMse': metrics.mse,
             'metricDatasetSize': metrics.datasetSize,
             'metricImageSize': metrics.imageSize,
             'metricTrainedDate': metrics.trainedDate,
