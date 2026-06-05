@@ -1,0 +1,161 @@
+@startuml
+left to right direction
+hide empty methods
+hide empty fields
+hide circle
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam dpi 180
+skinparam defaultFontName "Segoe UI"
+skinparam ranksep 70
+skinparam nodesep 40
+skinparam entity {
+  BackgroundColor #FBFCFE
+  BorderColor #3E5870
+  FontColor #17212B
+}
+
+entity "Роль" as Role {
+  id : BIGINT <<PK>>
+  --
+  name : VARCHAR
+  description : VARCHAR
+}
+
+entity "Сотрудник" as Employee {
+  id : BIGINT <<PK>>
+  --
+  lastName : VARCHAR(50)
+  firstName : VARCHAR(50)
+  middleName : VARCHAR(50)
+  birthDate : DATE
+  position : VARCHAR(200)
+  username : VARCHAR(50)
+  password : VARCHAR(200)
+  isActive : BOOLEAN
+  needChangePassword : BOOLEAN
+}
+
+entity "Судебное дело" as ForensicCase {
+  id : BIGINT <<PK>>
+  --
+  caseNumber : VARCHAR(50)
+  receiptDate : DATE
+  description : TEXT
+  status : ENUM
+}
+
+entity "Образец" as Sample {
+  id : BIGINT <<PK>>
+  --
+  sampleNumber : VARCHAR(50)
+  receiptDate : DATE
+  tissueType : ENUM
+  stainingMethod : ENUM
+  status : ENUM
+  notes : TEXT
+}
+
+entity "Микроскопическое изображение" as MicroscopeImage {
+  id : BIGINT <<PK>>
+  --
+  originalFilename : VARCHAR(255)
+  storedFilename : VARCHAR(255)
+  filePath : VARCHAR(500)
+  fileSize : BIGINT
+  contentType : VARCHAR(100)
+  uploadDate : DATE
+  description : TEXT
+  isEnhanced : BOOLEAN
+  enhancementQuality : ENUM
+  magnification : VARCHAR(50)
+}
+
+entity "Заключение гистолога" as HistologistConclusion {
+  id : BIGINT <<PK>>
+  --
+  microscopicDescription : TEXT
+  diagnosis : VARCHAR(500)
+  conclusionText : TEXT
+  conclusionDate : DATE
+}
+
+entity "Судебно-медицинское заключение" as ForensicConclusion {
+  id : BIGINT <<PK>>
+  --
+  conclusionText : TEXT
+  conclusionDate : DATE
+  isFinal : BOOLEAN
+}
+
+entity "Протокол исследования" as ResearchProtocol {
+  id : BIGINT <<PK>>
+  --
+  protocolNumber : VARCHAR(50)
+  createdDate : DATE
+  protocolText : TEXT
+}
+
+entity "Модель автоэнкодера" as AutoencoderModel {
+  id : BIGINT <<PK>>
+  --
+  modelName : VARCHAR(255)
+  description : TEXT
+  trainedDate : DATE
+  epochs : INT
+  loss : DOUBLE
+  validationLoss : DOUBLE
+  psnr : DOUBLE
+  ssim : DOUBLE
+  isActive : BOOLEAN
+}
+
+entity "Журнал обработки изображений" as ImageProcessingLog {
+  id : BIGINT <<PK>>
+  --
+  processedDate : DATE
+  processingTimeMs : BIGINT
+}
+
+entity "Журнал сеансов обучения" as TrainingSession {
+  id : BIGINT <<PK>>
+  --
+  startedAt : DATETIME
+  finishedAt : DATETIME
+  status : VARCHAR(30)
+  epochs : INT
+  batchSize : INT
+  learningRate : DOUBLE
+  imageSize : INT
+  datasetSize : INT
+  loss : DOUBLE
+  validationLoss : DOUBLE
+  psnr : DOUBLE
+  ssim : DOUBLE
+  modelName : VARCHAR(255)
+  message : TEXT
+}
+
+Role ||--o{ Employee : "роль"
+Employee |o--o{ ForensicCase : "ответственный"
+ForensicCase ||--o{ Sample : "содержит"
+Employee ||--o{ Sample : "зарегистрировал"
+Employee |o--o{ Sample : "гистолог"
+Sample ||--o{ MicroscopeImage : "изображения"
+Employee ||--o{ MicroscopeImage : "загрузил"
+MicroscopeImage |o--o{ MicroscopeImage : "оригинал"
+Sample ||--o{ HistologistConclusion : "заключение"
+Employee ||--o{ HistologistConclusion : "составил"
+Sample ||--o{ ForensicConclusion : "судмедзаключение"
+Employee ||--o{ ForensicConclusion : "подписал"
+Sample ||--o{ ResearchProtocol : "протокол"
+Employee ||--o{ ResearchProtocol : "создал"
+MicroscopeImage ||--o{ ImageProcessingLog : "исходное"
+MicroscopeImage ||--o{ ImageProcessingLog : "улучшенное"
+AutoencoderModel ||--o{ ImageProcessingLog : "модель"
+Employee ||--o{ ImageProcessingLog : "обработал"
+Employee ||--o{ TrainingSession : "запустил"
+
+@enduml
