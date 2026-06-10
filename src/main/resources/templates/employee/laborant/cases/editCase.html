@@ -33,14 +33,23 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label">Номер дела *</label>
-                                    <input type="text" id="inputCaseNumber" name="inputCaseNumber" class="form-control"
-                                           required maxlength="50" th:value="${caseDTO.caseNumber}">
-                                    <div id="caseNumberFeedback" class="form-text"></div>
+                                    <input type="text" class="form-control" readonly
+                                           th:value="${caseDTO.caseNumber}"
+                                           title="Номер дела изменению не подлежит — сгенерирован автоматически при регистрации">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-lock"></i>
+                                        Номер дела не изменяется после регистрации.
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Дата поступления</label>
-                                    <input type="date" name="inputReceiptDate" class="form-control"
-                                           th:value="${caseDTO.receiptDate}">
+                                    <input type="date" class="form-control" readonly
+                                           th:value="${caseDTO.receiptDate}"
+                                           title="Дата поступления изменению не подлежит — равна дате регистрации">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-lock"></i>
+                                        Дата поступления не изменяется после регистрации.
+                                    </div>
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label">Описание</label>
@@ -59,7 +68,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" id="submitBtn" class="btn btn-primary btn-profile">
+                            <button type="submit" class="btn btn-primary btn-profile">
                                 <i class="bi bi-check-lg"></i> Сохранить изменения
                             </button>
                         </form>
@@ -76,49 +85,5 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-
-<script th:inline="javascript">
-    var caseId = [[${caseDTO.id}]];
-    var caseNumberInput = document.getElementById('inputCaseNumber');
-    var caseNumberFeedback = document.getElementById('caseNumberFeedback');
-    var submitBtn = document.getElementById('submitBtn');
-    var caseNumberValid = true;
-
-    function validateForm() {
-        submitBtn.disabled = !caseNumberValid;
-    }
-
-    var caseNumberTimer;
-    caseNumberInput.addEventListener('input', function () {
-        clearTimeout(caseNumberTimer);
-        var value = caseNumberInput.value.trim();
-        if (value.length === 0) {
-            caseNumberInput.classList.remove('is-valid', 'is-invalid');
-            caseNumberFeedback.textContent = '';
-            caseNumberValid = false;
-            validateForm();
-            return;
-        }
-        caseNumberTimer = setTimeout(function () {
-            fetch('/employee/laborant/cases/check-caseNumber?caseNumber=' + encodeURIComponent(value) + '&id=' + caseId)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.exists) {
-                        caseNumberInput.classList.remove('is-valid');
-                        caseNumberInput.classList.add('is-invalid');
-                        caseNumberFeedback.textContent = 'Этот номер дела уже занят';
-                        caseNumberFeedback.style.color = 'var(--danger)';
-                        caseNumberValid = false;
-                    } else {
-                        caseNumberInput.classList.remove('is-invalid');
-                        caseNumberInput.classList.add('is-valid');
-                        caseNumberFeedback.textContent = '';
-                        caseNumberValid = true;
-                    }
-                    validateForm();
-                });
-        }, 400);
-    });
-</script>
 </body>
 </html>

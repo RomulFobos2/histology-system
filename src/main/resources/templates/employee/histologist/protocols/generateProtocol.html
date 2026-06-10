@@ -38,10 +38,24 @@
                             <h6 class="form-section-title">Номер протокола *</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <input type="text" id="inputProtocolNumber" name="inputProtocolNumber"
-                                           class="form-control" required maxlength="50"
-                                           placeholder="Например: ПГИ-2026-001">
-                                    <div id="protocolNumberFeedback" class="form-text"></div>
+                                    <input type="text" class="form-control" readonly
+                                           th:value="${previewProtocolNumber}"
+                                           title="Номер формируется автоматически при сохранении протокола по формату П-dd-MM-yy/N">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Формируется автоматически по формату <code>П-dd-MM-yy/N</code>,
+                                        где N — порядковый номер протокола за сутки.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата создания</label>
+                                    <input type="date" class="form-control" readonly
+                                           th:value="${previewCreatedDate}"
+                                           title="Дата создания протокола равна серверной дате на момент сохранения">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Серверная дата на момент сохранения.
+                                    </div>
                                 </div>
                             </div>
 
@@ -54,7 +68,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile" disabled>
+                            <button type="submit" class="btn btn-success btn-profile">
                                 <i class="bi bi-check-lg"></i> Создать протокол
                             </button>
                         </form>
@@ -73,49 +87,5 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-
-<script>
-    var protocolNumberInput = document.getElementById('inputProtocolNumber');
-    var protocolNumberFeedback = document.getElementById('protocolNumberFeedback');
-    var submitBtn = document.getElementById('submitBtn');
-    var protocolNumberValid = false;
-
-    function validateForm() {
-        submitBtn.disabled = !protocolNumberValid;
-    }
-
-    var protocolNumberTimer;
-    protocolNumberInput.addEventListener('input', function () {
-        clearTimeout(protocolNumberTimer);
-        var value = protocolNumberInput.value.trim();
-        if (value.length === 0) {
-            protocolNumberInput.classList.remove('is-valid', 'is-invalid');
-            protocolNumberFeedback.textContent = '';
-            protocolNumberValid = false;
-            validateForm();
-            return;
-        }
-        protocolNumberTimer = setTimeout(function () {
-            fetch('/employee/histologist/protocols/check-protocolNumber?protocolNumber=' + encodeURIComponent(value))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.exists) {
-                        protocolNumberInput.classList.remove('is-valid');
-                        protocolNumberInput.classList.add('is-invalid');
-                        protocolNumberFeedback.textContent = 'Этот номер протокола уже занят';
-                        protocolNumberFeedback.style.color = 'var(--danger)';
-                        protocolNumberValid = false;
-                    } else {
-                        protocolNumberInput.classList.remove('is-invalid');
-                        protocolNumberInput.classList.add('is-valid');
-                        protocolNumberFeedback.textContent = 'Номер свободен';
-                        protocolNumberFeedback.style.color = 'var(--success)';
-                        protocolNumberValid = true;
-                    }
-                    validateForm();
-                });
-        }, 400);
-    });
-</script>
 </body>
 </html>
