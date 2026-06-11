@@ -34,9 +34,10 @@
                         <form th:action="@{/employee/histologist/protocols/editProtocol/{id}(id=${protocolDTO.id})}"
                               method="post" class="auth-form">
 
-                            <h6 class="form-section-title">Номер протокола *</h6>
+                            <h6 class="form-section-title">Идентификация протокола</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
+                                    <label class="form-label">Номер протокола *</label>
                                     <input type="text" class="form-control" readonly
                                            th:value="${protocolDTO.protocolNumber}"
                                            title="Номер протокола изменению не подлежит — сгенерирован автоматически при создании">

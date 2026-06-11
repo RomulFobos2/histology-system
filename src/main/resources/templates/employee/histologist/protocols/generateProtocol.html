@@ -35,9 +35,10 @@
                         <form th:action="@{/employee/histologist/protocols/generateProtocol/{id}(id=${sampleDTO.id})}"
                               method="post" class="auth-form">
 
-                            <h6 class="form-section-title">Номер протокола *</h6>
+                            <h6 class="form-section-title">Идентификация протокола</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
+                                    <label class="form-label">Номер протокола *</label>
                                     <input type="text" class="form-control" readonly
                                            th:value="${previewProtocolNumber}"
                                            title="Номер формируется автоматически при сохранении протокола по формату П-dd-MM-yy/N">
@@ -52,10 +53,6 @@
                                     <input type="date" class="form-control" readonly
                                            th:value="${previewCreatedDate}"
                                            title="Дата создания протокола равна серверной дате на момент сохранения">
-                                    <div class="form-text text-muted">
-                                        <i class="bi bi-info-circle"></i>
-                                        Серверная дата на момент сохранения.
-                                    </div>
                                 </div>
                             </div>
 
