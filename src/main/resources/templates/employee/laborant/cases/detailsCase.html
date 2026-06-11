@@ -64,9 +64,10 @@
                                class="btn btn-success btn-profile">
                                 <i class="bi bi-plus-lg"></i> Добавить образец
                             </a>
+                            <!-- Кнопка удаления временно скрыта по решению заказчика. Удалить класс d-none, чтобы вернуть. -->
                             <a th:if="${caseDTO.sampleCount == 0}"
                                th:href="@{/employee/laborant/cases/deleteCase/{id}(id=${caseDTO.id})}"
-                               class="btn btn-danger btn-profile"
+                               class="btn btn-danger btn-profile d-none"
                                onclick="return confirm('Удалить это дело?')">
                                 <i class="bi bi-trash"></i> Удалить
                             </a>

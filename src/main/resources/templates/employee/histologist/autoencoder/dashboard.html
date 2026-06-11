@@ -141,8 +141,10 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- Кнопка очистки истории временно скрыта по решению заказчика. Удалить класс d-none, чтобы вернуть. -->
                 <form th:if="${trainingSessions != null and !trainingSessions.isEmpty()}"
-                      th:action="@{/employee/histologist/autoencoder/clearSystemHistory}" method="post" style="margin:0">
+                      th:action="@{/employee/histologist/autoencoder/clearSystemHistory}" method="post"
+                      class="d-none" style="margin:0">
                     <button type="submit" class="btn btn-outline-danger btn-sm"
                             onclick="return confirm('Удалить все записи истории из базы данных? Это действие необратимо.')">
                         <i class="bi bi-trash"></i> Очистить историю
