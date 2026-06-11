@@ -1,10 +1,13 @@
 package ru.mai.histology.service.employee.histologist;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.mai.histology.dto.ResearchProtocolDTO;
 import ru.mai.histology.mapper.ResearchProtocolMapper;
 import ru.mai.histology.models.Employee;
@@ -16,6 +19,7 @@ import ru.mai.histology.repo.ResearchProtocolRepository;
 import ru.mai.histology.repo.SampleRepository;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,19 +28,56 @@ import java.util.Optional;
 @Slf4j
 public class ProtocolService {
 
+    /** Префикс для номера протокола (кириллическая П). */
+    public static final String PROTOCOL_NUMBER_PREFIX = "П";
+
+    /** Формат даты в номере: например, "25-05-26". */
+    private static final DateTimeFormatter PROTOCOL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yy");
+
+    /** Сколько раз пытаться сохранить при гонке (UNIQUE-collision). */
+    private static final int SAVE_RETRY_LIMIT = 5;
+
     private final ResearchProtocolRepository protocolRepository;
     private final SampleRepository sampleRepository;
     private final EmployeeRepository employeeRepository;
     private final HistologistConclusionRepository conclusionRepository;
+    private final TransactionTemplate txTemplate;
 
     public ProtocolService(ResearchProtocolRepository protocolRepository,
                            SampleRepository sampleRepository,
                            EmployeeRepository employeeRepository,
-                           HistologistConclusionRepository conclusionRepository) {
+                           HistologistConclusionRepository conclusionRepository,
+                           PlatformTransactionManager transactionManager) {
         this.protocolRepository = protocolRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
         this.conclusionRepository = conclusionRepository;
+        this.txTemplate = new TransactionTemplate(transactionManager);
+    }
+
+    // ========== Автогенерация номера ==========
+
+    /** Префикс «П-dd-MM-yy» для номера протокола на указанную дату. */
+    public String buildDatePrefix(LocalDate date) {
+        return PROTOCOL_NUMBER_PREFIX + "-" + date.format(PROTOCOL_DATE_FORMATTER);
+    }
+
+    /**
+     * Возвращает следующий по порядку номер протокола для указанной даты:
+     * MAX(N) среди существующих {prefix}/N + 1. Если протоколов за дату ещё
+     * нет — возвращает {prefix}/1. Не резервирует номер — это превью.
+     */
+    @Transactional(readOnly = true)
+    public String previewNextProtocolNumber(LocalDate date) {
+        String prefix = buildDatePrefix(date);
+        Integer max = protocolRepository.findMaxSequenceForPrefix(prefix);
+        int next = (max == null ? 0 : max) + 1;
+        return prefix + "/" + next;
+    }
+
+    /** Сокращение: превью на текущую серверную дату. */
+    public String previewNextProtocolNumber() {
+        return previewNextProtocolNumber(LocalDate.now());
     }
 
     // ========== Чтение ==========
@@ -82,54 +123,72 @@ public class ProtocolService {
 
     // ========== Генерация протокола ==========
 
-    @Transactional
-    public Optional<Long> generateProtocol(Long sampleId, String protocolNumber, String protocolText) {
-        log.info("Генерация протокола для образца: sampleId={}", sampleId);
+    /**
+     * Создаёт новый протокол исследования. protocolNumber и createdDate
+     * генерируются сервером и НЕ принимаются из формы — защита от ручной
+     * правки HTML и от попыток отправить произвольные значения через POST.
+     * При коллизии UNIQUE(protocolNumber) повторяет попытку до SAVE_RETRY_LIMIT
+     * раз — на случай одновременной генерации с другим пользователем.
+     */
+    public Optional<Long> generateProtocol(Long sampleId, String protocolText) {
+        log.info("Генерация протокола для образца: sampleId={} (автогенерация номера)", sampleId);
 
+        // Проверки бизнес-правил выносим из retry-цикла: они не зависят
+        // от попыток и должны падать сразу.
         Optional<Sample> sampleOpt = sampleRepository.findById(sampleId);
         if (sampleOpt.isEmpty()) {
             log.error("Образец не найден: id={}", sampleId);
             return Optional.empty();
         }
-
         if (protocolRepository.existsBySampleId(sampleId)) {
             log.error("Протокол для образца id={} уже существует", sampleId);
             return Optional.empty();
         }
-
-        if (protocolRepository.existsByProtocolNumber(protocolNumber)) {
-            log.error("Протокол с номером {} уже существует", protocolNumber);
-            return Optional.empty();
-        }
-
         Employee currentUser = getCurrentUser();
         if (currentUser == null) {
             log.error("Не удалось определить текущего пользователя");
             return Optional.empty();
         }
 
-        try {
-            ResearchProtocol protocol = new ResearchProtocol();
-            protocol.setProtocolNumber(protocolNumber);
-            protocol.setCreatedDate(LocalDate.now());
-            protocol.setProtocolText(protocolText);
-            protocol.setSample(sampleOpt.get());
-            protocol.setCreatedBy(currentUser);
+        for (int attempt = 1; attempt <= SAVE_RETRY_LIMIT; attempt++) {
+            try {
+                Long savedId = txTemplate.execute(status -> {
+                    LocalDate createdDate = LocalDate.now();
+                    String protocolNumber = previewNextProtocolNumber(createdDate);
 
-            protocolRepository.save(protocol);
-            log.info("Протокол сохранён: id={}, protocolNumber={}", protocol.getId(), protocolNumber);
-            return Optional.of(protocol.getId());
-        } catch (Exception e) {
-            log.error("Ошибка при генерации протокола: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return Optional.empty();
+                    ResearchProtocol protocol = new ResearchProtocol();
+                    protocol.setProtocolNumber(protocolNumber);
+                    protocol.setCreatedDate(createdDate);
+                    protocol.setProtocolText(protocolText);
+                    protocol.setSample(sampleOpt.get());
+                    protocol.setCreatedBy(currentUser);
+
+                    protocolRepository.saveAndFlush(protocol);
+                    log.info("Протокол сохранён: id={}, protocolNumber={}", protocol.getId(), protocolNumber);
+                    return protocol.getId();
+                });
+                return Optional.ofNullable(savedId);
+            } catch (DataIntegrityViolationException e) {
+                log.warn("UNIQUE-collision при сохранении протокола, попытка {}/{}", attempt, SAVE_RETRY_LIMIT);
+                if (attempt == SAVE_RETRY_LIMIT) {
+                    log.error("Не удалось сгенерировать уникальный номер протокола за {} попыток", SAVE_RETRY_LIMIT);
+                }
+            } catch (Exception e) {
+                log.error("Ошибка при генерации протокола: {}", e.getMessage(), e);
+                return Optional.empty();
+            }
         }
+        return Optional.empty();
     }
 
     // ========== Редактирование ==========
 
+    /**
+     * Редактирование протокола. protocolNumber и createdDate ВСЕГДА игнорируются
+     * из формы и берутся из существующей записи — эти поля неизменяемы.
+     */
     @Transactional
-    public Optional<Long> editProtocol(Long id, String protocolNumber, String protocolText) {
+    public Optional<Long> editProtocol(Long id, String protocolText) {
         log.info("Редактирование протокола: id={}", id);
 
         Optional<ResearchProtocol> protocolOpt = protocolRepository.findById(id);
@@ -138,15 +197,9 @@ public class ProtocolService {
             return Optional.empty();
         }
 
-        ResearchProtocol protocol = protocolOpt.get();
-
-        if (protocolRepository.existsByProtocolNumberAndIdNot(protocolNumber, id)) {
-            log.error("Протокол с номером {} уже существует", protocolNumber);
-            return Optional.empty();
-        }
-
         try {
-            protocol.setProtocolNumber(protocolNumber);
+            ResearchProtocol protocol = protocolOpt.get();
+            // protocolNumber и createdDate не трогаем — они сгенерированы при создании
             protocol.setProtocolText(protocolText);
 
             protocolRepository.save(protocol);

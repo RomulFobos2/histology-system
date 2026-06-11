@@ -16,6 +16,7 @@ import ru.mai.histology.service.employee.histologist.ProtocolService;
 import ru.mai.histology.service.employee.histologist.SampleViewService;
 import ru.mai.histology.service.general.WordExportService;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -66,25 +67,33 @@ public class ProtocolController {
 
         model.addAttribute("sampleDTO", sampleOpt.get());
         model.addAttribute("generatedText", protocolService.generateProtocolText(sampleId));
+        // Превью: номер протокола генерируется на сервере, в форме показывается
+        // readonly. Реальное значение проставляется при POST сервисом.
+        model.addAttribute("previewProtocolNumber", protocolService.previewNextProtocolNumber());
+        model.addAttribute("previewCreatedDate", LocalDate.now());
         return "employee/histologist/protocols/generateProtocol";
     }
 
     @PostMapping("/employee/histologist/protocols/generateProtocol/{sampleId}")
     public String generateProtocol(@PathVariable(value = "sampleId") long sampleId,
-                                   @RequestParam String inputProtocolNumber,
                                    @RequestParam String inputProtocolText,
                                    Model model) {
         if (!sampleViewService.isAssignedToCurrentUser(sampleId)) {
             return "redirect:/employee/histologist/samples/allSamples";
         }
 
-        Optional<Long> savedId = protocolService.generateProtocol(sampleId,
-                inputProtocolNumber, inputProtocolText);
+        // inputProtocolNumber из формы не принимаем — номер генерируется сервером.
+        Optional<Long> savedId = protocolService.generateProtocol(sampleId, inputProtocolText);
 
         if (savedId.isEmpty()) {
-            model.addAttribute("protocolError", "Ошибка при создании протокола. Проверьте номер протокола.");
+            model.addAttribute("protocolError",
+                    "Не удалось создать протокол. Попробуйте ещё раз — возможно, протокол для этого " +
+                            "образца уже создан или в этот момент другой пользователь создавал протокол " +
+                            "с тем же номером.");
             sampleViewService.getSampleById(sampleId).ifPresent(s -> model.addAttribute("sampleDTO", s));
             model.addAttribute("generatedText", protocolService.generateProtocolText(sampleId));
+            model.addAttribute("previewProtocolNumber", protocolService.previewNextProtocolNumber());
+            model.addAttribute("previewCreatedDate", LocalDate.now());
             return "employee/histologist/protocols/generateProtocol";
         }
 
@@ -123,18 +132,17 @@ public class ProtocolController {
 
     @PostMapping("/employee/histologist/protocols/editProtocol/{id}")
     public String editProtocol(@PathVariable(value = "id") long id,
-                               @RequestParam String inputProtocolNumber,
                                @RequestParam String inputProtocolText,
                                Model model) {
         if (!protocolService.isAuthoredByCurrentUser(id)) {
             return "redirect:/employee/histologist/protocols/allProtocols";
         }
 
-        Optional<Long> editedId = protocolService.editProtocol(id,
-                inputProtocolNumber, inputProtocolText);
+        // inputProtocolNumber при редактировании не принимаем — номер неизменяем.
+        Optional<Long> editedId = protocolService.editProtocol(id, inputProtocolText);
 
         if (editedId.isEmpty()) {
-            model.addAttribute("protocolError", "Ошибка при обновлении протокола. Проверьте номер протокола.");
+            model.addAttribute("protocolError", "Ошибка при обновлении протокола.");
             protocolService.getProtocolById(id).ifPresent(p -> model.addAttribute("protocolDTO", p));
             return "employee/histologist/protocols/editProtocol";
         }

@@ -34,13 +34,27 @@
                         <form th:action="@{/employee/histologist/protocols/editProtocol/{id}(id=${protocolDTO.id})}"
                               method="post" class="auth-form">
 
-                            <h6 class="form-section-title">Номер протокола *</h6>
+                            <h6 class="form-section-title">Идентификация протокола</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <input type="text" id="inputProtocolNumber" name="inputProtocolNumber"
-                                           class="form-control" required maxlength="50"
-                                           th:value="${protocolDTO.protocolNumber}">
-                                    <div id="protocolNumberFeedback" class="form-text"></div>
+                                    <label class="form-label">Номер протокола *</label>
+                                    <input type="text" class="form-control" readonly
+                                           th:value="${protocolDTO.protocolNumber}"
+                                           title="Номер протокола изменению не подлежит — сгенерирован автоматически при создании">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-lock"></i>
+                                        Номер протокола не изменяется после создания.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата создания</label>
+                                    <input type="date" class="form-control" readonly
+                                           th:value="${protocolDTO.createdDate}"
+                                           title="Дата создания изменению не подлежит — равна дате создания протокола">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-lock"></i>
+                                        Дата создания не изменяется.
+                                    </div>
                                 </div>
                             </div>
 
@@ -52,7 +66,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile">
+                            <button type="submit" class="btn btn-success btn-profile">
                                 <i class="bi bi-check-lg"></i> Сохранить изменения
                             </button>
                         </form>
@@ -71,40 +85,5 @@
         <div th:insert="~{blocks/footer :: footer}"></div>
     </div>
 </div>
-
-<script th:inline="javascript">
-    var protocolId = [[${protocolDTO.id}]];
-    var protocolNumberInput = document.getElementById('inputProtocolNumber');
-    var protocolNumberFeedback = document.getElementById('protocolNumberFeedback');
-    var submitBtn = document.getElementById('submitBtn');
-
-    var protocolNumberTimer;
-    protocolNumberInput.addEventListener('input', function () {
-        clearTimeout(protocolNumberTimer);
-        var value = protocolNumberInput.value.trim();
-        if (value.length === 0) {
-            protocolNumberInput.classList.remove('is-valid', 'is-invalid');
-            protocolNumberFeedback.textContent = '';
-            return;
-        }
-        protocolNumberTimer = setTimeout(function () {
-            fetch('/employee/histologist/protocols/check-protocolNumber?protocolNumber=' + encodeURIComponent(value) + '&id=' + protocolId)
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.exists) {
-                        protocolNumberInput.classList.remove('is-valid');
-                        protocolNumberInput.classList.add('is-invalid');
-                        protocolNumberFeedback.textContent = 'Этот номер протокола уже занят';
-                        protocolNumberFeedback.style.color = 'var(--danger)';
-                    } else {
-                        protocolNumberInput.classList.remove('is-invalid');
-                        protocolNumberInput.classList.add('is-valid');
-                        protocolNumberFeedback.textContent = 'Номер свободен';
-                        protocolNumberFeedback.style.color = 'var(--success)';
-                    }
-                });
-        }, 400);
-    });
-</script>
 </body>
 </html>

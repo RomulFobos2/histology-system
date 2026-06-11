@@ -65,21 +65,28 @@ public class ForensicCaseController {
     @GetMapping("/employee/laborant/cases/addCase")
     public String addCaseForm(Model model) {
         model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+        // Превью: номер и дата генерируются на сервере, в форме показываем
+        // как readonly. Реальные значения проставляются при POST сервисом.
+        model.addAttribute("previewCaseNumber", forensicCaseService.previewNextCaseNumber());
+        model.addAttribute("previewReceiptDate", LocalDate.now());
         return "employee/laborant/cases/addCase";
     }
 
     @PostMapping("/employee/laborant/cases/addCase")
-    public String addCase(@RequestParam String inputCaseNumber,
-                          @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inputReceiptDate,
-                          @RequestParam(required = false) String inputDescription,
+    public String addCase(@RequestParam(required = false) String inputDescription,
                           @RequestParam(required = false) Long inputExpertId,
                           Model model) {
-        Optional<Long> result = forensicCaseService.saveCase(inputCaseNumber, inputReceiptDate,
-                inputDescription, inputExpertId);
+        // inputCaseNumber и inputReceiptDate из формы не принимаем —
+        // эти поля автоматически генерируются сервером (защита от ручной правки HTML).
+        Optional<Long> result = forensicCaseService.saveCase(inputDescription, inputExpertId);
 
         if (result.isEmpty()) {
-            model.addAttribute("caseError", "Ошибка при сохранении. Возможно, номер дела уже занят.");
+            model.addAttribute("caseError",
+                    "Не удалось зарегистрировать дело. Попробуйте ещё раз — возможно, в этот момент " +
+                            "другой лаборант создавал дело с тем же номером.");
             model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+            model.addAttribute("previewCaseNumber", forensicCaseService.previewNextCaseNumber());
+            model.addAttribute("previewReceiptDate", LocalDate.now());
             return "employee/laborant/cases/addCase";
         }
         return "redirect:/employee/laborant/cases/detailsCase/" + result.get();
@@ -113,13 +120,12 @@ public class ForensicCaseController {
 
     @PostMapping("/employee/laborant/cases/editCase/{id}")
     public String editCase(@PathVariable(value = "id") long id,
-                           @RequestParam String inputCaseNumber,
-                           @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate inputReceiptDate,
                            @RequestParam(required = false) String inputDescription,
                            @RequestParam(required = false) Long inputExpertId,
                            RedirectAttributes redirectAttributes) {
-        Optional<Long> result = forensicCaseService.editCase(id, inputCaseNumber, inputReceiptDate,
-                inputDescription, inputExpertId);
+        // inputCaseNumber и inputReceiptDate при редактировании не принимаем —
+        // эти поля неизменяемы после регистрации дела.
+        Optional<Long> result = forensicCaseService.editCase(id, inputDescription, inputExpertId);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("caseError", "Ошибка при сохранении изменений.");
