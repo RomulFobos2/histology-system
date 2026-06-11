@@ -84,8 +84,9 @@
                                class="btn btn-primary btn-profile">
                                 <i class="bi bi-arrows-fullscreen"></i> Полноэкранный просмотр
                             </a>
+                            <!-- Кнопка удаления временно скрыта по решению заказчика. Удалить класс d-none, чтобы вернуть. -->
                             <a th:href="@{/employee/laborant/images/deleteImage/{id}(id=${imageDTO.id})}"
-                               class="btn btn-danger btn-profile"
+                               class="btn btn-danger btn-profile d-none"
                                onclick="return confirm('Удалить это изображение?')">
                                 <i class="bi bi-trash"></i> Удалить
                             </a>

@@ -87,8 +87,9 @@
                                class="btn btn-primary btn-profile">
                                 <i class="bi bi-pencil"></i> Редактировать
                             </a>
+                            <!-- Кнопка удаления временно скрыта по решению заказчика. Удалить класс d-none, чтобы вернуть. -->
                             <a th:href="@{/employee/histologist/conclusions/deleteConclusion/{id}(id=${conclusionDTO.id})}"
-                               class="btn btn-danger btn-profile"
+                               class="btn btn-danger btn-profile d-none"
                                onclick="return confirm('Удалить это заключение? Статус образца будет возвращён.')">
                                 <i class="bi bi-trash"></i> Удалить
                             </a>
