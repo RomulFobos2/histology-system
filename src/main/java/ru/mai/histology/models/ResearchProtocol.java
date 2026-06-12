@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "t_researchProtocol")
+@Table(name = "t_researchProtocol", uniqueConstraints = @UniqueConstraint(columnNames = {"sample_id"}))
 public class ResearchProtocol {
 
     @Id
