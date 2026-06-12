@@ -27,6 +27,33 @@
 
                         <div th:if="${imageError}" class="alert alert-danger" th:text="${imageError}"></div>
 
+                        <div th:if="${duplicateInfo}" class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                Этот файл уже загружен в систему
+                            </h6>
+                            <div class="mb-2">
+                                Изображение с идентичным содержимым было загружено ранее. Чтобы избежать
+                                дубликатов в журнале, загрузка отклонена.
+                            </div>
+                            <ul class="mb-2">
+                                <li>Имя файла: <strong th:text="${duplicateInfo.originalFilename}"></strong></li>
+                                <li>Образец № <strong th:text="${duplicateInfo.sampleNumber}"></strong>
+                                    в деле № <strong th:text="${duplicateInfo.caseNumber}"></strong></li>
+                                <li th:if="${duplicateInfo.uploaderName}">
+                                    Лаборант: <strong th:text="${duplicateInfo.uploaderName}"></strong>
+                                </li>
+                                <li th:if="${duplicateInfo.uploadDate}">
+                                    Загружено:
+                                    <strong th:text="${#temporals.format(duplicateInfo.uploadDate, 'dd.MM.yyyy')}"></strong>
+                                </li>
+                            </ul>
+                            <a th:href="@{/employee/laborant/images/detailsImage/{id}(id=${duplicateInfo.imageId})}"
+                               class="btn btn-sm btn-outline-warning">
+                                <i class="bi bi-arrow-right-circle"></i> Открыть существующее изображение
+                            </a>
+                        </div>
+
                         <form th:action="@{/employee/laborant/images/uploadImage/{id}(id=${sampleDTO.id})}"
                               method="post" enctype="multipart/form-data" class="auth-form">
 

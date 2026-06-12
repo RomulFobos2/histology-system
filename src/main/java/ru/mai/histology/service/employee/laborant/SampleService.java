@@ -1,10 +1,13 @@
 package ru.mai.histology.service.employee.laborant;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.mai.histology.dto.SampleDTO;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.enumeration.StainingMethod;
@@ -26,20 +29,25 @@ import java.util.Optional;
 @Slf4j
 public class SampleService {
 
+    private static final int SAVE_RETRY_LIMIT = 5;
+
     private final SampleRepository sampleRepository;
     private final ForensicCaseRepository forensicCaseRepository;
     private final EmployeeRepository employeeRepository;
     private final MicroscopeImageRepository microscopeImageRepository;
+    private final TransactionTemplate txTemplate;
     private ImageUploadService imageUploadService;
 
     public SampleService(SampleRepository sampleRepository,
                          ForensicCaseRepository forensicCaseRepository,
                          EmployeeRepository employeeRepository,
-                         MicroscopeImageRepository microscopeImageRepository) {
+                         MicroscopeImageRepository microscopeImageRepository,
+                         PlatformTransactionManager transactionManager) {
         this.sampleRepository = sampleRepository;
         this.forensicCaseRepository = forensicCaseRepository;
         this.employeeRepository = employeeRepository;
         this.microscopeImageRepository = microscopeImageRepository;
+        this.txTemplate = new TransactionTemplate(transactionManager);
     }
 
     /** Lazy-инъекция для избежания циклической зависимости */
@@ -68,10 +76,16 @@ public class SampleService {
                 .map(SampleMapper.INSTANCE::toDTO);
     }
 
-    @Transactional
-    public Optional<Long> saveSample(Long caseId, String sampleNumber, TissueType tissueType,
+    @Transactional(readOnly = true)
+    public String previewNextSampleNumber(Long caseId) {
+        Integer max = sampleRepository.findMaxSampleNumberForCase(caseId);
+        int next = (max == null ? 0 : max) + 1;
+        return String.valueOf(next);
+    }
+
+    public Optional<Long> saveSample(Long caseId, TissueType tissueType,
                                      StainingMethod stainingMethod, Long histologistId, String notes) {
-        log.info("Сохранение нового образца: caseId={}, sampleNumber={}", caseId, sampleNumber);
+        log.info("Сохранение нового образца (автогенерация номера): caseId={}", caseId);
 
         Optional<ForensicCase> caseOpt = forensicCaseRepository.findById(caseId);
         if (caseOpt.isEmpty()) {
@@ -79,42 +93,48 @@ public class SampleService {
             return Optional.empty();
         }
 
-        if (sampleRepository.existsByForensicCaseIdAndSampleNumber(caseId, sampleNumber)) {
-            log.error("Образец с номером {} уже существует в деле id={}", sampleNumber, caseId);
-            return Optional.empty();
-        }
+        for (int attempt = 1; attempt <= SAVE_RETRY_LIMIT; attempt++) {
+            try {
+                Long savedId = txTemplate.execute(status -> {
+                    String sampleNumber = previewNextSampleNumber(caseId);
 
-        try {
-            Sample sample = new Sample();
-            sample.setSampleNumber(sampleNumber);
-            sample.setReceiptDate(LocalDate.now());
-            sample.setTissueType(tissueType);
-            sample.setStainingMethod(stainingMethod);
-            sample.setStatus(SampleStatus.NEW);
-            sample.setNotes(notes);
-            sample.setForensicCase(caseOpt.get());
+                    Sample sample = new Sample();
+                    sample.setSampleNumber(sampleNumber);
+                    sample.setReceiptDate(LocalDate.now());
+                    sample.setTissueType(tissueType);
+                    sample.setStainingMethod(stainingMethod);
+                    sample.setStatus(SampleStatus.NEW);
+                    sample.setNotes(notes);
+                    sample.setForensicCase(caseOpt.get());
 
-            // registeredBy — текущий пользователь
-            Employee currentUser = employeeRepository.findByUsername(
-                    SecurityContextHolder.getContext().getAuthentication().getName()).orElse(null);
-            sample.setRegisteredBy(currentUser);
+                    Employee currentUser = employeeRepository.findByUsername(
+                            SecurityContextHolder.getContext().getAuthentication().getName()).orElse(null);
+                    sample.setRegisteredBy(currentUser);
 
-            if (histologistId != null) {
-                employeeRepository.findById(histologistId).ifPresent(sample::setAssignedHistologist);
+                    if (histologistId != null) {
+                        employeeRepository.findById(histologistId).ifPresent(sample::setAssignedHistologist);
+                    }
+
+                    sampleRepository.saveAndFlush(sample);
+                    log.info("Образец сохранён: id={}, sampleNumber={}", sample.getId(), sampleNumber);
+                    return sample.getId();
+                });
+                return Optional.ofNullable(savedId);
+            } catch (DataIntegrityViolationException e) {
+                log.warn("UNIQUE-collision при сохранении образца, попытка {}/{}", attempt, SAVE_RETRY_LIMIT);
+                if (attempt == SAVE_RETRY_LIMIT) {
+                    log.error("Не удалось сгенерировать уникальный номер образца за {} попыток", SAVE_RETRY_LIMIT);
+                }
+            } catch (Exception e) {
+                log.error("Ошибка при сохранении образца: {}", e.getMessage(), e);
+                return Optional.empty();
             }
-
-            sampleRepository.save(sample);
-            log.info("Образец сохранён: id={}, sampleNumber={}", sample.getId(), sampleNumber);
-            return Optional.of(sample.getId());
-        } catch (Exception e) {
-            log.error("Ошибка при сохранении образца: {}", e.getMessage(), e);
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
     @Transactional
-    public Optional<Long> editSample(Long id, String sampleNumber, TissueType tissueType,
+    public Optional<Long> editSample(Long id, TissueType tissueType,
                                      StainingMethod stainingMethod, Long histologistId, String notes) {
         log.info("Редактирование образца: id={}", id);
 
@@ -124,16 +144,8 @@ public class SampleService {
             return Optional.empty();
         }
 
-        Sample sample = sampleOpt.get();
-
-        if (sampleRepository.existsByForensicCaseIdAndSampleNumberAndIdNot(
-                sample.getForensicCase().getId(), sampleNumber, id)) {
-            log.error("Образец с номером {} уже существует в деле", sampleNumber);
-            return Optional.empty();
-        }
-
         try {
-            sample.setSampleNumber(sampleNumber);
+            Sample sample = sampleOpt.get();
             sample.setTissueType(tissueType);
             sample.setStainingMethod(stainingMethod);
             sample.setNotes(notes);
