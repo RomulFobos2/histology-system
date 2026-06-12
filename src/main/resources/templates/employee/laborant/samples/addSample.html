@@ -33,9 +33,13 @@
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label">Номер образца *</label>
-                                    <input type="text" id="inputSampleNumber" name="inputSampleNumber" class="form-control"
-                                           required maxlength="50" placeholder="Например: 001">
-                                    <div id="sampleNumberFeedback" class="form-text"></div>
+                                    <input type="text" class="form-control" readonly
+                                           th:value="${previewSampleNumber}"
+                                           title="Номер формируется автоматически как счётчик образцов внутри дела">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Формируется автоматически — счётчик образцов внутри дела.
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Тип ткани *</label>
@@ -71,7 +75,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" id="submitBtn" class="btn btn-success btn-profile" disabled>
+                            <button type="submit" class="btn btn-success btn-profile">
                                 <i class="bi bi-check-lg"></i> Создать образец
                             </button>
                         </form>
@@ -89,49 +93,5 @@
     </div>
 </div>
 
-<script th:inline="javascript">
-    var caseId = [[${caseDTO.id}]];
-    var sampleNumberInput = document.getElementById('inputSampleNumber');
-    var sampleNumberFeedback = document.getElementById('sampleNumberFeedback');
-    var submitBtn = document.getElementById('submitBtn');
-    var sampleNumberValid = false;
-
-    function validateForm() {
-        submitBtn.disabled = !sampleNumberValid;
-    }
-
-    var sampleNumberTimer;
-    sampleNumberInput.addEventListener('input', function () {
-        clearTimeout(sampleNumberTimer);
-        var value = sampleNumberInput.value.trim();
-        if (value.length === 0) {
-            sampleNumberInput.classList.remove('is-valid', 'is-invalid');
-            sampleNumberFeedback.textContent = '';
-            sampleNumberValid = false;
-            validateForm();
-            return;
-        }
-        sampleNumberTimer = setTimeout(function () {
-            fetch('/employee/laborant/samples/check-sampleNumber?caseId=' + caseId + '&sampleNumber=' + encodeURIComponent(value))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    if (data.exists) {
-                        sampleNumberInput.classList.remove('is-valid');
-                        sampleNumberInput.classList.add('is-invalid');
-                        sampleNumberFeedback.textContent = 'Этот номер образца уже занят в данном деле';
-                        sampleNumberFeedback.style.color = 'var(--danger)';
-                        sampleNumberValid = false;
-                    } else {
-                        sampleNumberInput.classList.remove('is-invalid');
-                        sampleNumberInput.classList.add('is-valid');
-                        sampleNumberFeedback.textContent = 'Номер свободен';
-                        sampleNumberFeedback.style.color = 'var(--success)';
-                        sampleNumberValid = true;
-                    }
-                    validateForm();
-                });
-        }, 400);
-    });
-</script>
 </body>
 </html>

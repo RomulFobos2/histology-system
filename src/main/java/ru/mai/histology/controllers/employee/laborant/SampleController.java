@@ -76,27 +76,30 @@ public class SampleController {
         model.addAttribute("tissueTypes", TissueType.values());
         model.addAttribute("stainingMethods", StainingMethod.values());
         model.addAttribute("allHistologists", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+        model.addAttribute("previewSampleNumber", sampleService.previewNextSampleNumber(caseId));
         return "employee/laborant/samples/addSample";
     }
 
     @PostMapping("/employee/laborant/samples/addSample/{caseId}")
     public String addSample(@PathVariable(value = "caseId") long caseId,
-                            @RequestParam String inputSampleNumber,
                             @RequestParam TissueType inputTissueType,
                             @RequestParam StainingMethod inputStainingMethod,
                             @RequestParam(required = false) Long inputHistologistId,
                             @RequestParam(required = false) String inputNotes,
                             Model model) {
-        Optional<Long> result = sampleService.saveSample(caseId, inputSampleNumber, inputTissueType,
+        Optional<Long> result = sampleService.saveSample(caseId, inputTissueType,
                 inputStainingMethod, inputHistologistId, inputNotes);
 
         if (result.isEmpty()) {
-            model.addAttribute("sampleError", "Ошибка при сохранении. Возможно, номер образца уже занят.");
+            model.addAttribute("sampleError",
+                    "Не удалось зарегистрировать образец. Попробуйте ещё раз — возможно, в этот момент " +
+                            "другой лаборант создавал образец с тем же номером.");
             Optional<ForensicCaseDTO> caseOpt = forensicCaseService.getCaseById(caseId);
             caseOpt.ifPresent(dto -> model.addAttribute("caseDTO", dto));
             model.addAttribute("tissueTypes", TissueType.values());
             model.addAttribute("stainingMethods", StainingMethod.values());
             model.addAttribute("allHistologists", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+            model.addAttribute("previewSampleNumber", sampleService.previewNextSampleNumber(caseId));
             return "employee/laborant/samples/addSample";
         }
         return "redirect:/employee/laborant/cases/detailsCase/" + caseId;
@@ -131,13 +134,12 @@ public class SampleController {
 
     @PostMapping("/employee/laborant/samples/editSample/{id}")
     public String editSample(@PathVariable(value = "id") long id,
-                             @RequestParam String inputSampleNumber,
                              @RequestParam TissueType inputTissueType,
                              @RequestParam StainingMethod inputStainingMethod,
                              @RequestParam(required = false) Long inputHistologistId,
                              @RequestParam(required = false) String inputNotes,
                              RedirectAttributes redirectAttributes) {
-        Optional<Long> result = sampleService.editSample(id, inputSampleNumber, inputTissueType,
+        Optional<Long> result = sampleService.editSample(id, inputTissueType,
                 inputStainingMethod, inputHistologistId, inputNotes);
 
         if (result.isEmpty()) {

@@ -36,6 +36,9 @@ public class MicroscopeImage {
 
     private Long fileSize;
 
+    @Column(length = 64)
+    private String fileHash;
+
     @Column(length = 100)
     private String contentType;
 

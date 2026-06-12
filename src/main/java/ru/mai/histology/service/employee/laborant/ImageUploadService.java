@@ -17,7 +17,11 @@ import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.repo.SampleRepository;
 import ru.mai.histology.service.general.FileStorageService;
 
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,13 +97,36 @@ public class ImageUploadService {
             return Optional.empty();
         }
 
+        byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch (IOException e) {
+            log.error("Не удалось прочитать байты файла: {}", e.getMessage(), e);
+            return Optional.empty();
+        }
+
+        String fileHash = computeSha256Hex(fileBytes);
+
+        Optional<MicroscopeImage> duplicate = imageRepository.findFirstByFileHash(fileHash);
+        if (duplicate.isPresent()) {
+            MicroscopeImage existing = duplicate.get();
+            existing.getSample().getSampleNumber();
+            existing.getSample().getForensicCase().getCaseNumber();
+            if (existing.getUploadedBy() != null) {
+                existing.getUploadedBy().getFullName();
+            }
+            log.warn("Дубликат файла: hash={}, existingImageId={}, existingSampleId={}",
+                    fileHash, existing.getId(), existing.getSample().getId());
+            throw new DuplicateImageException(existing);
+        }
+
         try {
             Sample sample = sampleOpt.get();
             String caseNumber = sample.getForensicCase().getCaseNumber();
             String sampleNumber = sample.getSampleNumber();
 
-            // Сохранение файла на диск
-            String relativePath = fileStorageService.saveFile(file, caseNumber, sampleNumber);
+            String relativePath = fileStorageService.saveBytesAsImage(
+                    fileBytes, originalFilename, caseNumber, sampleNumber, file.getContentType());
             if (relativePath == null) {
                 log.error("Не удалось сохранить файл на диск");
                 return Optional.empty();
@@ -118,6 +145,7 @@ public class ImageUploadService {
             image.setStoredFilename(relativePath.substring(relativePath.lastIndexOf("/") + 1));
             image.setFilePath(relativePath);
             image.setFileSize(file.getSize());
+            image.setFileHash(fileHash);
             image.setContentType(file.getContentType());
             image.setUploadDate(LocalDate.now());
             image.setDescription(description);
@@ -127,12 +155,24 @@ public class ImageUploadService {
             image.setUploadedBy(currentUser);
 
             imageRepository.save(image);
-            log.info("Изображение сохранено: id={}, файл={}", image.getId(), relativePath);
+            log.info("Изображение сохранено: id={}, файл={}, hash={}", image.getId(), relativePath, fileHash);
             return Optional.of(image.getId());
+        } catch (DuplicateImageException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Ошибка при загрузке изображения: {}", e.getMessage(), e);
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return Optional.empty();
+        }
+    }
+
+    private static String computeSha256Hex(byte[] bytes) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(bytes);
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 не поддерживается JVM", e);
         }
     }
 

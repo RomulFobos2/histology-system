@@ -8,9 +8,13 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.MicroscopeImageDTO;
 import ru.mai.histology.dto.SampleDTO;
+import ru.mai.histology.models.MicroscopeImage;
+import ru.mai.histology.service.employee.laborant.DuplicateImageException;
 import ru.mai.histology.service.employee.laborant.ImageUploadService;
 import ru.mai.histology.service.employee.laborant.SampleService;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller("laborantImageController")
@@ -58,8 +62,24 @@ public class ImageController {
                               @RequestParam(required = false) String inputMagnification,
                               Model model,
                               RedirectAttributes redirectAttributes) {
-        Optional<Long> result = imageUploadService.saveImage(sampleId, file,
-                inputDescription, inputMagnification);
+        Optional<Long> result;
+        try {
+            result = imageUploadService.saveImage(sampleId, file,
+                    inputDescription, inputMagnification);
+        } catch (DuplicateImageException dup) {
+            MicroscopeImage existing = dup.getExisting();
+            Map<String, Object> duplicateInfo = new LinkedHashMap<>();
+            duplicateInfo.put("imageId", existing.getId());
+            duplicateInfo.put("originalFilename", existing.getOriginalFilename());
+            duplicateInfo.put("sampleNumber", existing.getSample().getSampleNumber());
+            duplicateInfo.put("caseNumber", existing.getSample().getForensicCase().getCaseNumber());
+            duplicateInfo.put("uploaderName", existing.getUploadedBy() != null
+                    ? existing.getUploadedBy().getFullName() : null);
+            duplicateInfo.put("uploadDate", existing.getUploadDate());
+            model.addAttribute("duplicateInfo", duplicateInfo);
+            sampleService.getSampleById(sampleId).ifPresent(dto -> model.addAttribute("sampleDTO", dto));
+            return "employee/laborant/images/uploadImage";
+        }
 
         if (result.isEmpty()) {
             model.addAttribute("imageError", "Ошибка при загрузке. Допустимые форматы: TIF, JPG. Макс. размер: 50 МБ.");
