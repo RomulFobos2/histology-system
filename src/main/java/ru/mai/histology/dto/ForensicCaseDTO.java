@@ -11,6 +11,10 @@ public class ForensicCaseDTO {
     private String caseNumber;
     private LocalDate receiptDate;
     private String description;
+    private LocalDate autopsyDate;
+    private LocalDate samplingDate;
+    private String personFullName;
+    private Integer birthYear;
     private CaseStatus status;
     private String statusDisplayName;
     private Long expertId;

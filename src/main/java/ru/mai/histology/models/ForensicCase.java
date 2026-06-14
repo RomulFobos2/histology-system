@@ -33,6 +33,17 @@ public class ForensicCase {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @DateTimeFormat(pattern = "dd.MM.yyyy")
+    private LocalDate autopsyDate;
+
+    @DateTimeFormat(pattern = "dd.MM.yyyy")
+    private LocalDate samplingDate;
+
+    @Column(length = 200)
+    private String personFullName;
+
+    private Integer birthYear;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
