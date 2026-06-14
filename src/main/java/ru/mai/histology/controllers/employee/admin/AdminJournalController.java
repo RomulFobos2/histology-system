@@ -55,7 +55,10 @@ public class AdminJournalController {
                        @RequestParam(defaultValue = "50") int size,
                        Model model) {
 
-        LocalDateTime fromDt = from != null ? from.atStartOfDay() : null;
+        if (from == null) {
+            from = LocalDate.now();
+        }
+        LocalDateTime fromDt = from.atStartOfDay();
         LocalDateTime toDt = to != null ? to.plusDays(1).atStartOfDay() : null;
 
         Page<ActionLog> entries = actionLogRepository.findByFilters(
