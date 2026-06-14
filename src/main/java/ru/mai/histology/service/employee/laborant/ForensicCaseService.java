@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.mai.histology.dto.ForensicCaseDTO;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.enumeration.CaseStatus;
 import ru.mai.histology.mapper.ForensicCaseMapper;
 import ru.mai.histology.models.Employee;
@@ -15,6 +16,7 @@ import ru.mai.histology.models.ForensicCase;
 import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.repo.ForensicCaseRepository;
 import ru.mai.histology.repo.SampleRepository;
+import ru.mai.histology.service.general.ActionLogService;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -37,15 +39,18 @@ public class ForensicCaseService {
     private final ForensicCaseRepository forensicCaseRepository;
     private final EmployeeRepository employeeRepository;
     private final SampleRepository sampleRepository;
+    private final ActionLogService actionLogService;
     private final TransactionTemplate txTemplate;
 
     public ForensicCaseService(ForensicCaseRepository forensicCaseRepository,
                                EmployeeRepository employeeRepository,
                                SampleRepository sampleRepository,
+                               ActionLogService actionLogService,
                                PlatformTransactionManager transactionManager) {
         this.forensicCaseRepository = forensicCaseRepository;
         this.employeeRepository = employeeRepository;
         this.sampleRepository = sampleRepository;
+        this.actionLogService = actionLogService;
         this.txTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -121,6 +126,8 @@ public class ForensicCaseService {
 
                     forensicCaseRepository.saveAndFlush(forensicCase);
                     log.info("Дело сохранено: id={}, caseNumber={}", forensicCase.getId(), caseNumber);
+                    actionLogService.log(ActionType.CASE_CREATED, "ForensicCase", forensicCase.getId(),
+                            "Создано дело " + caseNumber);
                     return forensicCase.getId();
                 });
                 return Optional.ofNullable(savedId);
@@ -165,6 +172,8 @@ public class ForensicCaseService {
 
             forensicCaseRepository.save(forensicCase);
             log.info("Дело обновлено: id={}", id);
+            actionLogService.log(ActionType.CASE_UPDATED, "ForensicCase", id,
+                    "Изменено дело " + forensicCase.getCaseNumber());
             return Optional.of(id);
         } catch (Exception e) {
             log.error("Ошибка при редактировании дела: {}", e.getMessage(), e);
@@ -189,8 +198,11 @@ public class ForensicCaseService {
         }
 
         try {
+            String caseNumber = caseOptional.get().getCaseNumber();
             forensicCaseRepository.deleteById(id);
             log.info("Дело удалено: id={}", id);
+            actionLogService.log(ActionType.CASE_DELETED, "ForensicCase", id,
+                    "Удалено дело " + caseNumber);
             return true;
         } catch (Exception e) {
             log.error("Ошибка при удалении дела: {}", e.getMessage(), e);

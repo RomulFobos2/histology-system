@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.enumeration.EnhancementQuality;
 import ru.mai.histology.models.AutoencoderModel;
 import ru.mai.histology.models.Employee;
@@ -14,6 +15,7 @@ import ru.mai.histology.repo.AutoencoderModelRepository;
 import ru.mai.histology.repo.ImageProcessingLogRepository;
 import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.service.employee.EmployeeService;
+import ru.mai.histology.service.general.ActionLogService;
 import ru.mai.histology.service.general.AutoencoderClientService;
 import ru.mai.histology.service.general.FileStorageService;
 
@@ -31,19 +33,22 @@ public class ImageEnhancementService {
     private final FileStorageService fileStorageService;
     private final AutoencoderClientService autoencoderClientService;
     private final EmployeeService employeeService;
+    private final ActionLogService actionLogService;
 
     public ImageEnhancementService(MicroscopeImageRepository microscopeImageRepository,
                                    AutoencoderModelRepository autoencoderModelRepository,
                                    ImageProcessingLogRepository imageProcessingLogRepository,
                                    FileStorageService fileStorageService,
                                    AutoencoderClientService autoencoderClientService,
-                                   EmployeeService employeeService) {
+                                   EmployeeService employeeService,
+                                   ActionLogService actionLogService) {
         this.microscopeImageRepository = microscopeImageRepository;
         this.autoencoderModelRepository = autoencoderModelRepository;
         this.imageProcessingLogRepository = imageProcessingLogRepository;
         this.fileStorageService = fileStorageService;
         this.autoencoderClientService = autoencoderClientService;
         this.employeeService = employeeService;
+        this.actionLogService = actionLogService;
     }
 
     @Transactional
@@ -121,6 +126,8 @@ public class ImageEnhancementService {
             imageProcessingLogRepository.save(processingLog);
 
             log.info("Улучшенное изображение сохранено: originalId={}, enhancedId={}", imageId, enhancedImage.getId());
+            actionLogService.log(ActionType.IMAGE_ENHANCED, "MicroscopeImage", enhancedImage.getId(),
+                    "Улучшено изображение " + originalImage.getOriginalFilename() + " (модель: " + response.modelName() + ")");
             return Optional.of(enhancedImage.getId());
         } catch (Exception e) {
             log.error("Ошибка при улучшении изображения id={}: {}", imageId, e.getMessage(), e);
