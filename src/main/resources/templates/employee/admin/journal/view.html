@@ -1,0 +1,163 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Журнал действий | АИС ГИ</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/javascript.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div th:insert="~{blocks/header :: sidebar}"></div>
+    <div id="content-wrapper">
+        <div th:insert="~{blocks/header :: topbar}"></div>
+        <div th:insert="~{blocks/header :: overlay}"></div>
+        <main class="container-fluid">
+
+            <div class="profile-card mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h1 class="page-title mb-0">Журнал действий</h1>
+                    <form th:action="@{/employee/admin/journal/export}" method="post" style="display:inline;">
+                        <input type="hidden" name="employeeId" th:value="${filterEmployeeId}">
+                        <input type="hidden" name="actionType" th:value="${filterActionType}">
+                        <input type="hidden" name="from"
+                               th:value="${filterFrom != null} ? ${#temporals.format(filterFrom, 'dd.MM.yyyy')} : ''">
+                        <input type="hidden" name="to"
+                               th:value="${filterTo != null} ? ${#temporals.format(filterTo, 'dd.MM.yyyy')} : ''">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="profile-card mb-4">
+                <form method="get" th:action="@{/employee/admin/journal/view}" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Пользователь</label>
+                        <select name="employeeId" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="emp : ${employees}"
+                                    th:value="${emp.id}"
+                                    th:text="${emp.fullName}"
+                                    th:selected="${filterEmployeeId != null and filterEmployeeId == emp.id}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Тип действия</label>
+                        <select name="actionType" class="form-select form-select-sm">
+                            <option value="">Все</option>
+                            <option th:each="t : ${actionTypes}"
+                                    th:value="${t.name()}"
+                                    th:text="${t.description}"
+                                    th:selected="${filterActionType != null and filterActionType.name() == t.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата с</label>
+                        <input type="text" name="from" class="form-control form-control-sm"
+                               placeholder="дд.мм.гггг"
+                               th:value="${filterFrom != null} ? ${#temporals.format(filterFrom, 'dd.MM.yyyy')} : ''">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Дата по</label>
+                        <input type="text" name="to" class="form-control form-control-sm"
+                               placeholder="дд.мм.гггг"
+                               th:value="${filterTo != null} ? ${#temporals.format(filterTo, 'dd.MM.yyyy')} : ''">
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                            <i class="bi bi-funnel"></i> Применить
+                        </button>
+                        <a th:href="@{/employee/admin/journal/view}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x"></i>
+                        </a>
+                    </div>
+                    <input type="hidden" name="size" th:value="${pageSize}">
+                </form>
+            </div>
+
+            <div class="mb-2">
+                <small class="text-muted">
+                    Всего записей: <strong th:text="${totalElements}"></strong>
+                </small>
+            </div>
+
+            <div class="table-container">
+                <table class="table table-modern">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Дата/время</th>
+                        <th>Пользователь</th>
+                        <th>Роль</th>
+                        <th>Тип действия</th>
+                        <th>Описание</th>
+                        <th>IP-адрес</th>
+                        <th>Результат</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(entries)}">
+                        <td colspan="8" class="text-center text-muted py-4">Записи не найдены</td>
+                    </tr>
+                    <tr th:each="a, idx : ${entries}">
+                        <td class="row-number" th:text="${currentPage * pageSize + idx.index + 1}"></td>
+                        <td th:text="${#temporals.format(a.timestamp, 'dd.MM.yyyy HH:mm:ss')}"></td>
+                        <td>
+                            <span th:text="${a.fullNameSnapshot != null ? a.fullNameSnapshot : '—'}"></span>
+                            <br>
+                            <small class="text-muted" th:text="${a.usernameSnapshot}"></small>
+                        </td>
+                        <td>
+                            <small th:text="${a.roleSnapshot != null ? a.roleSnapshot : '—'}"></small>
+                        </td>
+                        <td th:text="${a.actionType.description}"></td>
+                        <td th:text="${a.description}"></td>
+                        <td>
+                            <small th:text="${a.ipAddress != null ? a.ipAddress : '—'}"></small>
+                        </td>
+                        <td>
+                            <span th:if="${a.success}" class="badge-active">Успех</span>
+                            <span th:unless="${a.success}" class="badge-inactive">Ошибка</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Пагинация -->
+            <nav th:if="${totalPages > 1}" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/employee/admin/journal/view(employeeId=${filterEmployeeId},actionType=${filterActionType},from=${filterFrom != null ? #temporals.format(filterFrom, 'dd.MM.yyyy') : ''},to=${filterTo != null ? #temporals.format(filterTo, 'dd.MM.yyyy') : ''},page=${currentPage - 1},size=${pageSize})}">
+                            «
+                        </a>
+                    </li>
+                    <li class="page-item" th:each="p : ${#numbers.sequence(0, totalPages - 1)}"
+                        th:classappend="${p == currentPage} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{/employee/admin/journal/view(employeeId=${filterEmployeeId},actionType=${filterActionType},from=${filterFrom != null ? #temporals.format(filterFrom, 'dd.MM.yyyy') : ''},to=${filterTo != null ? #temporals.format(filterTo, 'dd.MM.yyyy') : ''},page=${p},size=${pageSize})}"
+                           th:text="${p + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/employee/admin/journal/view(employeeId=${filterEmployeeId},actionType=${filterActionType},from=${filterFrom != null ? #temporals.format(filterFrom, 'dd.MM.yyyy') : ''},to=${filterTo != null ? #temporals.format(filterTo, 'dd.MM.yyyy') : ''},page=${currentPage + 1},size=${pageSize})}">
+                            »
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+        </main>
+        <div th:insert="~{blocks/footer :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

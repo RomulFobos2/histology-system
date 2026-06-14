@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.histology.dto.ForensicConclusionDTO;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.enumeration.CaseStatus;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.mapper.ForensicConclusionMapper;
@@ -19,6 +20,7 @@ import ru.mai.histology.repo.ForensicConclusionRepository;
 import ru.mai.histology.repo.HistologistConclusionRepository;
 import ru.mai.histology.repo.ForensicCaseRepository;
 import ru.mai.histology.repo.SampleRepository;
+import ru.mai.histology.service.general.ActionLogService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,17 +36,20 @@ public class ForensicConclusionService {
     private final EmployeeRepository employeeRepository;
     private final HistologistConclusionRepository histConclusionRepository;
     private final ForensicCaseRepository forensicCaseRepository;
+    private final ActionLogService actionLogService;
 
     public ForensicConclusionService(ForensicConclusionRepository conclusionRepository,
                                      SampleRepository sampleRepository,
                                      EmployeeRepository employeeRepository,
                                      HistologistConclusionRepository histConclusionRepository,
-                                     ForensicCaseRepository forensicCaseRepository) {
+                                     ForensicCaseRepository forensicCaseRepository,
+                                     ActionLogService actionLogService) {
         this.conclusionRepository = conclusionRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
         this.histConclusionRepository = histConclusionRepository;
         this.forensicCaseRepository = forensicCaseRepository;
+        this.actionLogService = actionLogService;
     }
 
     // ========== Чтение ==========
@@ -126,6 +131,10 @@ public class ForensicConclusionService {
             }
 
             log.info("Судебно-медицинское заключение сохранено: id={}, sampleId={}", conclusion.getId(), sampleId);
+            actionLogService.log(ActionType.FORENSIC_CONCLUSION_CREATED, "ForensicConclusion", conclusion.getId(),
+                    "Создано судебно-медицинское заключение по образцу №" + sample.getSampleNumber()
+                            + " дела " + sample.getForensicCase().getCaseNumber()
+                            + (isFinal ? " (финальное)" : ""));
             return Optional.of(conclusion.getId());
         } catch (Exception e) {
             log.error("Ошибка при сохранении заключения: {}", e.getMessage(), e);
@@ -167,6 +176,10 @@ public class ForensicConclusionService {
             }
 
             log.info("Судебно-медицинское заключение обновлено: id={}", id);
+            actionLogService.log(ActionType.FORENSIC_CONCLUSION_UPDATED, "ForensicConclusion", id,
+                    "Изменено судебно-медицинское заключение по образцу №" + sample.getSampleNumber()
+                            + " дела " + sample.getForensicCase().getCaseNumber()
+                            + (isFinal ? " (финальное)" : ""));
             return Optional.of(id);
         } catch (Exception e) {
             log.error("Ошибка при редактировании заключения: {}", e.getMessage(), e);

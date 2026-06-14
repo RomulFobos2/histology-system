@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.mai.histology.dto.ResearchProtocolDTO;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.mapper.ResearchProtocolMapper;
 import ru.mai.histology.models.Employee;
 import ru.mai.histology.models.ResearchProtocol;
@@ -17,6 +18,7 @@ import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.repo.HistologistConclusionRepository;
 import ru.mai.histology.repo.ResearchProtocolRepository;
 import ru.mai.histology.repo.SampleRepository;
+import ru.mai.histology.service.general.ActionLogService;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -41,17 +43,20 @@ public class ProtocolService {
     private final SampleRepository sampleRepository;
     private final EmployeeRepository employeeRepository;
     private final HistologistConclusionRepository conclusionRepository;
+    private final ActionLogService actionLogService;
     private final TransactionTemplate txTemplate;
 
     public ProtocolService(ResearchProtocolRepository protocolRepository,
                            SampleRepository sampleRepository,
                            EmployeeRepository employeeRepository,
                            HistologistConclusionRepository conclusionRepository,
+                           ActionLogService actionLogService,
                            PlatformTransactionManager transactionManager) {
         this.protocolRepository = protocolRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
         this.conclusionRepository = conclusionRepository;
+        this.actionLogService = actionLogService;
         this.txTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -165,6 +170,8 @@ public class ProtocolService {
 
                     protocolRepository.saveAndFlush(protocol);
                     log.info("Протокол сохранён: id={}, protocolNumber={}", protocol.getId(), protocolNumber);
+                    actionLogService.log(ActionType.PROTOCOL_CREATED, "ResearchProtocol", protocol.getId(),
+                            "Создан протокол " + protocolNumber + " по образцу №" + sampleOpt.get().getSampleNumber());
                     return protocol.getId();
                 });
                 return Optional.ofNullable(savedId);
@@ -204,6 +211,8 @@ public class ProtocolService {
 
             protocolRepository.save(protocol);
             log.info("Протокол обновлён: id={}", id);
+            actionLogService.log(ActionType.PROTOCOL_UPDATED, "ResearchProtocol", id,
+                    "Изменён протокол " + protocol.getProtocolNumber());
             return Optional.of(id);
         } catch (Exception e) {
             log.error("Ошибка при редактировании протокола: {}", e.getMessage(), e);

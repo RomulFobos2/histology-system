@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.multipart.MultipartFile;
 import ru.mai.histology.dto.MicroscopeImageDTO;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.mapper.MicroscopeImageMapper;
 import ru.mai.histology.models.Employee;
 import ru.mai.histology.models.MicroscopeImage;
@@ -15,6 +16,7 @@ import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.repo.ImageProcessingLogRepository;
 import ru.mai.histology.repo.MicroscopeImageRepository;
 import ru.mai.histology.repo.SampleRepository;
+import ru.mai.histology.service.general.ActionLogService;
 import ru.mai.histology.service.general.FileStorageService;
 
 import java.io.IOException;
@@ -39,17 +41,20 @@ public class ImageUploadService {
     private final SampleRepository sampleRepository;
     private final EmployeeRepository employeeRepository;
     private final FileStorageService fileStorageService;
+    private final ActionLogService actionLogService;
 
     public ImageUploadService(MicroscopeImageRepository imageRepository,
                               ImageProcessingLogRepository processingLogRepository,
                               SampleRepository sampleRepository,
                               EmployeeRepository employeeRepository,
-                              FileStorageService fileStorageService) {
+                              FileStorageService fileStorageService,
+                              ActionLogService actionLogService) {
         this.imageRepository = imageRepository;
         this.processingLogRepository = processingLogRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
         this.fileStorageService = fileStorageService;
+        this.actionLogService = actionLogService;
     }
 
     // ========== Чтение ==========
@@ -156,6 +161,8 @@ public class ImageUploadService {
 
             imageRepository.save(image);
             log.info("Изображение сохранено: id={}, файл={}, hash={}", image.getId(), relativePath, fileHash);
+            actionLogService.log(ActionType.IMAGE_UPLOADED, "MicroscopeImage", image.getId(),
+                    "Загружено изображение " + image.getOriginalFilename() + " для образца №" + sampleNumber + " дела " + caseNumber);
             return Optional.of(image.getId());
         } catch (DuplicateImageException e) {
             throw e;
@@ -207,8 +214,14 @@ public class ImageUploadService {
             // Удаление файлов с диска (оригинал + миниатюра)
             deleteFileAndThumb(image.getFilePath());
 
+            String filename = image.getOriginalFilename();
+            String sampleNumber = image.getSample() != null ? image.getSample().getSampleNumber() : "?";
+            String caseNumber = image.getSample() != null && image.getSample().getForensicCase() != null
+                    ? image.getSample().getForensicCase().getCaseNumber() : "?";
             imageRepository.deleteById(id);
             log.info("Изображение удалено: id={}", id);
+            actionLogService.log(ActionType.IMAGE_DELETED, "MicroscopeImage", id,
+                    "Удалено изображение " + filename + " (образец №" + sampleNumber + " дела " + caseNumber + ")");
             return true;
         } catch (Exception e) {
             log.error("Ошибка при удалении изображения: {}", e.getMessage(), e);

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import ru.mai.histology.dto.HistologistConclusionDTO;
+import ru.mai.histology.enumeration.ActionType;
 import ru.mai.histology.enumeration.SampleStatus;
 import ru.mai.histology.mapper.HistologistConclusionMapper;
 import ru.mai.histology.models.Employee;
@@ -14,6 +15,7 @@ import ru.mai.histology.models.Sample;
 import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.repo.HistologistConclusionRepository;
 import ru.mai.histology.repo.SampleRepository;
+import ru.mai.histology.service.general.ActionLogService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,13 +29,16 @@ public class ConclusionService {
     private final HistologistConclusionRepository conclusionRepository;
     private final SampleRepository sampleRepository;
     private final EmployeeRepository employeeRepository;
+    private final ActionLogService actionLogService;
 
     public ConclusionService(HistologistConclusionRepository conclusionRepository,
                              SampleRepository sampleRepository,
-                             EmployeeRepository employeeRepository) {
+                             EmployeeRepository employeeRepository,
+                             ActionLogService actionLogService) {
         this.conclusionRepository = conclusionRepository;
         this.sampleRepository = sampleRepository;
         this.employeeRepository = employeeRepository;
+        this.actionLogService = actionLogService;
     }
 
     // ========== Чтение ==========
@@ -110,6 +115,9 @@ public class ConclusionService {
             }
 
             log.info("Заключение гистолога сохранено: id={}, sampleId={}", conclusion.getId(), sampleId);
+            actionLogService.log(ActionType.HISTOLOGIST_CONCLUSION_CREATED, "HistologistConclusion", conclusion.getId(),
+                    "Создано заключение гистолога по образцу №" + sample.getSampleNumber()
+                            + " дела " + sample.getForensicCase().getCaseNumber());
             return Optional.of(conclusion.getId());
         } catch (Exception e) {
             log.error("Ошибка при сохранении заключения: {}", e.getMessage(), e);
@@ -139,6 +147,10 @@ public class ConclusionService {
 
             conclusionRepository.save(conclusion);
             log.info("Заключение гистолога обновлено: id={}", id);
+            Sample sample = conclusion.getSample();
+            actionLogService.log(ActionType.HISTOLOGIST_CONCLUSION_UPDATED, "HistologistConclusion", id,
+                    "Изменено заключение гистолога по образцу №" + sample.getSampleNumber()
+                            + " дела " + sample.getForensicCase().getCaseNumber());
             return Optional.of(id);
         } catch (Exception e) {
             log.error("Ошибка при редактировании заключения: {}", e.getMessage(), e);
@@ -168,8 +180,12 @@ public class ConclusionService {
                 log.info("Статус образца id={} возвращён на AWAITING_ANALYSIS", sample.getId());
             }
 
+            String sampleNumber = sample.getSampleNumber();
+            String caseNumber = sample.getForensicCase().getCaseNumber();
             conclusionRepository.deleteById(id);
             log.info("Заключение гистолога удалено: id={}", id);
+            actionLogService.log(ActionType.HISTOLOGIST_CONCLUSION_DELETED, "HistologistConclusion", id,
+                    "Удалено заключение гистолога по образцу №" + sampleNumber + " дела " + caseNumber);
             return true;
         } catch (Exception e) {
             log.error("Ошибка при удалении заключения: {}", e.getMessage(), e);
