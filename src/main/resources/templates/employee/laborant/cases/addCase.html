@@ -48,6 +48,24 @@
                                            th:value="${previewReceiptDate}"
                                            title="Дата поступления равна серверной дате на момент сохранения">
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата вскрытия *</label>
+                                    <input type="date" name="inputAutopsyDate" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата вырезки *</label>
+                                    <input type="date" name="inputSamplingDate" class="form-control" required>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label">ФИО *</label>
+                                    <input type="text" name="inputPersonFullName" class="form-control"
+                                           maxlength="200" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Год рождения *</label>
+                                    <input type="number" name="inputBirthYear" class="form-control"
+                                           min="1900" th:max="${T(java.time.LocalDate).now().getYear()}" required>
+                                </div>
                                 <div class="col-md-12">
                                     <label class="form-label">Описание</label>
                                     <textarea name="inputDescription" class="form-control" rows="3"

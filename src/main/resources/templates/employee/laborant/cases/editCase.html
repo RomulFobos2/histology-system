@@ -51,6 +51,28 @@
                                         Дата поступления не изменяется после регистрации.
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата вскрытия *</label>
+                                    <input type="date" name="inputAutopsyDate" class="form-control"
+                                           th:value="${caseDTO.autopsyDate}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Дата вырезки *</label>
+                                    <input type="date" name="inputSamplingDate" class="form-control"
+                                           th:value="${caseDTO.samplingDate}" required>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label">ФИО *</label>
+                                    <input type="text" name="inputPersonFullName" class="form-control"
+                                           maxlength="200"
+                                           th:value="${caseDTO.personFullName}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Год рождения *</label>
+                                    <input type="number" name="inputBirthYear" class="form-control"
+                                           min="1900" th:max="${T(java.time.LocalDate).now().getYear()}"
+                                           th:value="${caseDTO.birthYear}" required>
+                                </div>
                                 <div class="col-md-12">
                                     <label class="form-label">Описание</label>
                                     <textarea name="inputDescription" class="form-control" rows="3"

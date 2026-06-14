@@ -79,6 +79,10 @@
                         <th>#</th>
                         <th data-sortable data-sort-type="text">Номер дела</th>
                         <th data-sortable data-sort-type="date">Дата поступления</th>
+                        <th data-sortable data-sort-type="text">ФИО</th>
+                        <th data-sortable data-sort-type="number">Год рожд.</th>
+                        <th data-sortable data-sort-type="date">Дата вскрытия</th>
+                        <th data-sortable data-sort-type="date">Дата вырезки</th>
                         <th data-sortable data-sort-type="text">Эксперт</th>
                         <th data-sortable data-sort-type="number">Образцов</th>
                         <th data-sortable data-sort-type="text">Статус</th>
@@ -94,6 +98,12 @@
                         <td class="filter-date"
                             th:attr="data-date-iso=${c.receiptDate != null ? #temporals.format(c.receiptDate, 'yyyy-MM-dd') : ''}"
                             th:text="${c.receiptDate} ? ${#temporals.format(c.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td class="filter-person" th:text="${c.personFullName} ?: '—'"></td>
+                        <td th:text="${c.birthYear} ?: '—'"></td>
+                        <td th:attr="data-date-iso=${c.autopsyDate != null ? #temporals.format(c.autopsyDate, 'yyyy-MM-dd') : ''}"
+                            th:text="${c.autopsyDate} ? ${#temporals.format(c.autopsyDate, 'dd.MM.yyyy')} : '—'"></td>
+                        <td th:attr="data-date-iso=${c.samplingDate != null ? #temporals.format(c.samplingDate, 'yyyy-MM-dd') : ''}"
+                            th:text="${c.samplingDate} ? ${#temporals.format(c.samplingDate, 'dd.MM.yyyy')} : '—'"></td>
                         <td class="filter-expert" th:text="${c.expertFullName} ?: '—'"></td>
                         <td th:text="${c.sampleCount}"></td>
                         <td class="filter-status">

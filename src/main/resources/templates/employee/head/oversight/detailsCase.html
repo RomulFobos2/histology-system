@@ -46,6 +46,22 @@
                                 <div class="text-muted small">Ответственный эксперт</div>
                                 <div th:text="${caseDTO.expertFullName} ?: '—'"></div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата вскрытия</div>
+                                <div th:text="${caseDTO.autopsyDate} ? ${#temporals.format(caseDTO.autopsyDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Дата вырезки</div>
+                                <div th:text="${caseDTO.samplingDate} ? ${#temporals.format(caseDTO.samplingDate, 'dd.MM.yyyy')} : '—'"></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">Год рождения</div>
+                                <div th:text="${caseDTO.birthYear} ?: '—'"></div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="text-muted small">ФИО</div>
+                                <div th:text="${caseDTO.personFullName} ?: '—'"></div>
+                            </div>
                             <div class="col-md-12" th:if="${caseDTO.description != null and !caseDTO.description.isEmpty()}">
                                 <div class="text-muted small">Описание</div>
                                 <div th:text="${caseDTO.description}"></div>

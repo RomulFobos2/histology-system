@@ -75,10 +75,24 @@ public class ForensicCaseController {
     @PostMapping("/employee/laborant/cases/addCase")
     public String addCase(@RequestParam(required = false) String inputDescription,
                           @RequestParam(required = false) Long inputExpertId,
+                          @RequestParam(required = false)
+                          @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate inputAutopsyDate,
+                          @RequestParam(required = false)
+                          @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate inputSamplingDate,
+                          @RequestParam(required = false) String inputPersonFullName,
+                          @RequestParam(required = false) Integer inputBirthYear,
                           Model model) {
-        // inputCaseNumber и inputReceiptDate из формы не принимаем —
-        // эти поля автоматически генерируются сервером (защита от ручной правки HTML).
-        Optional<Long> result = forensicCaseService.saveCase(inputDescription, inputExpertId);
+        String validationError = validateExtraFields(inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
+        if (validationError != null) {
+            model.addAttribute("caseError", validationError);
+            model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+            model.addAttribute("previewCaseNumber", forensicCaseService.previewNextCaseNumber());
+            model.addAttribute("previewReceiptDate", LocalDate.now());
+            return "employee/laborant/cases/addCase";
+        }
+
+        Optional<Long> result = forensicCaseService.saveCase(inputDescription, inputExpertId,
+                inputAutopsyDate, inputSamplingDate, inputPersonFullName != null ? inputPersonFullName.trim() : null, inputBirthYear);
 
         if (result.isEmpty()) {
             model.addAttribute("caseError",
@@ -90,6 +104,27 @@ public class ForensicCaseController {
             return "employee/laborant/cases/addCase";
         }
         return "redirect:/employee/laborant/cases/detailsCase/" + result.get();
+    }
+
+    private String validateExtraFields(LocalDate autopsyDate, LocalDate samplingDate,
+                                       String personFullName, Integer birthYear) {
+        if (autopsyDate == null) {
+            return "Укажите дату вскрытия.";
+        }
+        if (samplingDate == null) {
+            return "Укажите дату вырезки.";
+        }
+        if (personFullName == null || personFullName.trim().isEmpty()) {
+            return "Укажите ФИО.";
+        }
+        if (birthYear == null) {
+            return "Укажите год рождения.";
+        }
+        int currentYear = LocalDate.now().getYear();
+        if (birthYear < 1900 || birthYear > currentYear) {
+            return "Год рождения должен быть в диапазоне 1900 — " + currentYear + ".";
+        }
+        return null;
     }
 
     // ========== Просмотр дела ==========
@@ -122,10 +157,21 @@ public class ForensicCaseController {
     public String editCase(@PathVariable(value = "id") long id,
                            @RequestParam(required = false) String inputDescription,
                            @RequestParam(required = false) Long inputExpertId,
+                           @RequestParam(required = false)
+                           @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate inputAutopsyDate,
+                           @RequestParam(required = false)
+                           @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate inputSamplingDate,
+                           @RequestParam(required = false) String inputPersonFullName,
+                           @RequestParam(required = false) Integer inputBirthYear,
                            RedirectAttributes redirectAttributes) {
-        // inputCaseNumber и inputReceiptDate при редактировании не принимаем —
-        // эти поля неизменяемы после регистрации дела.
-        Optional<Long> result = forensicCaseService.editCase(id, inputDescription, inputExpertId);
+        String validationError = validateExtraFields(inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
+        if (validationError != null) {
+            redirectAttributes.addFlashAttribute("caseError", validationError);
+            return "redirect:/employee/laborant/cases/editCase/" + id;
+        }
+
+        Optional<Long> result = forensicCaseService.editCase(id, inputDescription, inputExpertId,
+                inputAutopsyDate, inputSamplingDate, inputPersonFullName != null ? inputPersonFullName.trim() : null, inputBirthYear);
 
         if (result.isEmpty()) {
             redirectAttributes.addFlashAttribute("caseError", "Ошибка при сохранении изменений.");

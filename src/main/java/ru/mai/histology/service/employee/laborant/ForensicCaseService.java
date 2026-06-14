@@ -104,7 +104,9 @@ public class ForensicCaseService {
      * При коллизии UNIQUE(caseNumber) повторяет попытку до SAVE_RETRY_LIMIT раз
      * — на случай одновременной регистрации с другим лаборантом.
      */
-    public Optional<Long> saveCase(String description, Long expertId) {
+    public Optional<Long> saveCase(String description, Long expertId,
+                                   LocalDate autopsyDate, LocalDate samplingDate,
+                                   String personFullName, Integer birthYear) {
         log.info("Сохранение нового дела (автогенерация номера)");
 
         for (int attempt = 1; attempt <= SAVE_RETRY_LIMIT; attempt++) {
@@ -117,6 +119,10 @@ public class ForensicCaseService {
                     forensicCase.setCaseNumber(caseNumber);
                     forensicCase.setReceiptDate(receiptDate);
                     forensicCase.setDescription(description);
+                    forensicCase.setAutopsyDate(autopsyDate);
+                    forensicCase.setSamplingDate(samplingDate);
+                    forensicCase.setPersonFullName(personFullName);
+                    forensicCase.setBirthYear(birthYear);
                     forensicCase.setStatus(CaseStatus.OPEN);
 
                     if (expertId != null) {
@@ -149,7 +155,9 @@ public class ForensicCaseService {
      * из формы и берутся из существующей записи — эти поля неизменяемы.
      */
     @Transactional
-    public Optional<Long> editCase(Long id, String description, Long expertId) {
+    public Optional<Long> editCase(Long id, String description, Long expertId,
+                                   LocalDate autopsyDate, LocalDate samplingDate,
+                                   String personFullName, Integer birthYear) {
         log.info("Редактирование дела: id={}", id);
 
         Optional<ForensicCase> caseOptional = forensicCaseRepository.findById(id);
@@ -162,6 +170,10 @@ public class ForensicCaseService {
             ForensicCase forensicCase = caseOptional.get();
             // caseNumber и receiptDate не трогаем — они сгенерированы при создании
             forensicCase.setDescription(description);
+            forensicCase.setAutopsyDate(autopsyDate);
+            forensicCase.setSamplingDate(samplingDate);
+            forensicCase.setPersonFullName(personFullName);
+            forensicCase.setBirthYear(birthYear);
 
             if (expertId != null) {
                 Optional<Employee> expertOpt = employeeRepository.findById(expertId);
