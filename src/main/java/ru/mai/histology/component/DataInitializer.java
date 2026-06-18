@@ -60,6 +60,31 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         seedAutoencoderModels();
+        backfillEsrganMetricsFromUnet();
+    }
+
+    /**
+     * Разовая миграция: если U-Net обучали до того, как появилось зеркалирование
+     * метрик в ESRGAN, у ESRGAN-записи в БД psnr/ssim/mse могут быть null.
+     * Копируем их из U-Net один раз на старте.
+     */
+    private void backfillEsrganMetricsFromUnet() {
+        autoencoderModelRepository.findByModelName(ESRGAN_MODEL_NAME).ifPresent(esrgan -> {
+            if (esrgan.getPsnr() != null && esrgan.getSsim() != null && esrgan.getMse() != null) {
+                return;
+            }
+            autoencoderModelRepository.findByModelName(UNET_MODEL_NAME).ifPresent(unet -> {
+                if (unet.getPsnr() == null && unet.getSsim() == null && unet.getMse() == null) {
+                    return;
+                }
+                esrgan.setPsnr(unet.getPsnr());
+                esrgan.setSsim(unet.getSsim());
+                esrgan.setMse(unet.getMse());
+                autoencoderModelRepository.save(esrgan);
+                log.info("Метрики PSNR/SSIM/MSE скопированы из {} в {} (одноразовый backfill)",
+                        UNET_MODEL_NAME, ESRGAN_MODEL_NAME);
+            });
+        });
     }
 
     /**
