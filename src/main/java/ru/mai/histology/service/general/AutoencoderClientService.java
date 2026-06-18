@@ -37,7 +37,7 @@ public class AutoencoderClientService {
         // снимков (несколько мегапикселей) может занимать существенно больше времени,
         // чем U-Net. Ставим 20 минут — это покрывает любые реалистичные размеры
         // снимков на CPU без GPU и оставляет запас.
-        this.enhanceRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofMinutes(20));
+        this.enhanceRestTemplate = buildHttp11RestTemplate(restTemplateBuilder, Duration.ofSeconds(3), Duration.ofMinutes(50));
         log.info("Autoencoder HTTP transport forced to {} to avoid h2c upgrade issues with Uvicorn",
                 SimpleClientHttpRequestFactory.class.getSimpleName());
     }
