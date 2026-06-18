@@ -2,16 +2,22 @@ package ru.mai.histology.controllers.employee.laborant;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.mai.histology.dto.ForensicCaseDTO;
 import ru.mai.histology.enumeration.CaseStatus;
 import ru.mai.histology.repo.EmployeeRepository;
 import ru.mai.histology.service.employee.laborant.ForensicCaseService;
 import ru.mai.histology.service.employee.laborant.SampleService;
+import ru.mai.histology.service.general.FileStorageService;
+
+import java.io.IOException;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -22,16 +28,21 @@ import java.util.Optional;
 @Slf4j
 public class ForensicCaseController {
 
+    private static final long PROTOCOL_PDF_MAX_BYTES = 10L * 1024 * 1024;
+
     private final ForensicCaseService forensicCaseService;
     private final SampleService sampleService;
     private final EmployeeRepository employeeRepository;
+    private final FileStorageService fileStorageService;
 
     public ForensicCaseController(ForensicCaseService forensicCaseService,
                                   SampleService sampleService,
-                                  EmployeeRepository employeeRepository) {
+                                  EmployeeRepository employeeRepository,
+                                  FileStorageService fileStorageService) {
         this.forensicCaseService = forensicCaseService;
         this.sampleService = sampleService;
         this.employeeRepository = employeeRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     // ========== AJAX проверка уникальности номера дела ==========
@@ -72,7 +83,7 @@ public class ForensicCaseController {
         return "employee/laborant/cases/addCase";
     }
 
-    @PostMapping("/employee/laborant/cases/addCase")
+    @PostMapping(value = "/employee/laborant/cases/addCase", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public String addCase(@RequestParam(required = false) String inputDescription,
                           @RequestParam(required = false) Long inputExpertId,
                           @RequestParam(required = false)
@@ -81,6 +92,7 @@ public class ForensicCaseController {
                           @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate inputSamplingDate,
                           @RequestParam(required = false) String inputPersonFullName,
                           @RequestParam(required = false) Integer inputBirthYear,
+                          @RequestParam(required = false) MultipartFile inputProtocolPdf,
                           Model model) {
         String validationError = validateExtraFields(LocalDate.now(), inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
         if (validationError != null) {
@@ -91,8 +103,33 @@ public class ForensicCaseController {
             return "employee/laborant/cases/addCase";
         }
 
+        String protocolPdfPath = null;
+        if (inputProtocolPdf != null && !inputProtocolPdf.isEmpty()) {
+            String pdfError = validateProtocolPdf(inputProtocolPdf);
+            if (pdfError != null) {
+                model.addAttribute("caseError", pdfError);
+                model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+                model.addAttribute("previewCaseNumber", forensicCaseService.previewNextCaseNumber());
+                model.addAttribute("previewReceiptDate", LocalDate.now());
+                return "employee/laborant/cases/addCase";
+            }
+            try {
+                String caseNumberForPath = forensicCaseService.previewNextCaseNumber()
+                        .replaceAll("[/\\\\]", "_");
+                protocolPdfPath = fileStorageService.saveProtocolPdf(inputProtocolPdf.getBytes(), caseNumberForPath);
+            } catch (IOException e) {
+                log.error("Не удалось прочитать PDF-протокол: {}", e.getMessage(), e);
+                model.addAttribute("caseError", "Не удалось прочитать PDF-файл протокола.");
+                model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
+                model.addAttribute("previewCaseNumber", forensicCaseService.previewNextCaseNumber());
+                model.addAttribute("previewReceiptDate", LocalDate.now());
+                return "employee/laborant/cases/addCase";
+            }
+        }
+
         Optional<Long> result = forensicCaseService.saveCase(inputDescription, inputExpertId,
-                inputAutopsyDate, inputSamplingDate, inputPersonFullName != null ? inputPersonFullName.trim() : null, inputBirthYear);
+                inputAutopsyDate, inputSamplingDate, inputPersonFullName != null ? inputPersonFullName.trim() : null, inputBirthYear,
+                protocolPdfPath);
 
         if (result.isEmpty()) {
             model.addAttribute("caseError",
@@ -104,6 +141,49 @@ public class ForensicCaseController {
             return "employee/laborant/cases/addCase";
         }
         return "redirect:/employee/laborant/cases/detailsCase/" + result.get();
+    }
+
+    @GetMapping("/employee/laborant/cases/protocol/{id}")
+    public ResponseEntity<byte[]> downloadProtocol(@PathVariable long id) {
+        return getProtocolBytes(id);
+    }
+
+    @GetMapping("/employee/head/oversight/protocol/{id}")
+    public ResponseEntity<byte[]> downloadProtocolForHead(@PathVariable long id) {
+        return getProtocolBytes(id);
+    }
+
+    private ResponseEntity<byte[]> getProtocolBytes(long id) {
+        Optional<ForensicCaseDTO> caseOpt = forensicCaseService.getCaseById(id);
+        if (caseOpt.isEmpty() || caseOpt.get().getProtocolPdfPath() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] bytes = fileStorageService.readFile(caseOpt.get().getProtocolPdfPath());
+        if (bytes == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String filename = "protocol_" + caseOpt.get().getCaseNumber().replaceAll("[/\\\\]", "_") + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(bytes);
+    }
+
+    private String validateProtocolPdf(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return "Файл не загружен.";
+        }
+        if (file.getSize() > PROTOCOL_PDF_MAX_BYTES) {
+            return "Размер PDF-протокола превышает 10 МБ.";
+        }
+        String contentType = file.getContentType();
+        String name = file.getOriginalFilename();
+        boolean okType = "application/pdf".equalsIgnoreCase(contentType)
+                || (name != null && name.toLowerCase().endsWith(".pdf"));
+        if (!okType) {
+            return "Допускаются только файлы PDF.";
+        }
+        return null;
     }
 
     private String validateExtraFields(LocalDate receiptDate,

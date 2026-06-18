@@ -101,6 +101,13 @@
                             Образцы не зарегистрированы
                         </div>
 
+                        <div th:if="${caseDTO.protocolPdfPath != null}" class="mb-3">
+                            <a th:href="@{/employee/head/oversight/protocol/{id}(id=${caseDTO.id})}"
+                               class="btn btn-outline-primary">
+                                <i class="bi bi-file-earmark-pdf"></i> Скачать протокол о поступлении трупа
+                            </a>
+                        </div>
+
                         <div class="link-section mt-3">
                             <a th:href="@{/employee/head/oversight/allCases}">← Все дела</a>
                         </div>

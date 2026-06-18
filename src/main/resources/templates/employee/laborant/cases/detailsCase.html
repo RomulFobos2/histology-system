@@ -76,6 +76,11 @@
                                class="btn btn-primary btn-profile">
                                 <i class="bi bi-pencil"></i> Редактировать
                             </a>
+                            <a th:if="${caseDTO.protocolPdfPath != null}"
+                               th:href="@{/employee/laborant/cases/protocol/{id}(id=${caseDTO.id})}"
+                               class="btn btn-outline-primary btn-profile">
+                                <i class="bi bi-file-earmark-pdf"></i> Скачать протокол о поступлении трупа
+                            </a>
                             <a th:href="@{/employee/laborant/samples/addSample/{id}(id=${caseDTO.id})}"
                                class="btn btn-success btn-profile">
                                 <i class="bi bi-plus-lg"></i> Добавить образец

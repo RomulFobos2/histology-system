@@ -27,7 +27,8 @@
 
                         <div th:if="${caseError}" class="alert alert-danger" th:text="${caseError}"></div>
 
-                        <form action="/employee/laborant/cases/addCase" method="post" class="auth-form">
+                        <form action="/employee/laborant/cases/addCase" method="post" class="auth-form"
+                              enctype="multipart/form-data">
 
                             <h6 class="form-section-title">Данные дела</h6>
                             <div class="row g-3 mb-4">
@@ -60,17 +61,28 @@
                                 </div>
                                 <div class="col-md-9">
                                     <label class="form-label">ФИО *</label>
-                                    <input type="text" name="inputPersonFullName" class="form-control"
-                                           maxlength="200" required>
+                                    <input type="text" name="inputPersonFullName"
+                                           class="form-control" maxlength="200" required>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Год рождения *</label>
-                                    <input type="number" name="inputBirthYear" class="form-control"
+                                    <input type="number" name="inputBirthYear"
+                                           class="form-control"
                                            min="1900" th:max="${T(java.time.LocalDate).now().getYear()}" required>
                                 </div>
                                 <div class="col-md-12">
+                                    <label class="form-label">Протокол о поступлении трупа (PDF)</label>
+                                    <input type="file" name="inputProtocolPdf"
+                                           class="form-control" accept="application/pdf">
+                                    <div class="form-text text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Необязательный файл, до 10 МБ. Будет прикреплён к делу.
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
                                     <label class="form-label">Описание</label>
-                                    <textarea name="inputDescription" class="form-control" rows="3"
+                                    <textarea name="inputDescription"
+                                              class="form-control" rows="3"
                                               placeholder="Краткое описание дела"></textarea>
                                 </div>
                                 <div class="col-md-6">

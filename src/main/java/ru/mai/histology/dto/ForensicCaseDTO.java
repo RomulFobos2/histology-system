@@ -15,6 +15,7 @@ public class ForensicCaseDTO {
     private LocalDate samplingDate;
     private String personFullName;
     private Integer birthYear;
+    private String protocolPdfPath;
     private CaseStatus status;
     private String statusDisplayName;
     private Long expertId;
