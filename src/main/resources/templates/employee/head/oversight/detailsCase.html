@@ -43,7 +43,7 @@
                                 <div th:text="${caseDTO.receiptDate} ? ${#temporals.format(caseDTO.receiptDate, 'dd.MM.yyyy')} : '—'"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="text-muted small">Ответственный эксперт</div>
+                                <div class="text-muted small">Ответственный врач-гистолог</div>
                                 <div th:text="${caseDTO.expertFullName} ?: '—'"></div>
                             </div>
                             <div class="col-md-4">

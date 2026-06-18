@@ -82,7 +82,7 @@ public class ForensicCaseController {
                           @RequestParam(required = false) String inputPersonFullName,
                           @RequestParam(required = false) Integer inputBirthYear,
                           Model model) {
-        String validationError = validateExtraFields(inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
+        String validationError = validateExtraFields(LocalDate.now(), inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
         if (validationError != null) {
             model.addAttribute("caseError", validationError);
             model.addAttribute("allExperts", employeeRepository.findAllByRole_Name("ROLE_EMPLOYEE_HISTOLOGIST"));
@@ -106,13 +106,20 @@ public class ForensicCaseController {
         return "redirect:/employee/laborant/cases/detailsCase/" + result.get();
     }
 
-    private String validateExtraFields(LocalDate autopsyDate, LocalDate samplingDate,
+    private String validateExtraFields(LocalDate receiptDate,
+                                       LocalDate autopsyDate, LocalDate samplingDate,
                                        String personFullName, Integer birthYear) {
         if (autopsyDate == null) {
             return "Укажите дату вскрытия.";
         }
         if (samplingDate == null) {
             return "Укажите дату вырезки.";
+        }
+        if (receiptDate != null && autopsyDate.isBefore(receiptDate)) {
+            return "Дата вскрытия не может быть раньше даты поступления.";
+        }
+        if (receiptDate != null && samplingDate.isBefore(receiptDate)) {
+            return "Дата вырезки не может быть раньше даты поступления.";
         }
         if (personFullName == null || personFullName.trim().isEmpty()) {
             return "Укажите ФИО.";
@@ -164,7 +171,10 @@ public class ForensicCaseController {
                            @RequestParam(required = false) String inputPersonFullName,
                            @RequestParam(required = false) Integer inputBirthYear,
                            RedirectAttributes redirectAttributes) {
-        String validationError = validateExtraFields(inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
+        LocalDate receiptDate = forensicCaseService.getCaseById(id)
+                .map(ForensicCaseDTO::getReceiptDate)
+                .orElse(null);
+        String validationError = validateExtraFields(receiptDate, inputAutopsyDate, inputSamplingDate, inputPersonFullName, inputBirthYear);
         if (validationError != null) {
             redirectAttributes.addFlashAttribute("caseError", validationError);
             return "redirect:/employee/laborant/cases/editCase/" + id;

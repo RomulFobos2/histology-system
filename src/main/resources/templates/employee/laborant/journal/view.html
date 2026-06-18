@@ -69,7 +69,7 @@
                     <div class="col-md-3">
                         <label class="form-label">Поиск</label>
                         <input type="text" id="filterSearch" class="form-control form-control-sm"
-                               placeholder="По номеру дела или образца..." oninput="applyJournalFilters()">
+                               placeholder="По номеру дела..." oninput="applyJournalFilters()">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">На странице</label>
@@ -89,11 +89,10 @@
                         <tr>
                             <th data-sortable data-sort-type="number">№</th>
                             <th data-sortable data-sort-type="text">№ дела</th>
-                            <th data-sortable data-sort-type="text">№ образца</th>
                             <th data-sortable data-sort-type="date">Дата поступления</th>
                             <th data-sortable data-sort-type="text">Тип ткани</th>
                             <th data-sortable data-sort-type="text">Метод окрашивания</th>
-                            <th data-sortable data-sort-type="text">Эксперт</th>
+                            <th data-sortable data-sort-type="text">Врач-гистолог</th>
                             <th data-sortable data-sort-type="text">Статус</th>
                         </tr>
                         </thead>
@@ -101,7 +100,6 @@
                         <tr th:each="s, index : ${allSamples}">
                             <td class="row-number" th:text="${index.index + 1}"></td>
                             <td class="filter-case" th:text="${s.caseNumber}"></td>
-                            <td class="filter-sample" th:text="${s.sampleNumber}"></td>
                             <td class="filter-date"
                                 th:attr="data-date-iso=${s.receiptDate != null ? #temporals.format(s.receiptDate, 'yyyy-MM-dd') : ''}"
                                 th:text="${s.receiptDate} ? ${#temporals.format(s.receiptDate, 'dd.MM.yyyy')} : '—'"></td>
@@ -178,7 +176,6 @@
             var tStaining = (row.querySelector('.filter-staining') || {}).textContent || '';
             var tStatus = (row.querySelector('.filter-status') || {}).textContent || '';
             var tCase = ((row.querySelector('.filter-case') || {}).textContent || '').toLowerCase();
-            var tSample = ((row.querySelector('.filter-sample') || {}).textContent || '').toLowerCase();
             var dateCell = row.querySelector('.filter-date');
             var iso = dateCell ? (dateCell.getAttribute('data-date-iso') || '') : '';
 
@@ -186,7 +183,7 @@
             if (tissue && tTissue.trim() !== tissue) show = false;
             if (staining && tStaining.trim() !== staining) show = false;
             if (status && tStatus.trim() !== status) show = false;
-            if (search && tCase.indexOf(search) === -1 && tSample.indexOf(search) === -1) show = false;
+            if (search && tCase.indexOf(search) === -1) show = false;
             if (dateFrom && (!iso || iso < dateFrom)) show = false;
             if (dateTo && (!iso || iso > dateTo)) show = false;
 

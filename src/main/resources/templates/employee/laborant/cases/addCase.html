@@ -50,11 +50,13 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Дата вскрытия *</label>
-                                    <input type="date" name="inputAutopsyDate" class="form-control" required>
+                                    <input type="date" name="inputAutopsyDate" class="form-control"
+                                           th:min="${previewReceiptDate}" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Дата вырезки *</label>
-                                    <input type="date" name="inputSamplingDate" class="form-control" required>
+                                    <input type="date" name="inputSamplingDate" class="form-control"
+                                           th:min="${previewReceiptDate}" required>
                                 </div>
                                 <div class="col-md-9">
                                     <label class="form-label">ФИО *</label>
@@ -72,7 +74,7 @@
                                               placeholder="Краткое описание дела"></textarea>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Ответственный эксперт</label>
+                                    <label class="form-label">Ответственный врач-гистолог</label>
                                     <select name="inputExpertId" class="form-select">
                                         <option value="">— Не назначен —</option>
                                         <option th:each="expert : ${allExperts}"

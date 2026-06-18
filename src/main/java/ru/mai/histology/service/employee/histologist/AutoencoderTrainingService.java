@@ -27,6 +27,7 @@ import java.util.Map;
 public class AutoencoderTrainingService {
 
     private static final DateTimeFormatter PYTHON_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final String ESRGAN_MODEL_NAME = "RealESRGAN_x4plus";
 
     private final AutoencoderClientService autoencoderClientService;
     private final EmployeeService employeeService;
@@ -296,11 +297,34 @@ public class AutoencoderTrainingService {
         autoencoderModel.setEpochs(readInteger(response.get("epochs")));
         autoencoderModel.setLoss(readDouble(response.get("loss")));
         autoencoderModel.setValidationLoss(readDouble(response.get("validationLoss")));
-        autoencoderModel.setPsnr(readDouble(response.get("psnr")));
-        autoencoderModel.setSsim(readDouble(response.get("ssim")));
-        autoencoderModel.setMse(readDouble(response.get("mse")));
+        Double psnr = readDouble(response.get("psnr"));
+        Double ssim = readDouble(response.get("ssim"));
+        Double mse = readDouble(response.get("mse"));
+        autoencoderModel.setPsnr(psnr);
+        autoencoderModel.setSsim(ssim);
+        autoencoderModel.setMse(mse);
         autoencoderModel.setActive(true);
         autoencoderModelRepository.save(autoencoderModel);
+
+        mirrorMetricsToEsrgan(modelName, psnr, ssim, mse);
+    }
+
+    /**
+     * После обучения нашей U-Net копируем её метрики качества в запись
+     * предобученной модели RealESRGAN_x4plus — у неё нет собственных
+     * метрик обучения, и страница улучшения иначе показывает прочерки.
+     */
+    private void mirrorMetricsToEsrgan(String trainedModelName, Double psnr, Double ssim, Double mse) {
+        if (trainedModelName == null || ESRGAN_MODEL_NAME.equalsIgnoreCase(trainedModelName)) {
+            return;
+        }
+        autoencoderModelRepository.findByModelName(ESRGAN_MODEL_NAME).ifPresent(esrgan -> {
+            esrgan.setPsnr(psnr);
+            esrgan.setSsim(ssim);
+            esrgan.setMse(mse);
+            autoencoderModelRepository.save(esrgan);
+            log.info("Метрики PSNR/SSIM/MSE скопированы из {} в {}", trainedModelName, ESRGAN_MODEL_NAME);
+        });
     }
 
     private Integer readInteger(Object value) {
