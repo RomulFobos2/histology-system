@@ -44,6 +44,9 @@ public class ForensicCase {
 
     private Integer birthYear;
 
+    @Column(length = 500)
+    private String protocolPdfPath;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(length = 30)

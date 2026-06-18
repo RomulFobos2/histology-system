@@ -95,6 +95,27 @@ public class FileStorageService {
     }
 
     /**
+     * Сохраняет PDF-протокол дела. Путь: protocols/{caseNumber}/{uuid}.pdf
+     */
+    public String saveProtocolPdf(byte[] data, String caseNumber) {
+        try {
+            String storedFilename = UUID.randomUUID() + ".pdf";
+            Path dir = basePath.resolve("protocols").resolve(caseNumber);
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            Path filePath = dir.resolve(storedFilename);
+            Files.write(filePath, data);
+            String relativePath = "protocols/" + caseNumber + "/" + storedFilename;
+            log.info("PDF-протокол сохранён: {}", relativePath);
+            return relativePath;
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении PDF-протокола: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
      * Читает файл с диска.
      */
     public byte[] readFile(String relativePath) {

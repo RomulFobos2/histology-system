@@ -106,7 +106,8 @@ public class ForensicCaseService {
      */
     public Optional<Long> saveCase(String description, Long expertId,
                                    LocalDate autopsyDate, LocalDate samplingDate,
-                                   String personFullName, Integer birthYear) {
+                                   String personFullName, Integer birthYear,
+                                   String protocolPdfPath) {
         log.info("Сохранение нового дела (автогенерация номера)");
 
         for (int attempt = 1; attempt <= SAVE_RETRY_LIMIT; attempt++) {
@@ -123,6 +124,7 @@ public class ForensicCaseService {
                     forensicCase.setSamplingDate(samplingDate);
                     forensicCase.setPersonFullName(personFullName);
                     forensicCase.setBirthYear(birthYear);
+                    forensicCase.setProtocolPdfPath(protocolPdfPath);
                     forensicCase.setStatus(CaseStatus.OPEN);
 
                     if (expertId != null) {
