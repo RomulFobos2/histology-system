@@ -283,6 +283,11 @@ class AutoencoderService:
 
             model.eval()
             validation_losses = []
+            # Обнуляем аккумуляторы метрик в начале каждой эпохи, иначе значения
+            # предыдущих эпох переносятся и усредняются повторно (SSIM выходит > 1).
+            final_psnr = 0.0
+            final_ssim = 0.0
+            final_mse = 0.0
             with torch.no_grad():
                 for degraded_batch, clean_batch in validation_loader:
                     degraded_batch = degraded_batch.to(self.device)
